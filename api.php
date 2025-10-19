@@ -570,38 +570,44 @@ function deleteColumn($conn, $tableName, $columnName) {
  * Build column definition from form data
  */
 function buildColumnDefinition($data) {
-    $definition = $data['type'];
+    // Ensure type is present; default to VARCHAR(255)
+    $type = isset($data['type']) ? trim($data['type']) : 'VARCHAR(255)';
+    $definition = $type;
     
-    // Add NOT NULL if not allowing null
-    if (!$data['null']) {
+    // Nullability (default allow null when unspecified)
+    $allowNull = isset($data['null']) ? (bool)$data['null'] : true;
+    if (!$allowNull) {
         $definition .= ' NOT NULL';
     }
     
-    // Add DEFAULT value
-    if ($data['default'] !== null && $data['default'] !== '') {
-        $definition .= ' DEFAULT ' . $data['default'];
+    // DEFAULT value: quote strings safely; allow common SQL keywords/functions
+    if (array_key_exists('default', $data) && $data['default'] !== null && $data['default'] !== '') {
+        $rawDefault = $data['default'];
+        $upperDefault = strtoupper(trim((string)$rawDefault));
+        $isNumeric = is_numeric($rawDefault);
+        $isAllowedKeyword = in_array($upperDefault, [
+            'NULL', 'CURRENT_TIMESTAMP', 'CURRENT_TIMESTAMP()', 'NOW()', 'CURRENT_DATE', 'CURRENT_TIME', 'TRUE', 'FALSE'
+        ], true);
+        if ($isNumeric || $isAllowedKeyword) {
+            $definition .= ' DEFAULT ' . $rawDefault;
+        } else {
+            $quoted = "'" . str_replace("'", "''", (string)$rawDefault) . "'";
+            $definition .= ' DEFAULT ' . $quoted;
+        }
     }
     
-    // Add AUTO_INCREMENT
-    if ($data['auto_increment']) {
+    if (!empty($data['auto_increment'])) {
         $definition .= ' AUTO_INCREMENT';
     }
-    
-    // Add UNIQUE
-    if ($data['unique']) {
+    if (!empty($data['unique'])) {
         $definition .= ' UNIQUE';
     }
-    
-    // Add PRIMARY KEY
-    if ($data['primary']) {
+    if (!empty($data['primary'])) {
         $definition .= ' PRIMARY KEY';
     }
-    
-    // Add extra attributes
     if (!empty($data['extra'])) {
         $definition .= ' ' . $data['extra'];
     }
-    
     return $definition;
 }
 
@@ -620,9 +626,13 @@ function executeQuery($conn, $query) {
     // Determine query type
     $queryType = strtoupper(substr(ltrim($query), 0, 6));
     
-    // Security check: prevent multiple queries (basic protection)
-    if (strpos($query, ';') !== false && substr(rtrim($query), -1) !== ';') {
-        throw new Exception("Multiple queries are not allowed");
+    // Security check: prevent multiple statements (robust)
+    $statementString = rtrim($query, "; \t\n\r");
+    $statementParts = array_filter(array_map('trim', explode(';', $statementString)), function ($part) {
+        return $part !== '';
+    });
+    if (count($statementParts) > 1) {
+        throw new Exception("Multiple statements are not allowed");
     }
     
     // Remove trailing semicolon if present
@@ -980,8 +990,9 @@ function exportDatabase($conn, $name) {
         throw new Exception("Database name is required");
     }
     
-    $includeCreateDatabase = $_POST['includeCreateDatabase'] ?? true;
-    $dataOnly = $_POST['dataOnly'] ?? false;
+    // Coerce booleans from string values
+    $includeCreateDatabase = isset($_POST['includeCreateDatabase']) ? filter_var($_POST['includeCreateDatabase'], FILTER_VALIDATE_BOOLEAN) : true;
+    $dataOnly = isset($_POST['dataOnly']) ? filter_var($_POST['dataOnly'], FILTER_VALIDATE_BOOLEAN) : false;
     
     $sql = "-- Database Export: $name\n";
     $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n\n";
@@ -1107,8 +1118,9 @@ function importDatabase($conn) {
  * Export all databases to SQL (optimized for speed)
  */
 function exportAllDatabases($conn) {
-    $includeCreateDatabase = $_POST['includeCreateDatabase'] ?? true;
-    $dataOnly = $_POST['dataOnly'] ?? false;
+    // Coerce booleans from string values
+    $includeCreateDatabase = isset($_POST['includeCreateDatabase']) ? filter_var($_POST['includeCreateDatabase'], FILTER_VALIDATE_BOOLEAN) : true;
+    $dataOnly = isset($_POST['dataOnly']) ? filter_var($_POST['dataOnly'], FILTER_VALIDATE_BOOLEAN) : false;
     $customFilename = $_POST['filename'] ?? 'all_databases_export';
     
     // Optimize PHP settings for speed
