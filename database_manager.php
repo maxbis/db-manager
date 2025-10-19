@@ -957,9 +957,6 @@ require_once 'login/auth_check.php';
                 </select>
             </div>
             <button id="refreshBtn">🔄 Refresh</button>
-            <button id="exportAllDatabasesBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 10px;">
-                📦 Export All Databases
-            </button>
         '
     ];
     include 'templates/header.php';
@@ -991,9 +988,9 @@ require_once 'login/auth_check.php';
                         <!-- <p style="color: var(--color-text-tertiary); margin-bottom: 15px;">
                             Manage databases.
                         </p> -->
-                        <div class="action-buttons">
-                            <button id="createDatabaseBtn" class="btn-success">➕ Create Database</button>
-                            <button id="deleteDatabaseBtn" class="btn-danger" disabled>🗑️ Delete Database</button>
+                        <div class="action-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button id="createDatabaseBtn" class="btn-success" style="padding: 6px 12px; font-size: 12px;">➕ Create DB</button>
+                            <button id="deleteDatabaseBtn" class="btn-danger" disabled style="padding: 6px 12px; font-size: 12px;">🗑️ Delete DB</button>
                         </div>
                     </div>
 
@@ -1005,9 +1002,9 @@ require_once 'login/auth_check.php';
                         <!-- <p style="color: var(--color-text-tertiary); margin-bottom: 15px;">
                             Manage tables within the selected database.
                         </p> -->
-                        <div class="action-buttons">
-                            <button id="createTableBtn" class="btn-success" disabled>➕ Create Table</button>
-                            <button id="deleteTableBtn" class="btn-danger" disabled>🗑️ Delete Table</button>
+                        <div class="action-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button id="createTableBtn" class="btn-success" disabled style="padding: 6px 12px; font-size: 12px;">➕ Create Table</button>
+                            <button id="deleteTableBtn" class="btn-danger" disabled style="padding: 6px 12px; font-size: 12px;">🗑️ Delete Table</button>
                         </div>
                     </div>
 
@@ -1019,9 +1016,12 @@ require_once 'login/auth_check.php';
                             <!-- <p style="color: var(--color-text-tertiary); margin-bottom: 15px;">
                                 Backup and restore your database.
                             </p> -->
-                        <div class="action-buttons">
-                            <button id="exportDatabaseBtn" class="btn-warning" disabled>📤 Export Database</button>
-                            <button id="importDatabaseBtn" class="btn-warning">📥 Import Database</button>
+                        <div class="action-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button id="exportDatabaseBtn" class="btn-warning" disabled style="padding: 6px 12px; font-size: 12px;">📤 Export DB</button>
+                            <button id="importDatabaseBtn" class="btn-warning" style="padding: 6px 12px; font-size: 12px;">📥 Import DB</button>
+                            <button id="exportAllDatabasesBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;">
+                                📦 Export All
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1157,7 +1157,7 @@ require_once 'login/auth_check.php';
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal('exportDatabaseModal')">Cancel</button>
-                <button class="btn-warning" id="confirmExportBtn">📤 Export</button>
+                <button class="btn-warning" id="confirmExportBtn" style="padding: 6px 12px; font-size: 12px;">📤 Export</button>
             </div>
         </div>
     </div>
@@ -1188,7 +1188,38 @@ require_once 'login/auth_check.php';
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal('importDatabaseModal')">Cancel</button>
-                <button class="btn-warning" id="confirmImportBtn">📥 Import</button>
+                <button class="btn-warning" id="confirmImportBtn" style="padding: 6px 12px; font-size: 12px;">📥 Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export All Databases Modal -->
+    <div class="modal" id="exportAllDatabasesModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📦 Export All Databases</h2>
+                <button class="modal-close" onclick="closeModal('exportAllDatabasesModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="exportAllFilename">Filename:</label>
+                    <input type="text" id="exportAllFilename" value="all_databases_export" placeholder="Enter filename (without extension)">
+                    <div class="help-text">File will be saved as: filename_YYYY-MM-DD_HH-MM-SS.sql</div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="exportAllIncludeCreateDatabase" checked> Include CREATE DATABASE statements
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="exportAllDataOnly"> Export data only (no table structure)
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeModal('exportAllDatabasesModal')">Cancel</button>
+                <button class="btn-success" id="confirmExportAllBtn" style="padding: 6px 12px; font-size: 12px;">📦 Export All</button>
             </div>
         </div>
     </div>
@@ -1272,7 +1303,7 @@ require_once 'login/auth_check.php';
             });
 
             $('#exportAllDatabasesBtn').click(function() {
-                exportAllDatabases();
+                openModal('exportAllDatabasesModal');
             });
 
             $('#confirmCreateDatabaseBtn').click(function() {
@@ -1289,6 +1320,10 @@ require_once 'login/auth_check.php';
 
             $('#confirmExportBtn').click(function() {
                 exportDatabase();
+            });
+
+            $('#confirmExportAllBtn').click(function() {
+                exportAllDatabases();
             });
 
             // Close modal on outside click
@@ -1385,10 +1420,10 @@ require_once 'login/auth_check.php';
                                 <span class="database-size-text">${displaySize}</span>
                             </div>
                         </div>
-                        <div class="database-actions">
-                            <button class="btn-success" onclick="selectDatabase('${db.name}')">Select</button>
-                            <button class="btn-warning" onclick="openExportModal('${db.name}')">Export</button>
-                            <button class="btn-danger" onclick="deleteDatabase('${db.name}')">Delete</button>
+                        <div class="database-actions" style="display: flex; gap: 6px;">
+                            <button class="btn-success" onclick="selectDatabase('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Select</button>
+                            <button class="btn-warning" onclick="openExportModal('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Export</button>
+                            <button class="btn-danger" onclick="deleteDatabase('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>
                         </div>
                     </div>
                 `);
@@ -1422,9 +1457,9 @@ require_once 'login/auth_check.php';
                                 <p>Table in ${currentDatabase}</p>
                             </div>
                         </div>
-                        <div class="table-actions">
-                            <button class="btn-success" onclick="viewTable('${table}')">View</button>
-                            <button class="btn-danger" onclick="deleteTable('${table}')">Delete</button>
+                        <div class="table-actions" style="display: flex; gap: 6px;">
+                            <button class="btn-success" onclick="viewTable('${table}')" style="padding: 4px 8px; font-size: 11px;">View</button>
+                            <button class="btn-danger" onclick="deleteTable('${table}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>
                         </div>
                     </div>
                 `);
@@ -1524,44 +1559,60 @@ require_once 'login/auth_check.php';
 
         // Export all databases
         function exportAllDatabases() {
-            if (confirm('This will export ALL databases on your MySQL server. This may take a while for large databases. Continue?')) {
-                // Show loading state
-                $('#exportAllDatabasesBtn').prop('disabled', true).text('📦 Exporting...');
-                
-                // Create a form to submit the request
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = 'api.php';
-                form.target = '_blank'; // Open in new tab for download
-                
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'exportAllDatabases';
-                
-                const includeCreateInput = document.createElement('input');
-                includeCreateInput.type = 'hidden';
-                includeCreateInput.name = 'includeCreateDatabase';
-                includeCreateInput.value = 'true';
-                
-                const dataOnlyInput = document.createElement('input');
-                dataOnlyInput.type = 'hidden';
-                dataOnlyInput.name = 'dataOnly';
-                dataOnlyInput.value = 'false';
-                
-                form.appendChild(actionInput);
-                form.appendChild(includeCreateInput);
-                form.appendChild(dataOnlyInput);
-                
-                document.body.appendChild(form);
-                form.submit();
-                document.body.removeChild(form);
-                
-                // Reset button after a delay
-                setTimeout(() => {
-                    $('#exportAllDatabasesBtn').prop('disabled', false).text('📦 Export All Databases');
-                }, 2000);
+            const filename = $('#exportAllFilename').val().trim();
+            const includeCreateDatabase = $('#exportAllIncludeCreateDatabase').is(':checked');
+            const dataOnly = $('#exportAllDataOnly').is(':checked');
+            
+            if (!filename) {
+                showToast('Please enter a filename', 'error');
+                return;
             }
+            
+            // Show loading state
+            $('#confirmExportAllBtn').prop('disabled', true).text('📦 Exporting...');
+            
+            // Close modal immediately
+            closeModal('exportAllDatabasesModal');
+            
+            // Create a form to submit the request
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'api.php';
+            // Remove target='_blank' to stay in same window
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'exportAllDatabases';
+            
+            const filenameInput = document.createElement('input');
+            filenameInput.type = 'hidden';
+            filenameInput.name = 'filename';
+            filenameInput.value = filename;
+            
+            const includeCreateInput = document.createElement('input');
+            includeCreateInput.type = 'hidden';
+            includeCreateInput.name = 'includeCreateDatabase';
+            includeCreateInput.value = includeCreateDatabase ? 'true' : 'false';
+            
+            const dataOnlyInput = document.createElement('input');
+            dataOnlyInput.type = 'hidden';
+            dataOnlyInput.name = 'dataOnly';
+            dataOnlyInput.value = dataOnly ? 'true' : 'false';
+            
+            form.appendChild(actionInput);
+            form.appendChild(filenameInput);
+            form.appendChild(includeCreateInput);
+            form.appendChild(dataOnlyInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+            
+            // Reset button after a delay
+            setTimeout(() => {
+                $('#confirmExportAllBtn').prop('disabled', false).text('📦 Export All');
+            }, 2000);
         }
 
         // Create database
