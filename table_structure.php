@@ -873,10 +873,28 @@ require_once 'login/auth_check.php';
                     });
                 }
             }
+
+            // Update database badge in header
+            function updateDatabaseBadge() {
+                const databaseBadge = document.querySelector('.control-group span span');
+                if (databaseBadge) {
+                    const databaseName = databaseBadge.textContent.replace('🗄️ ', '');
+                    const tableName = $('#tableSelect').val();
+                    
+                    let displayText = '🗄️ ' + databaseName;
+                    if (tableName) {
+                        // Extract just the database name (remove any existing table part)
+                        const dbName = databaseName.split(' - ')[0];
+                        displayText = '🗄️ ' + dbName + ' -  ' + tableName;
+                    }
+                    databaseBadge.textContent = displayText;
+                }
+            }
             
             $('#tableSelect').change(function() {
                 currentTable = $(this).val();
                 updateNavLinks();
+                updateDatabaseBadge();
                 if (currentTable) {
                     loadTableStructure();
                     $('#addColumnBtn').show();

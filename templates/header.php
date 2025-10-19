@@ -12,6 +12,11 @@
  * include 'templates/header.php';
  */
 
+// Ensure db_config is loaded for database functions
+if (!function_exists('getCurrentDatabase')) {
+    require_once __DIR__ . '/../db_config.php';
+}
+
 // Default values
 $pageConfig = array_merge([
     'id' => '',
@@ -50,23 +55,57 @@ $menuItems = [
 
 // Get selected table from URL if available
 $selectedTable = isset($_GET['table']) ? $_GET['table'] : '';
+
+// Get current database if available
+$currentDatabase = null;
+
+// Priority order: URL parameter > session cache > getCurrentDatabase() > DB_NAME
+$currentDatabase = $_GET['database'] ?? $_SESSION['auto_selected_database'] ?? null;
+
+// If still no database, try getCurrentDatabase() function
+if (!$currentDatabase && function_exists('getCurrentDatabase')) {
+    $currentDatabase = getCurrentDatabase();
+}
+
+// Final fallback to DB_NAME
+if (!$currentDatabase) {
+    $currentDatabase = DB_NAME;
+}
+
+// Format database display: database.table if table is selected, otherwise just database
+$databaseDisplay = $currentDatabase;
+if (!empty($selectedTable) && !empty($currentDatabase)) {
+    $databaseDisplay = $currentDatabase . ' -  ' . $selectedTable;
+}
 ?>
 
 <div class="container">
     <div class="header">
-        <h1><?php echo $pageConfig['icon']; ?> <?php echo htmlspecialchars($pageConfig['title']); ?></h1>
-        
-        <div class="controls">
-            <?php echo $pageConfig['controls_html']; ?>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h1 style="margin: 0;"><?php echo $pageConfig['icon']; ?> <?php echo htmlspecialchars($pageConfig['title']); ?></h1>
             
             <?php if (isset($_SESSION['username'])): ?>
-            <div class="control-group" style="margin-left: auto;">
+            <div class="control-group">
                 <span style="font-size: 12px; color: var(--color-text-tertiary);">
                     👤 <?php echo htmlspecialchars($_SESSION['username']); ?>
                 </span>
                 <a href="login/logout.php" style="padding: 8px 12px; font-size: 12px; text-decoration: none; background: linear-gradient(135deg, var(--color-danger-lighter) 0%, var(--color-danger-lightest) 100%); color: var(--color-danger); border: 1px solid var(--color-danger-light); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
                     🚪 Logout
                 </a>
+            </div>
+            <?php endif; ?>
+        </div>
+        
+        <div class="controls">
+            <?php echo $pageConfig['controls_html']; ?>
+            
+            <?php if (!empty($currentDatabase)): ?>
+            <div class="control-group" style="margin-left: auto;">
+                <span style="font-size: 12px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 6px;">
+                    <span style="color: var(--color-success); padding: 6px 10px; border-radius: 6px; font-weight: 600; margin-right: 0px;">
+                        🗄️ <?php echo htmlspecialchars($databaseDisplay); ?>
+                    </span>
+                </span>
             </div>
             <?php endif; ?>
         </div>

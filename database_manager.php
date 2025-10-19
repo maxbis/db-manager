@@ -1215,6 +1215,23 @@ require_once 'login/auth_check.php';
             $('#databaseSelect').change(function() {
                 currentDatabase = $(this).val();
                 if (currentDatabase) {
+                    // Update session cache so header shows correct database
+                    $.ajax({
+                        url: 'api.php',
+                        method: 'POST',
+                        data: {
+                            action: 'setCurrentDatabase',
+                            database: currentDatabase
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                // Update the database badge in header without reload
+                                updateDatabaseBadge(currentDatabase);
+                            }
+                        }
+                    });
+                    
                     loadTables();
                     updateButtonStates();
                 } else {
@@ -1478,8 +1495,23 @@ require_once 'login/auth_check.php';
             $('#databaseSelect').val(databaseName).trigger('change');
         }
 
+        // Update database badge in header
+        function updateDatabaseBadge(databaseName, tableName = '') {
+            // Find the database badge in the header and update it
+            const databaseBadge = document.querySelector('.control-group span span');
+            if (databaseBadge) {
+                let displayText = '🗄️ ' + databaseName;
+                if (tableName) {
+                    displayText += ' -  ' + tableName;
+                }
+                databaseBadge.textContent = displayText;
+            }
+        }
+
         // View table (navigate to table structure page)
         function viewTable(tableName) {
+            // Update the database badge to show database.table before navigating
+            updateDatabaseBadge(currentDatabase, tableName);
             window.location.href = `table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(currentDatabase)}`;
         }
 

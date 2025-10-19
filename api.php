@@ -17,6 +17,37 @@ $action = $_GET['action'] ?? $_POST['action'] ?? '';
 try {
     $conn = getDbConnection();
     
+    // Determine which database to use
+    $database = $_GET['database'] ?? $_POST['database'] ?? DB_NAME;
+    
+    // For operations that require a database (not database management operations)
+    $needsDatabase = !in_array($action, ['getDatabases', 'createDatabase', 'deleteDatabase']);
+    
+    if ($needsDatabase) {
+        // If no database specified, try to auto-select first available
+        if (empty($database)) {
+            // Start session to cache the selected database
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            
+            // Check if we have a cached database selection
+            if (!empty($_SESSION['auto_selected_database'])) {
+                $database = $_SESSION['auto_selected_database'];
+            } else {
+                // Auto-select first available database
+                $database = getFirstAvailableDatabase($conn);
+                if (empty($database)) {
+                    throw new Exception("No databases available. Please create a database first or set DB_NAME in db_config.php.");
+                }
+                // Cache the selection
+                $_SESSION['auto_selected_database'] = $database;
+            }
+        }
+        
+        selectDatabase($conn, $database);
+    }
+    
     switch ($action) {
         case 'getTables':
             getTables($conn);
@@ -118,6 +149,15 @@ try {
             $database = $_POST['database'] ?? '';
             $name = $_POST['name'] ?? '';
             deleteTable($conn, $database, $name);
+            break;
+            
+        case 'setCurrentDatabase':
+            $database = $_POST['database'] ?? '';
+            setCurrentDatabase($database);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Current database updated'
+            ]);
             break;
             
         case 'exportDatabase':

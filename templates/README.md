@@ -8,6 +8,7 @@ This directory contains reusable PHP templates for the Database Manager applicat
 The main header template that includes:
 - Page title with customizable icon
 - Controls section (customizable per page)
+- **Current database badge** (shows which database you're working with)
 - User info display and logout button (automatic when logged in)
 - Navigation menu with active state highlighting
 - Automatic table parameter preservation in links
