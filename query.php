@@ -1,3 +1,10 @@
+<?php
+/**
+ * SQL Query Builder - Database CRUD Manager
+ * IP Authorization Check
+ */
+require_once 'login/auth_check.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -97,6 +104,18 @@
             color: var(--color-text-primary);
             padding: 20px;
             min-height: 100vh;
+            opacity: 0;
+            animation: pageLoadFadeIn 0.3s ease forwards;
+        }
+
+        @keyframes pageLoadFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        body.page-transitioning {
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
 
         .container {
@@ -883,37 +902,22 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>⚡ SQL Query Builder</h1>
-            
-            <div class="controls">
-                <div class="control-group">
-                    <label for="tableSelect">Select Table:</label>
-                    <select id="tableSelect">
-                        <option value="">-- Choose a table --</option>
-                    </select>
-                </div>
+    <?php
+    $pageConfig = [
+        'id' => 'query',
+        'title' => 'SQL Query Builder',
+        'icon' => '⚡',
+        'controls_html' => '
+            <div class="control-group">
+                <label for="tableSelect">Select Table:</label>
+                <select id="tableSelect">
+                    <option value="">-- Choose a table --</option>
+                </select>
             </div>
-            
-            <!-- Navigation Menu -->
-            <nav class="nav-menu">
-                <a href="index.php" class="nav-link">
-                    <span class="nav-icon">📊</span>
-                    <span>Data Manager</span>
-                </a>
-                <a href="table_structure.php" class="nav-link">
-                    <span class="nav-icon">🔍</span>
-                    <span>Table Structure</span>
-                </a>
-                <a href="query.php" class="active nav-link">
-                    <span class="nav-icon">⚡</span>
-                    <span>SQL Query Builder</span>
-                </a>
-            </nav>
-        </div>
-
-        <div class="content">
+        '
+    ];
+    include 'templates/header.php';
+    ?>
             <div class="loading active" id="loading">
                 <div class="spinner"></div>
                 <p>Loading...</p>
@@ -1690,7 +1694,28 @@
             // Reset file input so same file can be imported again
             event.target.value = '';
         }
+
+        // Smooth page transitions
+        $('.nav-link').click(function(e) {
+            const href = $(this).attr('href');
+            
+            // Don't apply transition if it's the current page
+            if ($(this).hasClass('active')) {
+                e.preventDefault();
+                return;
+            }
+            
+            e.preventDefault();
+            $('body').addClass('page-transitioning');
+            
+            // Navigate after fade out
+            setTimeout(function() {
+                window.location.href = href;
+            }, 200);
+        });
     </script>
+
+    <?php include 'templates/footer.php'; ?>
 </body>
 </html>
 

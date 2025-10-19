@@ -4,6 +4,8 @@
  * Run this once to create the saved_queries table
  */
 
+// IP Authorization Check
+require_once 'login/auth_check.php';
 require_once 'db_config.php';
 
 try {

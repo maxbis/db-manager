@@ -1,3 +1,10 @@
+<?php
+/**
+ * Table Structure - Database CRUD Manager
+ * IP Authorization Check
+ */
+require_once 'login/auth_check.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -97,6 +104,18 @@
             color: var(--color-text-primary);
             padding: 20px;
             min-height: 100vh;
+            opacity: 0;
+            animation: pageLoadFadeIn 0.3s ease forwards;
+        }
+
+        @keyframes pageLoadFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        body.page-transitioning {
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
 
         .container {
@@ -127,7 +146,7 @@
             align-items: center;
             flex-wrap: wrap;
             justify-content: flex-start;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         .nav-menu {
@@ -204,9 +223,9 @@
         }
 
         button {
-            background: linear-gradient(135deg, var(--color-success-lighter) 0%, var(--color-success-lightest) 100%);
-            color: var(--color-success);
-            border: 2px solid var(--color-success-light);
+            background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary-lighter) 100%);
+            color: var(--color-bg-white);
+            border: 2px solid var(--color-primary);
             cursor: pointer;
             font-weight: 600;
             padding: 10px 20px;
@@ -214,9 +233,20 @@
         }
 
         button:hover {
-            background: linear-gradient(135deg, var(--color-success-light) 0%, var(--color-success-lighter) 100%);
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
             transform: translateY(-2px);
             box-shadow: var(--shadow-md);
+        }
+
+        /* Compact button for header controls */
+        .controls button {
+            padding: 4px 4px;
+            font-size: 12px;
+            border-width: 1px;
+        }
+        
+        .controls button:hover {
+            transform: translateY(-1px);
         }
 
         .content {
@@ -745,38 +775,23 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔍 Table Structure Viewer/Editor</h1>
-            
-            <div class="controls">
-                <div class="control-group">
-                    <label for="tableSelect">Select Table:</label>
-                    <select id="tableSelect">
-                        <option value="">-- Choose a table --</option>
-                    </select>
-                </div>
-                <button id="addColumnBtn" style="display: none;">➕ Add Column</button>
+    <?php
+    $pageConfig = [
+        'id' => 'table_structure',
+        'title' => 'Table Structure Viewer/Editor',
+        'icon' => '🔍',
+        'controls_html' => '
+            <div class="control-group">
+                <label for="tableSelect">Select Table:</label>
+                <select id="tableSelect">
+                    <option value="">-- Choose a table --</option>
+                </select>
             </div>
-            
-            <!-- Navigation Menu -->
-            <nav class="nav-menu">
-                <a href="index.php" class="nav-link">
-                    <span class="nav-icon">📊</span>
-                    <span>Data Manager</span>
-                </a>
-                <a href="table_structure.php" class="active nav-link">
-                    <span class="nav-icon">🔍</span>
-                    <span>Table Structure</span>
-                </a>
-                <a href="query.php" class="nav-link">
-                    <span class="nav-icon">⚡</span>
-                    <span>SQL Query Builder</span>
-                </a>
-            </nav>
-        </div>
-
-        <div class="content">
+            <button id="addColumnBtn" style="display: none;">➕ Add Column</button>
+        '
+    ];
+    include 'templates/header.php';
+    ?>
             <div class="loading active" id="loading">
                 <div class="spinner"></div>
                 <p>Loading...</p>
@@ -1248,6 +1263,27 @@
         function showError(message) {
             alert('Error: ' + message);
         }
+
+        // Smooth page transitions
+        $('.nav-link').click(function(e) {
+            const href = $(this).attr('href');
+            
+            // Don't apply transition if it's the current page
+            if ($(this).hasClass('active')) {
+                e.preventDefault();
+                return;
+            }
+            
+            e.preventDefault();
+            $('body').addClass('page-transitioning');
+            
+            // Navigate after fade out
+            setTimeout(function() {
+                window.location.href = href;
+            }, 200);
+        });
     </script>
+
+    <?php include 'templates/footer.php'; ?>
 </body>
 </html>

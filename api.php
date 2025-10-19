@@ -5,6 +5,9 @@
  * Handles all AJAX requests for database operations
  */
 
+// IP Authorization Check
+require_once 'login/auth_check.php';
+
 header('Content-Type: application/json');
 require_once 'db_config.php';
 
@@ -84,6 +87,46 @@ try {
         case 'executeQuery':
             $query = $_POST['query'] ?? '';
             executeQuery($conn, $query);
+            break;
+            
+        // Database Management Operations
+        case 'getDatabases':
+            getDatabases($conn);
+            break;
+            
+        case 'createDatabase':
+            $name = $_POST['name'] ?? '';
+            $charset = $_POST['charset'] ?? 'utf8mb4';
+            $collation = $_POST['collation'] ?? 'utf8mb4_unicode_ci';
+            createDatabase($conn, $name, $charset, $collation);
+            break;
+            
+        case 'deleteDatabase':
+            $name = $_POST['name'] ?? '';
+            deleteDatabase($conn, $name);
+            break;
+            
+        case 'createTable':
+            $database = $_POST['database'] ?? '';
+            $name = $_POST['name'] ?? '';
+            $columns = $_POST['columns'] ?? '';
+            $engine = $_POST['engine'] ?? 'InnoDB';
+            createTable($conn, $database, $name, $columns, $engine);
+            break;
+            
+        case 'deleteTable':
+            $database = $_POST['database'] ?? '';
+            $name = $_POST['name'] ?? '';
+            deleteTable($conn, $database, $name);
+            break;
+            
+        case 'exportDatabase':
+            $name = $_POST['name'] ?? '';
+            exportDatabase($conn, $name);
+            break;
+            
+        case 'importDatabase':
+            importDatabase($conn);
             break;
             
         /* SAVED QUERIES NOW USE BROWSER LOCALSTORAGE - Database endpoints commented out
@@ -720,5 +763,293 @@ function deleteSavedQuery($conn, $queryId) {
     }
 }
 // END OF SAVED QUERIES FUNCTIONS COMMENT BLOCK */
+
+/**
+ * DATABASE MANAGEMENT FUNCTIONS
+ */
+
+/**
+ * Get all databases
+ */
+function getDatabases($conn) {
+    $result = $conn->query("SHOW DATABASES");
+    $databases = [];
+    
+    while ($row = $result->fetch_assoc()) {
+        $dbName = $row['Database'];
+        
+        // Skip system databases
+        if (in_array($dbName, ['information_schema', 'performance_schema', 'mysql', 'sys'])) {
+            continue;
+        }
+        
+        // Get table count and size for each database
+        $conn->query("USE `$dbName`");
+        $tableResult = $conn->query("SHOW TABLE STATUS");
+        $tableCount = $tableResult->num_rows;
+        $totalSize = 0;
+        
+        while ($table = $tableResult->fetch_assoc()) {
+            $totalSize += ($table['Data_length'] ?? 0) + ($table['Index_length'] ?? 0);
+        }
+        
+        $databases[] = [
+            'name' => $dbName,
+            'tables' => $tableCount,
+            'size' => $totalSize
+        ];
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'databases' => $databases
+    ]);
+}
+
+/**
+ * Create a new database
+ */
+function createDatabase($conn, $name, $charset, $collation) {
+    if (empty($name)) {
+        throw new Exception("Database name is required");
+    }
+    
+    // Validate database name (alphanumeric and underscores only)
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
+        throw new Exception("Database name can only contain letters, numbers, and underscores");
+    }
+    
+    $sql = "CREATE DATABASE `$name` CHARACTER SET $charset COLLATE $collation";
+    
+    if ($conn->query($sql)) {
+        echo json_encode([
+            'success' => true,
+            'message' => "Database '$name' created successfully"
+        ]);
+    } else {
+        throw new Exception("Failed to create database: " . $conn->error);
+    }
+}
+
+/**
+ * Delete a database
+ */
+function deleteDatabase($conn, $name) {
+    if (empty($name)) {
+        throw new Exception("Database name is required");
+    }
+    
+    // Prevent deletion of system databases
+    if (in_array($name, ['information_schema', 'performance_schema', 'mysql', 'sys'])) {
+        throw new Exception("Cannot delete system database");
+    }
+    
+    $sql = "DROP DATABASE `$name`";
+    
+    if ($conn->query($sql)) {
+        echo json_encode([
+            'success' => true,
+            'message' => "Database '$name' deleted successfully"
+        ]);
+    } else {
+        throw new Exception("Failed to delete database: " . $conn->error);
+    }
+}
+
+/**
+ * Create a new table
+ */
+function createTable($conn, $database, $name, $columns, $engine) {
+    if (empty($database) || empty($name) || empty($columns)) {
+        throw new Exception("Database name, table name, and columns are required");
+    }
+    
+    // Validate table name
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
+        throw new Exception("Table name can only contain letters, numbers, and underscores");
+    }
+    
+    // Switch to the specified database
+    $conn->query("USE `$database`");
+    
+    // Parse columns (one per line)
+    $columnLines = array_filter(array_map('trim', explode("\n", $columns)));
+    $columnDefinitions = [];
+    
+    foreach ($columnLines as $line) {
+        if (!empty($line)) {
+            $columnDefinitions[] = $line;
+        }
+    }
+    
+    if (empty($columnDefinitions)) {
+        throw new Exception("At least one column definition is required");
+    }
+    
+    $sql = "CREATE TABLE `$name` (" . implode(', ', $columnDefinitions) . ") ENGINE=$engine";
+    
+    if ($conn->query($sql)) {
+        echo json_encode([
+            'success' => true,
+            'message' => "Table '$name' created successfully in database '$database'"
+        ]);
+    } else {
+        throw new Exception("Failed to create table: " . $conn->error);
+    }
+}
+
+/**
+ * Delete a table
+ */
+function deleteTable($conn, $database, $name) {
+    if (empty($database) || empty($name)) {
+        throw new Exception("Database name and table name are required");
+    }
+    
+    // Switch to the specified database
+    $conn->query("USE `$database`");
+    
+    $sql = "DROP TABLE `$name`";
+    
+    if ($conn->query($sql)) {
+        echo json_encode([
+            'success' => true,
+            'message' => "Table '$name' deleted successfully from database '$database'"
+        ]);
+    } else {
+        throw new Exception("Failed to delete table: " . $conn->error);
+    }
+}
+
+/**
+ * Export database to SQL
+ */
+function exportDatabase($conn, $name) {
+    if (empty($name)) {
+        throw new Exception("Database name is required");
+    }
+    
+    $includeCreateDatabase = $_POST['includeCreateDatabase'] ?? true;
+    $dataOnly = $_POST['dataOnly'] ?? false;
+    
+    $sql = "-- Database Export: $name\n";
+    $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n\n";
+    
+    // Include CREATE DATABASE statement if requested
+    if ($includeCreateDatabase) {
+        $sql .= "-- Create database\n";
+        $sql .= "CREATE DATABASE IF NOT EXISTS `$name`;\n";
+        $sql .= "USE `$name`;\n\n";
+    }
+    
+    $sql .= "SET FOREIGN_KEY_CHECKS = 0;\n\n";
+    
+    // Switch to the database
+    $conn->query("USE `$name`");
+    
+    // Get all tables
+    $result = $conn->query("SHOW TABLES");
+    $tables = [];
+    
+    while ($row = $result->fetch_array()) {
+        $tables[] = $row[0];
+    }
+    
+    // Export each table
+    foreach ($tables as $table) {
+        if (!$dataOnly) {
+            // Get table structure
+            $createResult = $conn->query("SHOW CREATE TABLE `$table`");
+            $createRow = $createResult->fetch_assoc();
+            $sql .= "-- Table structure for table `$table`\n";
+            $sql .= "DROP TABLE IF EXISTS `$table`;\n";
+            $sql .= $createRow['Create Table'] . ";\n\n";
+        }
+        
+        // Get table data
+        $dataResult = $conn->query("SELECT * FROM `$table`");
+        if ($dataResult->num_rows > 0) {
+            $sql .= "-- Data for table `$table`\n";
+            
+            while ($row = $dataResult->fetch_assoc()) {
+                $columns = array_keys($row);
+                $values = array_map(function($value) use ($conn) {
+                    return $value === null ? 'NULL' : "'" . $conn->real_escape_string($value) . "'";
+                }, array_values($row));
+                
+                $sql .= "INSERT INTO `$table` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $values) . ");\n";
+            }
+            $sql .= "\n";
+        }
+    }
+    
+    $sql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
+    
+    echo json_encode([
+        'success' => true,
+        'sql' => $sql
+    ]);
+}
+
+/**
+ * Import database from SQL file
+ */
+function importDatabase($conn) {
+    if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+        throw new Exception("No file uploaded or upload error");
+    }
+    
+    $database = $_POST['database'] ?? '';
+    $dropExisting = $_POST['dropExisting'] ?? false;
+    
+    if (empty($database)) {
+        throw new Exception("Target database is required");
+    }
+    
+    // Read SQL file
+    $sql = file_get_contents($_FILES['file']['tmp_name']);
+    if ($sql === false) {
+        throw new Exception("Failed to read SQL file");
+    }
+    
+    // Switch to target database
+    $conn->query("USE `$database`");
+    
+    // Drop existing tables if requested
+    if ($dropExisting) {
+        $result = $conn->query("SHOW TABLES");
+        while ($row = $result->fetch_array()) {
+            $conn->query("DROP TABLE IF EXISTS `" . $row[0] . "`");
+        }
+    }
+    
+    // Split SQL into individual statements
+    $statements = array_filter(array_map('trim', explode(';', $sql)));
+    
+    $executed = 0;
+    $errors = [];
+    
+    foreach ($statements as $statement) {
+        if (!empty($statement) && !preg_match('/^--/', $statement)) {
+            if ($conn->query($statement)) {
+                $executed++;
+            } else {
+                $errors[] = "Error executing: " . substr($statement, 0, 100) . "... - " . $conn->error;
+            }
+        }
+    }
+    
+    if (empty($errors)) {
+        echo json_encode([
+            'success' => true,
+            'message' => "Database imported successfully. $executed statements executed."
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'error' => "Import completed with errors. $executed statements executed. Errors: " . implode('; ', $errors)
+        ]);
+    }
+}
 ?>
 
