@@ -4,6 +4,7 @@
 credentials.txt
 *.db
 data/
+db_config.php
 
 # IP whitelist (may contain sensitive IPs)
 # Uncomment if you don't want to track this:
