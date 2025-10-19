@@ -110,7 +110,7 @@
 
         .header {
             background: linear-gradient(135deg, var(--color-primary-lightest) 0%, var(--color-bg-white) 100%);
-            padding: 25px 30px;
+            padding: 25px 30px 0 30px;
             border-bottom: 3px solid var(--color-primary-light);
         }
 
@@ -118,7 +118,7 @@
             color: var(--color-primary);
             font-size: 28px;
             font-weight: 600;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .controls {
@@ -126,7 +126,50 @@
             gap: 15px;
             align-items: center;
             flex-wrap: wrap;
+            justify-content: flex-start;
+            margin-bottom: 20px;
         }
+
+        .nav-menu {
+            display: flex;
+            gap: 0;
+            margin: 0 -30px -1px -30px;
+            border-top: 1px solid var(--color-border-lighter);
+        }
+
+        .nav-menu a {
+            flex: 1;
+            text-align: center;
+            padding: 8px 20px;
+            text-decoration: none;
+            color: var(--color-text-tertiary);
+            font-weight: 500;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(255, 255, 255, 0.5);
+            color: var(--color-primary-light);
+        }
+
+        .nav-menu a.active {
+            color: var(--color-primary);
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom-color: var(--color-primary-light);
+            font-weight: 600;
+        }
+
+        .nav-menu a .nav-icon {
+            font-size: 18px;
+        }
+
 
         .control-group {
             display: flex;
@@ -554,11 +597,27 @@
         /* Responsive */
         @media (max-width: 768px) {
             .header {
-                padding: 20px;
+                padding: 20px 20px 0 20px;
             }
 
             .header h1 {
                 font-size: 22px;
+            }
+
+            .nav-menu {
+                margin: 0 -20px 15px -20px;
+                flex-direction: column;
+            }
+
+            .nav-menu a {
+                border-bottom: 1px solid var(--color-border-lighter);
+                border-bottom-width: 1px;
+                padding: 12px 15px;
+            }
+
+            .nav-menu a.active {
+                border-bottom-width: 1px;
+                border-left: 3px solid var(--color-primary-light);
             }
 
             .controls {
@@ -632,6 +691,7 @@
     <div class="container">
         <div class="header">
             <h1>📊 Database CRUD Manager</h1>
+            
             <div class="controls">
                 <div class="control-group">
                     <label for="tableSelect">Select Table:</label>
@@ -640,9 +700,23 @@
                     </select>
                 </div>
                 <button id="addRecordBtn" style="display: none;">➕ Add New Record</button>
-                <a href="table_structure.php" class="back-link">🔍 Table Structure</a>
-                <a href="query.php" class="back-link">🔍 SQL Query Builder</a>
             </div>
+            
+            <!-- Navigation Menu -->
+            <nav class="nav-menu">
+                <a href="index.php" class="active nav-link">
+                    <span class="nav-icon">📊</span>
+                    <span>Data Manager</span>
+                </a>
+                <a href="table_structure.php" class="nav-link">
+                    <span class="nav-icon">🔍</span>
+                    <span>Table Structure</span>
+                </a>
+                <a href="query.php" class="nav-link">
+                    <span class="nav-icon">⚡</span>
+                    <span>SQL Query Builder</span>
+                </a>
+            </nav>
         </div>
 
         <div class="content">
@@ -728,8 +802,24 @@
         $(document).ready(function() {
             loadTables();
             
+            // Update navigation links with current table
+            function updateNavLinks() {
+                const selectedTable = $('#tableSelect').val();
+                if (selectedTable) {
+                    $('.nav-link').each(function() {
+                        const baseUrl = $(this).attr('href').split('?')[0];
+                        $(this).attr('href', baseUrl + '?table=' + encodeURIComponent(selectedTable));
+                    });
+                }
+            }
+            
+            // Check for table parameter in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const tableParam = urlParams.get('table');
+            
             $('#tableSelect').change(function() {
                 currentTable = $(this).val();
+                updateNavLinks();
                 if (currentTable) {
                     loadTableInfo();
                 } else {
@@ -779,6 +869,13 @@
                         response.tables.forEach(function(table) {
                             select.append(`<option value="${table}">${table}</option>`);
                         });
+                        
+                        // Check for table parameter in URL and select it
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const tableParam = urlParams.get('table');
+                        if (tableParam && response.tables.includes(tableParam)) {
+                            select.val(tableParam).trigger('change');
+                        }
                     }
                     $('#loading').removeClass('active');
                 },

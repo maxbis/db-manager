@@ -100,7 +100,7 @@
         }
 
         .container {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
             background: var(--color-bg-white);
             border-radius: 12px;
@@ -110,7 +110,7 @@
 
         .header {
             background: linear-gradient(135deg, var(--color-primary-lightest) 0%, var(--color-bg-white) 100%);
-            padding: 25px 30px;
+            padding: 25px 30px 0 30px;
             border-bottom: 3px solid var(--color-primary-light);
         }
 
@@ -118,7 +118,7 @@
             color: var(--color-primary);
             font-size: 28px;
             font-weight: 600;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .controls {
@@ -126,7 +126,50 @@
             gap: 15px;
             align-items: center;
             flex-wrap: wrap;
+            justify-content: flex-start;
+            margin-bottom: 20px;
         }
+
+        .nav-menu {
+            display: flex;
+            gap: 0;
+            margin: 0 -30px -1px -30px;
+            border-top: 1px solid var(--color-border-lighter);
+        }
+
+        .nav-menu a {
+            flex: 1;
+            text-align: center;
+            padding: 8px 20px;
+            text-decoration: none;
+            color: var(--color-text-tertiary);
+            font-weight: 500;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .nav-menu a:hover {
+            background: rgba(255, 255, 255, 0.5);
+            color: var(--color-primary-light);
+        }
+
+        .nav-menu a.active {
+            color: var(--color-primary);
+            background: rgba(255, 255, 255, 0.3);
+            border-bottom-color: var(--color-primary-light);
+            font-weight: 600;
+        }
+
+        .nav-menu a .nav-icon {
+            font-size: 18px;
+        }
+
 
         .control-group {
             display: flex;
@@ -788,11 +831,27 @@
 
         @media (max-width: 768px) {
             .header {
-                padding: 20px;
+                padding: 20px 20px 0 20px;
             }
 
             .header h1 {
                 font-size: 22px;
+            }
+
+            .nav-menu {
+                margin: 0 -20px 15px -20px;
+                flex-direction: column;
+            }
+
+            .nav-menu a {
+                border-bottom: 1px solid var(--color-border-lighter);
+                border-bottom-width: 1px;
+                padding: 12px 15px;
+            }
+
+            .nav-menu a.active {
+                border-bottom-width: 1px;
+                border-left: 3px solid var(--color-primary-light);
             }
 
             .controls {
@@ -826,7 +885,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🔍 SQL Query Builder</h1>
+            <h1>⚡ SQL Query Builder</h1>
+            
             <div class="controls">
                 <div class="control-group">
                     <label for="tableSelect">Select Table:</label>
@@ -834,9 +894,23 @@
                         <option value="">-- Choose a table --</option>
                     </select>
                 </div>
-                <a href="index.php" class="back-link">← Back to CRUD Manager</a>
-                <a href="table_structure.php" class="back-link">📋 Table Structure</a>
             </div>
+            
+            <!-- Navigation Menu -->
+            <nav class="nav-menu">
+                <a href="index.php" class="nav-link">
+                    <span class="nav-icon">📊</span>
+                    <span>Data Manager</span>
+                </a>
+                <a href="table_structure.php" class="nav-link">
+                    <span class="nav-icon">🔍</span>
+                    <span>Table Structure</span>
+                </a>
+                <a href="query.php" class="active nav-link">
+                    <span class="nav-icon">⚡</span>
+                    <span>SQL Query Builder</span>
+                </a>
+            </nav>
         </div>
 
         <div class="content">
@@ -965,11 +1039,70 @@
                 $('#queryExamples').hide();
             }
             
+            // Update navigation links with current table
+            function updateNavLinks() {
+                const selectedTable = $('#tableSelect').val();
+                if (selectedTable) {
+                    $('.nav-link').each(function() {
+                        const baseUrl = $(this).attr('href').split('?')[0];
+                        $(this).attr('href', baseUrl + '?table=' + encodeURIComponent(selectedTable));
+                    });
+                }
+            }
+            
+            // Save current query to localStorage before leaving the page
+            function saveCurrentQuery() {
+                const query = $('#queryInput').val();
+                const table = $('#tableSelect').val();
+                if (query && table) {
+                    const queryState = {
+                        query: query,
+                        table: table,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('currentQuery', JSON.stringify(queryState));
+                }
+            }
+            
+            // Auto-save query when typing (with debounce)
+            let autoSaveTimeout;
+            $('#queryInput').on('input', function() {
+                clearTimeout(autoSaveTimeout);
+                autoSaveTimeout = setTimeout(saveCurrentQuery, 500);
+            });
+            
+            // Save query when leaving the page
+            $(window).on('beforeunload', function() {
+                saveCurrentQuery();
+            });
+            
             $('#tableSelect').change(function() {
+                const previousTable = currentTable;
                 currentTable = $(this).val();
+                updateNavLinks();
+                
                 if (currentTable) {
                     loadTableInfo();
-                    $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
+                    
+                    // Check if we have a saved query for this table
+                    const savedQueryState = localStorage.getItem('currentQuery');
+                    if (savedQueryState) {
+                        try {
+                            const queryState = JSON.parse(savedQueryState);
+                            // Restore query if it's for the same table
+                            if (queryState.table === currentTable) {
+                                $('#queryInput').val(queryState.query);
+                            } else {
+                                // Different table selected, clear and set default query
+                                $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
+                            }
+                        } catch (e) {
+                            $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
+                        }
+                    } else {
+                        $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
+                    }
+                    
                     loadSavedQueries(currentTable);
                 } else {
                     showEmptyState();
@@ -983,6 +1116,8 @@
             $('#clearBtn').click(function() {
                 $('#queryInput').val('');
                 $('#resultsSection').hide();
+                // Clear saved query state when explicitly clearing
+                localStorage.removeItem('currentQuery');
             });
 
             $('#saveQueryBtn, #saveQueryBtn2').click(function() {
@@ -1040,6 +1175,13 @@
                         response.tables.forEach(function(table) {
                             select.append(`<option value="${table}">${table}</option>`);
                         });
+                        
+                        // Check for table parameter in URL and select it
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const tableParam = urlParams.get('table');
+                        if (tableParam && response.tables.includes(tableParam)) {
+                            select.val(tableParam).trigger('change');
+                        }
                     }
                     $('#loading').removeClass('active');
                 },
