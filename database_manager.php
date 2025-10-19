@@ -957,6 +957,9 @@ require_once 'login/auth_check.php';
                 </select>
             </div>
             <button id="refreshBtn">🔄 Refresh</button>
+            <button id="exportAllDatabasesBtn" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-left: 10px;">
+                📦 Export All Databases
+            </button>
         '
     ];
     include 'templates/header.php';
@@ -1268,6 +1271,10 @@ require_once 'login/auth_check.php';
                 openModal('importDatabaseModal');
             });
 
+            $('#exportAllDatabasesBtn').click(function() {
+                exportAllDatabases();
+            });
+
             $('#confirmCreateDatabaseBtn').click(function() {
                 createDatabase();
             });
@@ -1513,6 +1520,48 @@ require_once 'login/auth_check.php';
             // Update the database badge to show database.table before navigating
             updateDatabaseBadge(currentDatabase, tableName);
             window.location.href = `table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(currentDatabase)}`;
+        }
+
+        // Export all databases
+        function exportAllDatabases() {
+            if (confirm('This will export ALL databases on your MySQL server. This may take a while for large databases. Continue?')) {
+                // Show loading state
+                $('#exportAllDatabasesBtn').prop('disabled', true).text('📦 Exporting...');
+                
+                // Create a form to submit the request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'api.php';
+                form.target = '_blank'; // Open in new tab for download
+                
+                const actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'exportAllDatabases';
+                
+                const includeCreateInput = document.createElement('input');
+                includeCreateInput.type = 'hidden';
+                includeCreateInput.name = 'includeCreateDatabase';
+                includeCreateInput.value = 'true';
+                
+                const dataOnlyInput = document.createElement('input');
+                dataOnlyInput.type = 'hidden';
+                dataOnlyInput.name = 'dataOnly';
+                dataOnlyInput.value = 'false';
+                
+                form.appendChild(actionInput);
+                form.appendChild(includeCreateInput);
+                form.appendChild(dataOnlyInput);
+                
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+                
+                // Reset button after a delay
+                setTimeout(() => {
+                    $('#exportAllDatabasesBtn').prop('disabled', false).text('📦 Export All Databases');
+                }, 2000);
+            }
         }
 
         // Create database

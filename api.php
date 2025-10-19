@@ -160,6 +160,10 @@ try {
             ]);
             break;
             
+        case 'exportAllDatabases':
+            exportAllDatabases($conn);
+            break;
+            
         case 'exportDatabase':
             $name = $_POST['name'] ?? '';
             exportDatabase($conn, $name);
@@ -1090,6 +1094,109 @@ function importDatabase($conn) {
             'error' => "Import completed with errors. $executed statements executed. Errors: " . implode('; ', $errors)
         ]);
     }
+}
+
+/**
+ * Export all databases to SQL
+ */
+function exportAllDatabases($conn) {
+    $includeCreateDatabase = $_POST['includeCreateDatabase'] ?? true;
+    $dataOnly = $_POST['dataOnly'] ?? false;
+    
+    $sql = "-- Complete Database Export\n";
+    $sql .= "-- Generated: " . date('Y-m-d H:i:s') . "\n";
+    $sql .= "-- Exported all user databases\n\n";
+    
+    $sql .= "SET FOREIGN_KEY_CHECKS = 0;\n\n";
+    
+    // Get all databases
+    $result = $conn->query("SHOW DATABASES");
+    $databases = [];
+    $systemDatabases = ['information_schema', 'performance_schema', 'mysql', 'sys'];
+    
+    while ($row = $result->fetch_array()) {
+        $dbName = $row[0];
+        if (!in_array($dbName, $systemDatabases)) {
+            $databases[] = $dbName;
+        }
+    }
+    
+    if (empty($databases)) {
+        throw new Exception("No databases found to export");
+    }
+    
+    // Export each database
+    foreach ($databases as $dbName) {
+        $sql .= "-- =============================================\n";
+        $sql .= "-- Database: $dbName\n";
+        $sql .= "-- =============================================\n\n";
+        
+        // Include CREATE DATABASE statement if requested
+        if ($includeCreateDatabase) {
+            $sql .= "-- Create database\n";
+            $sql .= "CREATE DATABASE IF NOT EXISTS `$dbName`;\n";
+            $sql .= "USE `$dbName`;\n\n";
+        }
+        
+        // Switch to the database
+        $conn->query("USE `$dbName`");
+        
+        // Get all tables in this database
+        $tableResult = $conn->query("SHOW TABLES");
+        $tables = [];
+        
+        while ($tableRow = $tableResult->fetch_array()) {
+            $tables[] = $tableRow[0];
+        }
+        
+        if (empty($tables)) {
+            $sql .= "-- No tables found in database `$dbName`\n\n";
+            continue;
+        }
+        
+        // Export each table
+        foreach ($tables as $table) {
+            if (!$dataOnly) {
+                // Get table structure
+                $createResult = $conn->query("SHOW CREATE TABLE `$table`");
+                $createRow = $createResult->fetch_assoc();
+                $sql .= "-- Table structure for table `$table`\n";
+                $sql .= "DROP TABLE IF EXISTS `$table`;\n";
+                $sql .= $createRow['Create Table'] . ";\n\n";
+            }
+            
+            // Get table data
+            $dataResult = $conn->query("SELECT * FROM `$table`");
+            if ($dataResult->num_rows > 0) {
+                $sql .= "-- Data for table `$table`\n";
+                
+                while ($row = $dataResult->fetch_assoc()) {
+                    $columns = array_keys($row);
+                    $values = array_map(function($value) use ($conn) {
+                        return $value === null ? 'NULL' : "'" . $conn->real_escape_string($value) . "'";
+                    }, array_values($row));
+                    
+                    $sql .= "INSERT INTO `$table` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $values) . ");\n";
+                }
+                $sql .= "\n";
+            } else {
+                $sql .= "-- No data in table `$table`\n\n";
+            }
+        }
+        
+        $sql .= "\n";
+    }
+    
+    $sql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
+    
+    // Set headers for file download
+    $filename = 'all_databases_export_' . date('Y-m-d_H-i-s') . '.sql';
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Length: ' . strlen($sql));
+    
+    echo $sql;
+    exit;
 }
 ?>
 
