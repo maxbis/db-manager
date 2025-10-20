@@ -1,0 +1,24 @@
+/*
+ * pages/database.css
+ * Database Manager - Refactored Architecture
+ * 
+ * Description: Styles specific to Database Manager page
+ * Dependencies: variables.css, base.css, components.css
+ */
+
+/* Column builder grouping */
+#columnsBuilder { margin-top: 4px; }
+#columnsBuilder .column-rows { display: flex; flex-direction: column; gap: 10px; }
+.column-row { border: 1px solid var(--color-border-light); background: var(--color-bg-lighter); border-radius: 10px; padding: 10px; box-shadow: var(--shadow-sm); position: relative; }
+.column-row .row-line { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
+.column-row .col-badge { background: var(--color-primary-pale); color: var(--color-primary); font-weight: 600; font-size: 12px; padding: 2px 8px; border-radius: 999px; }
+.column-row.dragging { opacity: 0.6; }
+.column-row.drop-before { outline: 2px dashed var(--color-primary-light); outline-offset: -6px; }
+.column-row.drop-after { outline: 2px dashed var(--color-primary-light); outline-offset: -6px; }
+.drag-handle { cursor: grab; user-select: none; font-size: 16px; color: var(--color-primary-lighter); }
+.drag-handle:active { cursor: grabbing; }
+
+/* Searchbar and badges */
+.searchbar { display:flex; gap:8px; align-items:center; }
+.searchbar input[type="search"], .searchbar select { height: 36px; padding: 0 12px; border: 1px solid var(--color-border-input); border-radius: 8px; background: var(--color-bg-white); }
+.badge-current { display:inline-block; margin-left:8px; padding:2px 8px; font-size:11px; border-radius:999px; background: var(--color-primary-pale); color: var(--color-primary); border:1px solid var(--color-border-light); }

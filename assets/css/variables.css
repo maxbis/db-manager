@@ -1,0 +1,86 @@
+/*
+ * variables.css
+ * Database Manager - Refactored Architecture
+ * 
+ * Description: CSS custom properties and theme colors
+ */
+
+:root {
+    /* Sapphire Nightfall Whisper Color Palette */
+    --color-sapphire-bright: #0474C4;
+    --color-sapphire-muted: #5379AE;
+    --color-sapphire-dark: #2C444C;
+    --color-sapphire-light: #A8C4EC;
+    --color-sapphire-rich: #06457F;
+    --color-sapphire-navy: #262B40;
+
+    /* Primary Colors - Based on Sapphire Palette */
+    --color-primary: var(--color-sapphire-rich);
+    --color-primary-light: var(--color-sapphire-bright);
+    --color-primary-lighter: var(--color-sapphire-muted);
+    --color-primary-lightest: var(--color-sapphire-light);
+    --color-primary-pale: #E8F2FF;
+
+    /* Success Colors - Teal from Sapphire Dark */
+    --color-success: var(--color-sapphire-dark);
+    --color-success-light: #4A6B73;
+    --color-success-lighter: #6B8A94;
+    --color-success-lightest: #8CA9B5;
+
+    /* Danger Colors - Complementary to Sapphire */
+    --color-danger: #C44704;
+    --color-danger-light: #E06B3A;
+    --color-danger-lighter: #F08F70;
+    --color-danger-lightest: #FFB3A6;
+
+    /* Warning Colors - Warm accent */
+    --color-warning: #C4A004;
+    --color-warning-light: #E0C63A;
+    --color-warning-lighter: #F0D670;
+    --color-warning-lightest: #FFE6A6;
+    --color-warning-pale: #FFF9E6;
+
+    /* Text Colors - Navy and grays */
+    --color-text-primary: var(--color-sapphire-navy);
+    --color-text-secondary: var(--color-sapphire-dark);
+    --color-text-tertiary: var(--color-sapphire-muted);
+    --color-text-muted: #8A9BA8;
+
+    /* Background Colors - Light sapphire tones */
+    --color-bg-body-start: #F8FAFC;
+    --color-bg-body-end: #F0F4F8;
+    --color-bg-white: #FFFFFF;
+    --color-bg-light: #F5F8FC;
+    --color-bg-lighter: #E8F2FF;
+    --color-bg-hover: #F0F7FF;
+    --color-bg-active: #E0EFFF;
+
+    /* Border Colors - Sapphire variations */
+    --color-border-primary: var(--color-sapphire-light);
+    --color-border-light: #D1E0F0;
+    --color-border-lighter: #E0E8F0;
+    --color-border-input: #C4D0E0;
+    --color-border-gray: #B8C4D0;
+
+    /* Neutral Colors - Blue-tinted grays */
+    --color-gray-100: #F5F7FA;
+    --color-gray-200: #E8ECF1;
+    --color-gray-300: #D1D8E0;
+    --color-gray-400: #B8C4D0;
+
+    /* Accent Colors */
+    --color-required: #E06B3A;
+
+    /* Shadows - Sapphire-tinted */
+    --shadow-sm: 0 2px 8px rgba(6, 69, 127, 0.08);
+    --shadow-md: 0 4px 12px rgba(6, 69, 127, 0.12);
+    --shadow-lg: 0 4px 20px rgba(6, 69, 127, 0.10);
+    --shadow-xl: 0 10px 40px rgba(6, 69, 127, 0.15);
+    --shadow-xxl: 0 10px 40px rgba(6, 69, 127, 0.20);
+
+    /* Overlays - Sapphire-tinted */
+    --overlay-light: rgba(6, 69, 127, 0.15);
+    --overlay-dark: rgba(6, 69, 127, 0.25);
+    --overlay-primary: rgba(4, 116, 196, 0.08);
+    --overlay-focus: rgba(168, 196, 236, 0.15);
+}
