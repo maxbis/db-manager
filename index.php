@@ -900,14 +900,22 @@ require_once 'login/auth_check.php';
                         select.append('<option value="">-- Choose a table --</option>');
                         
                         response.tables.forEach(function(table) {
-                            select.append(`<option value="${table}">${table}</option>`);
+                            // Handle both old format (string) and new format (object)
+                            const tableName = typeof table === 'string' ? table : table.name;
+                            const tableType = typeof table === 'object' ? table.type : 'BASE TABLE';
+                            const label = tableType === 'VIEW' ? `${tableName} 👁️ (view)` : tableName;
+                            
+                            select.append(`<option value="${tableName}" data-type="${tableType}">${label}</option>`);
                         });
                         
                         // Check for table parameter in URL and select it
                         const urlParams = new URLSearchParams(window.location.search);
                         const tableParam = urlParams.get('table');
-                        if (tableParam && response.tables.includes(tableParam)) {
-                            select.val(tableParam).trigger('change');
+                        if (tableParam) {
+                            const tableNames = response.tables.map(t => typeof t === 'string' ? t : t.name);
+                            if (tableNames.includes(tableParam)) {
+                                select.val(tableParam).trigger('change');
+                            }
                         }
                     }
                     $('#loading').removeClass('active');
@@ -937,7 +945,14 @@ require_once 'login/auth_check.php';
                         filters = {};
                         buildTableHeader();
                         loadRecords();
-                        $('#addRecordBtn').show();
+                        
+                        // Show/hide add button based on table type
+                        if (tableInfo.isView) {
+                            $('#addRecordBtn').hide();
+                            showToast('📖 Viewing a database VIEW - Read-only mode (no editing allowed)', 'warning');
+                        } else {
+                            $('#addRecordBtn').show();
+                        }
                     }
                 },
                 error: function(xhr) {
@@ -1053,7 +1068,17 @@ require_once 'login/auth_check.php';
                     }
                 },
                 error: function(xhr) {
-                    showToast('Error loading records', 'error');
+                    let errorMsg = 'Error loading records';
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.error) {
+                            errorMsg += ': ' + response.error;
+                        }
+                    } catch (e) {
+                        errorMsg += ': ' + xhr.responseText;
+                    }
+                    showToast(errorMsg, 'error');
+                    console.error('Full error:', xhr);
                     if (showLoading) {
                         $('#loading').removeClass('active');
                     }
@@ -1079,7 +1104,9 @@ require_once 'login/auth_check.php';
                     </td></tr>`);
                 } else {
                     records.forEach(function(record) {
-                        let row = '<tr data-primary-value="' + record[tableInfo.primaryKey] + '">';
+                        // For views without primary key, use first column as identifier
+                        const primaryValue = tableInfo.primaryKey ? record[tableInfo.primaryKey] : (tableInfo.columns.length > 0 ? record[tableInfo.columns[0].name] : '');
+                        let row = '<tr data-primary-value="' + primaryValue + '">';
                         tableInfo.columns.forEach(function(col) {
                             let value = record[col.name];
                             if (value === null) {
@@ -1092,11 +1119,16 @@ require_once 'login/auth_check.php';
                     });
                 }
                 
-                // Add click handlers to rows
-                tbody.find('tr').click(function() {
-                    const primaryValue = $(this).data('primary-value');
-                    openEditModal(primaryValue);
-                });
+                // Add click handlers to rows (only for tables, not views)
+                if (!tableInfo.isView) {
+                    tbody.find('tr').click(function() {
+                        const primaryValue = $(this).data('primary-value');
+                        openEditModal(primaryValue);
+                    });
+                } else {
+                    // For views, change cursor to indicate non-clickable
+                    tbody.find('tr').css('cursor', 'default');
+                }
                 
                 // Restore full opacity
                 tbody.css('opacity', '1');

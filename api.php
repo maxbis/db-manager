@@ -203,6 +203,11 @@ try {
             $queryId = $_POST['queryId'] ?? 0;
             deleteSavedQuery($conn, $queryId);
             break;
+            
+        case 'getViewSource':
+            $tableName = $_GET['table'] ?? '';
+            getViewSource($conn, $tableName);
+            break;
         */
             
         default:
@@ -220,14 +225,17 @@ try {
 }
 
 /**
- * Get all tables from database
+ * Get all tables from database (including views)
  */
 function getTables($conn) {
-    $result = $conn->query("SHOW TABLES");
+    $result = $conn->query("SHOW FULL TABLES");
     $tables = [];
     
     while ($row = $result->fetch_array()) {
-        $tables[] = $row[0];
+        $tables[] = [
+            'name' => $row[0],
+            'type' => $row[1] // 'BASE TABLE' or 'VIEW'
+        ];
     }
     
     echo json_encode([
@@ -243,8 +251,20 @@ function getTableInfo($conn, $tableName) {
     // Sanitize table name
     $tableName = $conn->real_escape_string($tableName);
     
+    // Check if it's a view or table
+    $typeResult = $conn->query("SHOW FULL TABLES LIKE '$tableName'");
+    if (!$typeResult) {
+        throw new Exception("Failed to check table type: " . $conn->error);
+    }
+    $typeRow = $typeResult->fetch_array();
+    $isView = ($typeRow && $typeRow[1] === 'VIEW');
+    
     // Get column information
     $result = $conn->query("SHOW COLUMNS FROM `$tableName`");
+    if (!$result) {
+        throw new Exception("Failed to get columns from '$tableName': " . $conn->error);
+    }
+    
     $columns = [];
     $primaryKey = null;
     
@@ -279,7 +299,9 @@ function getTableInfo($conn, $tableName) {
     echo json_encode([
         'success' => true,
         'columns' => $columns,
-        'primaryKey' => $primaryKey
+        'primaryKey' => $isView ? null : $primaryKey, // Views don't have primary keys
+        'isView' => $isView,
+        'tableType' => $isView ? 'VIEW' : 'BASE TABLE'
     ]);
 }
 
@@ -315,15 +337,27 @@ function getRecords($conn, $tableName, $offset, $limit, $sortColumn, $sortOrder,
     
     // Get total count
     $countQuery = "SELECT COUNT(*) as total FROM `$tableName` $whereClause";
-    if (count($params) > 0) {
-        $stmt = $conn->prepare($countQuery);
-        $stmt->bind_param($types, ...$params);
-        $stmt->execute();
-        $countResult = $stmt->get_result();
-        $total = $countResult->fetch_assoc()['total'];
-    } else {
-        $countResult = $conn->query($countQuery);
-        $total = $countResult->fetch_assoc()['total'];
+    try {
+        if (count($params) > 0) {
+            $stmt = $conn->prepare($countQuery);
+            if (!$stmt) {
+                throw new Exception("Prepare failed for count query: " . $conn->error);
+            }
+            $stmt->bind_param($types, ...$params);
+            if (!$stmt->execute()) {
+                throw new Exception("Execute failed for count query: " . $stmt->error);
+            }
+            $countResult = $stmt->get_result();
+            $total = $countResult->fetch_assoc()['total'];
+        } else {
+            $countResult = $conn->query($countQuery);
+            if (!$countResult) {
+                throw new Exception("Count query failed: " . $conn->error);
+            }
+            $total = $countResult->fetch_assoc()['total'];
+        }
+    } catch (Exception $e) {
+        throw new Exception("Error getting record count from '$tableName': " . $e->getMessage());
     }
     
     // Get records
@@ -332,16 +366,25 @@ function getRecords($conn, $tableName, $offset, $limit, $sortColumn, $sortOrder,
     $params[] = $offset;
     $types .= 'ii';
     
-    $stmt = $conn->prepare($query);
-    if (count($params) > 0) {
-        $stmt->bind_param($types, ...$params);
-    }
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    $records = [];
-    while ($row = $result->fetch_assoc()) {
-        $records[] = $row;
+    try {
+        $stmt = $conn->prepare($query);
+        if (!$stmt) {
+            throw new Exception("Prepare failed: " . $conn->error);
+        }
+        if (count($params) > 0) {
+            $stmt->bind_param($types, ...$params);
+        }
+        if (!$stmt->execute()) {
+            throw new Exception("Execute failed: " . $stmt->error);
+        }
+        $result = $stmt->get_result();
+        
+        $records = [];
+        while ($row = $result->fetch_assoc()) {
+            $records[] = $row;
+        }
+    } catch (Exception $e) {
+        throw new Exception("Error fetching records from '$tableName': " . $e->getMessage());
     }
     
     echo json_encode([
@@ -545,6 +588,38 @@ function updateColumn($conn, $tableName, $oldName, $data) {
     } else {
         throw new Exception("Update column failed: " . $conn->error);
     }
+}
+
+function getViewSource($conn, $tableName) {
+    $tableName = $conn->real_escape_string($tableName);
+    
+    // Check if it's actually a view
+    $typeResult = $conn->query("SHOW FULL TABLES LIKE '$tableName'");
+    if (!$typeResult) {
+        throw new Exception("Failed to check table type: " . $conn->error);
+    }
+    
+    $typeRow = $typeResult->fetch_array();
+    if (!$typeRow || $typeRow[1] !== 'VIEW') {
+        throw new Exception("'$tableName' is not a view");
+    }
+    
+    // Get the view definition
+    $result = $conn->query("SHOW CREATE VIEW `$tableName`");
+    if (!$result) {
+        throw new Exception("Failed to get view definition: " . $conn->error);
+    }
+    
+    $row = $result->fetch_assoc();
+    if (!$row) {
+        throw new Exception("View definition not found");
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'viewName' => $row['View'],
+        'createStatement' => $row['Create View']
+    ]);
 }
 
 /**
@@ -1361,4 +1436,3 @@ function tryMysqldumpExport($conn) {
     return true;
 }
 ?>
-

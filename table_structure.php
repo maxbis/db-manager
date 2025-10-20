@@ -930,14 +930,22 @@ require_once 'login/auth_check.php';
                         select.append('<option value="">-- Choose a table --</option>');
                         
                         response.tables.forEach(function(table) {
-                            select.append(`<option value="${table}">${table}</option>`);
+                            // Handle both old format (string) and new format (object)
+                            const tableName = typeof table === 'string' ? table : table.name;
+                            const tableType = typeof table === 'object' ? table.type : 'BASE TABLE';
+                            const label = tableType === 'VIEW' ? `${tableName} 👁️ (view)` : tableName;
+                            
+                            select.append(`<option value="${tableName}" data-type="${tableType}">${label}</option>`);
                         });
                         
                         // Check for table parameter in URL and select it
                         const urlParams = new URLSearchParams(window.location.search);
                         const tableParam = urlParams.get('table');
-                        if (tableParam && response.tables.includes(tableParam)) {
-                            select.val(tableParam).trigger('change');
+                        if (tableParam) {
+                            const tableNames = response.tables.map(t => typeof t === 'string' ? t : t.name);
+                            if (tableNames.includes(tableParam)) {
+                                select.val(tableParam).trigger('change');
+                            }
                         }
                     }
                     $('#loading').removeClass('active');
@@ -965,6 +973,14 @@ require_once 'login/auth_check.php';
                         displayStructureTable();
                         $('#tableStructure').show();
                         $('#emptyState').hide();
+                        
+                        // Disable add column button for views
+                        if (tableInfo.isView) {
+                            $('#addColumnBtn').hide();
+                            showError('📖 This is a database VIEW - Structure cannot be modified');
+                        } else {
+                            $('#addColumnBtn').show();
+                        }
                     }
                     $('#loading').removeClass('active');
                 },
@@ -986,8 +1002,16 @@ require_once 'login/auth_check.php';
             const nullableColumns = tableInfo.columns.filter(col => col.null).length;
             const autoIncrementColumns = tableInfo.columns.filter(col => col.extra.toLowerCase().includes('auto_increment')).length;
             
+            const typeIcon = tableInfo.isView ? '👁️' : '📊';
+            const typeLabel = tableInfo.isView ? 'View' : 'Table';
+            const viewWarning = tableInfo.isView ? '<p style="color: var(--color-warning); font-weight: 600;">⚠️ Read-only VIEW - Structure cannot be modified</p>' : '';
+            const viewSourceBtn = tableInfo.isView ? '<button id="viewSourceBtn" class="btn-primary" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;">🔍 View Source</button>' : '';
+            
             tableInfoDiv.html(`
-                <h2>📊 Table: ${currentTable}</h2>
+                <h2>${typeIcon} ${typeLabel}: ${currentTable}</h2>
+                ${viewWarning}
+                ${viewSourceBtn}
+                <p><strong>Type:</strong> ${tableInfo.tableType}</p>
                 <p><strong>Primary Key:</strong> ${tableInfo.primaryKey || 'None'}</p>
                 <p><strong>Total Columns:</strong> ${totalColumns}</p>
             `);
@@ -1056,10 +1080,20 @@ require_once 'login/auth_check.php';
                 tbody.append(row);
             });
             
-            // Add click handlers to rows
-            tbody.find('tr').click(function() {
-                const columnName = $(this).data('column-name');
-                openEditColumnModal(columnName);
+            // Add click handlers to rows (only for tables, not views)
+            if (!tableInfo.isView) {
+                tbody.find('tr').click(function() {
+                    const columnName = $(this).data('column-name');
+                    openEditColumnModal(columnName);
+                });
+            } else {
+                // For views, change cursor to indicate non-clickable
+                tbody.find('tr').css('cursor', 'default');
+            }
+            
+            // Add click handler for View Source button
+            $('#viewSourceBtn').click(function() {
+                showViewSource();
             });
         }
 
@@ -1300,6 +1334,82 @@ require_once 'login/auth_check.php';
                 window.location.href = href;
             }, 200);
         });
+
+        // Show view source
+        function showViewSource() {
+            if (!currentTable) {
+                showError('No table selected');
+                return;
+            }
+
+            $.ajax({
+                url: 'api.php',
+                method: 'GET',
+                data: { 
+                    action: 'getViewSource',
+                    table: currentTable
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        // Create modal for view source
+                        const modalHtml = `
+                            <div class="modal" id="viewSourceModal" style="display: block;">
+                                <div class="modal-content" style="max-width: 90%; max-height: 90%;">
+                                    <div class="modal-header">
+                                        <h2>🔍 View Source: ${response.viewName}</h2>
+                                        <button class="modal-close" onclick="closeModal('viewSourceModal')">&times;</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+                                            <h4 style="margin-bottom: 10px; color: var(--color-primary);">📝 CREATE VIEW Statement:</h4>
+                                            <pre style="background: #ffffff; border: 1px solid #e9ecef; border-radius: 4px; padding: 15px; margin: 0; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.4; color: var(--color-text-primary);">${response.createStatement}</pre>
+                                        </div>
+                                        <div style="background: var(--color-warning-pale); border: 1px solid var(--color-warning-light); border-radius: 6px; padding: 12px;">
+                                            <p style="margin: 0; color: var(--color-warning); font-weight: 600;">💡 <strong>Tip:</strong> You can copy this SQL and run it in the SQL Query Builder to recreate this view.</p>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn-secondary" onclick="closeModal('viewSourceModal')">Close</button>
+                                        <button class="btn-primary" onclick="copyViewSource('${response.createStatement.replace(/'/g, "\\'")}')">📋 Copy SQL</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        $('body').append(modalHtml);
+                    }
+                },
+                error: function(xhr) {
+                    let errorMsg = 'Error loading view source';
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.error) {
+                            errorMsg += ': ' + response.error;
+                        }
+                    } catch (e) {
+                        errorMsg += ': ' + xhr.responseText;
+                    }
+                    showError(errorMsg);
+                }
+            });
+        }
+
+        // Copy view source to clipboard
+        function copyViewSource(sql) {
+            navigator.clipboard.writeText(sql).then(function() {
+                showSuccess('SQL copied to clipboard!');
+            }).catch(function() {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = sql;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showSuccess('SQL copied to clipboard!');
+            });
+        }
     </script>
 
     <?php include 'templates/footer.php'; ?>

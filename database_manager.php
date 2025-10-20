@@ -1043,6 +1043,7 @@ require_once 'login/auth_check.php';
                                     <li><button id="exportDatabaseBtn" class="menu-item" disabled>📤 Export DB</button></li>
                                     <li><button id="importDatabaseBtn" class="menu-item">📥 Import DB</button></li>
                                     <li><button id="exportAllDatabasesBtn" class="menu-item">📦 Export All</button></li>
+                                    <li><a href="view_fixer.php" class="menu-item" style="display: block; text-decoration: none; color: inherit;">🔧 Fix View Definers</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -1698,19 +1699,27 @@ require_once 'login/auth_check.php';
             }
 
             tables.forEach(function (table) {
-                const isSelected = table === selectedTable;
+                // Handle both old format (string) and new format (object)
+                const tableName = typeof table === 'string' ? table : table.name;
+                const tableType = typeof table === 'object' ? table.type : 'BASE TABLE';
+                const isView = tableType === 'VIEW';
+                const isSelected = tableName === selectedTable;
+                
+                const tableIcon = isView ? '👁️' : '📋';
+                const typeLabel = isView ? 'View' : 'Table';
+                
                 const tableItem = $(`
-                    <div class="table-item ${isSelected ? 'selected' : ''}" data-table="${table}" style="cursor: pointer;">
+                    <div class="table-item ${isSelected ? 'selected' : ''}" data-table="${tableName}" style="cursor: pointer;">
                         <div class="table-info">
-                            <span class="table-icon">📋</span>
+                            <span class="table-icon">${tableIcon}</span>
                             <div class="table-details">
-                                <h4>${table}</h4>
-                                <p>Table in ${currentDatabase}</p>
+                                <h4>${tableName}${isView ? ' <span style="font-size: 11px; color: var(--color-warning);">(view)</span>' : ''}</h4>
+                                <p>${typeLabel} in ${currentDatabase}</p>
                             </div>
                         </div>
                         <div class="table-actions" style="display: flex; gap: 6px;">
-                            <button class="btn-success" onclick="event.stopPropagation(); viewTable('${table}')" style="padding: 4px 8px; font-size: 11px;">View</button>
-                            <button class="btn-danger" onclick="event.stopPropagation(); deleteTable('${table}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>
+                            <button class="btn-success" onclick="event.stopPropagation(); viewTable('${tableName}')" style="padding: 4px 8px; font-size: 11px;">View</button>
+                            ${!isView ? `<button class="btn-danger" onclick="event.stopPropagation(); deleteTable('${tableName}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>` : ''}
                         </div>
                     </div>
                 `);
@@ -1722,7 +1731,7 @@ require_once 'login/auth_check.php';
                         return;
                     }
 
-                    selectTable(table);
+                    selectTable(tableName);
                 });
 
                 tableList.append(tableItem);

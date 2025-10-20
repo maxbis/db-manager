@@ -1195,14 +1195,22 @@ require_once 'login/auth_check.php';
                         select.append('<option value="">-- Choose a table --</option>');
                         
                         response.tables.forEach(function(table) {
-                            select.append(`<option value="${table}">${table}</option>`);
+                            // Handle both old format (string) and new format (object)
+                            const tableName = typeof table === 'string' ? table : table.name;
+                            const tableType = typeof table === 'object' ? table.type : 'BASE TABLE';
+                            const label = tableType === 'VIEW' ? `${tableName} 👁️ (view)` : tableName;
+                            
+                            select.append(`<option value="${tableName}" data-type="${tableType}">${label}</option>`);
                         });
                         
                         // Check for table parameter in URL and select it
                         const urlParams = new URLSearchParams(window.location.search);
                         const tableParam = urlParams.get('table');
-                        if (tableParam && response.tables.includes(tableParam)) {
-                            select.val(tableParam).trigger('change');
+                        if (tableParam) {
+                            const tableNames = response.tables.map(t => typeof t === 'string' ? t : t.name);
+                            if (tableNames.includes(tableParam)) {
+                                select.val(tableParam).trigger('change');
+                            }
                         }
                     }
                     $('#loading').removeClass('active');
@@ -1228,6 +1236,11 @@ require_once 'login/auth_check.php';
                         displayFieldList();
                         $('#queryInterface').show();
                         $('#emptyState').hide();
+                        
+                        // Show info if it's a view
+                        if (tableInfo.isView) {
+                            showToast('👁️ Querying a database VIEW', 'warning');
+                        }
                     }
                     $('#loading').removeClass('active');
                 },
