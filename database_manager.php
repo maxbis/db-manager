@@ -318,9 +318,14 @@ require_once 'login/auth_check.php';
         /* Column builder grouping */
         #columnsBuilder { margin-top: 4px; }
         #columnsBuilder .column-rows { display: flex; flex-direction: column; gap: 10px; }
-        .column-row { border: 1px solid var(--color-border-light); background: var(--color-bg-lighter); border-radius: 10px; padding: 10px; box-shadow: var(--shadow-sm); }
+        .column-row { border: 1px solid var(--color-border-light); background: var(--color-bg-lighter); border-radius: 10px; padding: 10px; box-shadow: var(--shadow-sm); position: relative; }
         .column-row .row-line { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
         .column-row .col-badge { background: var(--color-primary-pale); color: var(--color-primary); font-weight: 600; font-size: 12px; padding: 2px 8px; border-radius: 999px; }
+        .column-row.dragging { opacity: 0.6; }
+        .column-row.drop-before { outline: 2px dashed var(--color-primary-light); outline-offset: -6px; }
+        .column-row.drop-after { outline: 2px dashed var(--color-primary-light); outline-offset: -6px; }
+        .drag-handle { cursor: grab; user-select: none; font-size: 16px; color: var(--color-primary-lighter); }
+        .drag-handle:active { cursor: grabbing; }
 
         /* Compact button for header controls */
         .controls button {
@@ -1408,7 +1413,7 @@ require_once 'login/auth_check.php';
                 // Build columns DDL from builder rows
                 const lines = [];
                 $('#columnsBuilder .column-row').each(function(){
-                    const name = $(this).find('.col-name').val().trim();
+                    const name = ($(this).find('.col-name').val() || '').trim().toLowerCase();
                     const type = $(this).find('.col-type').val();
                     const length = $(this).find('.col-length').val().trim();
                     const allowNull = $(this).find('.col-null').is(':checked');
@@ -1470,6 +1475,9 @@ require_once 'login/auth_check.php';
             addColumnRow();
             $('#addColumnRowBtn').on('click', function(){ addColumnRow(); });
 
+            // Drag & drop reordering for column rows
+            enableDragAndDrop();
+
             // Close modal on outside click
             $(document).click(function (e) {
                 if ($(e.target).hasClass('modal')) {
@@ -1481,6 +1489,69 @@ require_once 'login/auth_check.php';
         // Debounce helper
         function debounce(fn, delay = 250){
             let t; return function(...args){ clearTimeout(t); t = setTimeout(() => fn.apply(this, args), delay); };
+        }
+
+        function enableDragAndDrop() {
+            const container = document.querySelector('#columnsBuilder .column-rows');
+            let draggedEl = null;
+
+            container.addEventListener('dragstart', function(e){
+                const row = e.target.closest('.column-row');
+                if (!row) return;
+                draggedEl = row;
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', 'drag');
+            });
+
+            container.addEventListener('dragend', function(e){
+                if (draggedEl) draggedEl.classList.remove('dragging');
+                draggedEl = null;
+                renumberColumnBadges();
+            });
+
+            container.addEventListener('dragover', function(e){
+                e.preventDefault();
+                const afterElement = getDragAfterElement(container, e.clientY);
+                const dragging = container.querySelector('.dragging');
+                if (!dragging) return;
+                if (afterElement == null) {
+                    container.appendChild(dragging);
+                } else {
+                    container.insertBefore(dragging, afterElement);
+                }
+            });
+
+            // Make rows draggable
+            new MutationObserver(function(){
+                container.querySelectorAll('.column-row').forEach(function(row){
+                    row.setAttribute('draggable', 'true');
+                });
+            }).observe(container, { childList: true, subtree: true });
+
+            // Initialize existing
+            container.querySelectorAll('.column-row').forEach(function(row){ row.setAttribute('draggable','true'); });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.column-row:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function renumberColumnBadges(){
+            $('#columnsBuilder .column-row .col-badge').each(function(i){
+                const text = $(this).text().replace(/Column\s+\d+/, 'Column ' + (i+1));
+                $(this).text(text);
+            });
         }
 
         // Load all databases
@@ -1676,7 +1747,7 @@ require_once 'login/auth_check.php';
             const row = $(`
                 <div class="column-row">
                     <div class="row-line" style="justify-content: space-between;">
-                        <span class="col-badge">Column ${index}</span>
+                        <span class="col-badge"><span class="drag-handle" title="Drag to reorder">↕</span> Column ${index}</span>
                         <button type="button" class="btn-danger remove-col" style="padding:4px 8px; font-size:11px;">✖</button>
                     </div>
                     <div class="row-line" style="margin-top:6px;">
@@ -1707,6 +1778,11 @@ require_once 'login/auth_check.php';
             row.find('.col-default-mode').on('change', function(){
                 const mode = $(this).val();
                 row.find('.col-default').toggle(mode === 'value');
+            });
+
+            // Force lowercase column names as user types
+            row.find('.col-name').on('input', function(){
+                this.value = this.value.toLowerCase();
             });
 
             row.find('.remove-col').on('click', function(){ row.remove(); });
