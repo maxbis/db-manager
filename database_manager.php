@@ -262,42 +262,7 @@ require_once 'login/auth_check.php';
             position: relative;
         }
 
-        button:disabled::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--color-sapphire-navy);
-            color: white;
-            padding: 6px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            z-index: 1000;
-            pointer-events: none;
-            min-width: 0;
-            min-height: 0;
-        }
-
-        button:disabled:hover::after {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        button:disabled[data-tooltip=""]::after,
-        button:disabled[data-tooltip=""]:hover::after {
-            content: none;
-            display: none;
-            opacity: 0;
-            visibility: hidden;
-            padding: 0;
-            min-width: 0;
-            min-height: 0;
-        }
+        /* Dynamic tooltip styles removed */
 
         .btn-danger {
             background: linear-gradient(135deg, var(--color-danger-lighter) 0%, var(--color-danger-lightest) 100%);
@@ -1366,17 +1331,7 @@ require_once 'login/auth_check.php';
                 openModal('createTableModal');
             });
 
-            $('#deleteDatabaseBtn').click(function () {
-                if (currentDatabase) {
-                    deleteDatabase(currentDatabase);
-                }
-            });
-
-            $('#deleteTableBtn').click(function () {
-                if (selectedTable) {
-                    deleteTable(selectedTable);
-                }
-            });
+            // Removed handlers for deleted buttons (#deleteDatabaseBtn, #deleteTableBtn)
 
             $('#exportDatabaseBtn').click(function () {
                 if (currentDatabase) {
@@ -1657,35 +1612,11 @@ require_once 'login/auth_check.php';
             const hasTables = tables.length > 0;
             const hasSelectedTable = !!selectedTable;
 
-            $('#deleteDatabaseBtn').prop('disabled', !hasDatabase);
-            if (hasDatabase) {
-                $('#deleteDatabaseBtn').removeAttr('data-tooltip');
-            } else {
-                $('#deleteDatabaseBtn').attr('data-tooltip', 'Select a database to delete');
-            }
-
             $('#createTableBtn').prop('disabled', !hasDatabase);
-            if (hasDatabase) {
-                $('#createTableBtn').removeAttr('data-tooltip');
-            } else {
-                $('#createTableBtn').attr('data-tooltip', 'Select a database to create tables');
-            }
-
-            $('#deleteTableBtn').prop('disabled', !hasSelectedTable);
-            if (hasSelectedTable) {
-                $('#deleteTableBtn').removeAttr('data-tooltip');
-            } else {
-                $('#deleteTableBtn').attr('data-tooltip', 'Select a table to delete');
-            }
 
             $('#exportDatabaseBtn').prop('disabled', !hasDatabase);
-            if (hasDatabase) {
-                $('#exportDatabaseBtn').removeAttr('data-tooltip');
-            } else {
-                $('#exportDatabaseBtn').attr('data-tooltip', 'Select a database to export');
-            }
 
-            $('#importDatabaseBtn').prop('disabled', false).removeAttr('data-tooltip'); // Can always import
+            $('#importDatabaseBtn').prop('disabled', false); // Can always import
         }
 
         // Show/hide table list
