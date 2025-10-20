@@ -306,7 +306,14 @@ require_once 'login/auth_check.php';
             border-radius: 10px; box-shadow: var(--shadow-lg); padding: 8px; display: none; z-index: 20;
         }
         .actions-dropdown .dropdown-menu.show { display: block; }
-        .actions-dropdown .dropdown-menu .menu-item { width: 100%; text-align: left; padding: 6px 10px; font-size: 12px; }
+        .actions-dropdown .dropdown-menu ul { list-style: none; margin: 0; padding: 0; }
+        .actions-dropdown .dropdown-menu li { margin: 0; }
+        .actions-dropdown .dropdown-menu .menu-item {
+            width: 100%; text-align: left; padding: 8px 10px; font-size: 12px; border: none; background: transparent;
+            border-radius: 6px; color: var(--color-text-primary); cursor: pointer;
+        }
+        .actions-dropdown .dropdown-menu .menu-item:hover { background: var(--color-bg-hover); color: var(--color-primary); }
+        .actions-dropdown .dropdown-menu .menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
 
         /* Compact button for header controls */
         .controls button {
@@ -1019,10 +1026,13 @@ require_once 'login/auth_check.php';
                         <div class="actions-dropdown" id="statsActions">
                             <button type="button" class="dropdown-toggle">⚙️ Actions</button>
                             <div class="dropdown-menu" role="menu" aria-label="Database actions">
-                                <button id="createDatabaseBtn" class="menu-item btn-success">➕ Create DB</button>
-                                <button id="exportDatabaseBtn" class="menu-item btn-warning" disabled>📤 Export DB</button>
-                                <button id="importDatabaseBtn" class="menu-item btn-warning">📥 Import DB</button>
-                                <button id="exportAllDatabasesBtn" class="menu-item" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 6px;">📦 Export All</button>
+                                <ul>
+                                    <li><button id="createDatabaseBtn" class="menu-item">➕ Create DB</button></li>
+                                    <li><button id="createTableMenuItem" class="menu-item" disabled>➕ Create Table</button></li>
+                                    <li><button id="exportDatabaseBtn" class="menu-item" disabled>📤 Export DB</button></li>
+                                    <li><button id="importDatabaseBtn" class="menu-item">📥 Import DB</button></li>
+                                    <li><button id="exportAllDatabasesBtn" class="menu-item">📦 Export All</button></li>
+                                </ul>
                             </div>
                         </div>
                     </div>
@@ -1051,7 +1061,7 @@ require_once 'login/auth_check.php';
                         <option value="tables_desc">Tables (most)</option>
                         <option value="tables_asc">Tables (least)</option>
                     </select>
-                    <button id="refreshDatabasesBtn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;" aria-label="Refresh databases">🔄 Refresh</button>
+                    <!-- <button id="refreshDatabasesBtn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;" aria-label="Refresh databases">🔄 Refresh</button> -->
                 </div>
             </div>
             </div>
@@ -1341,6 +1351,12 @@ require_once 'login/auth_check.php';
             });
 
             $('#createTableBtn').click(function () {
+                openModal('createTableModal');
+            });
+
+            // Create Table from menu item (same action)
+            $('#createTableMenuItem').click(function(){
+                if (!currentDatabase) return;
                 openModal('createTableModal');
             });
 
@@ -1639,6 +1655,7 @@ require_once 'login/auth_check.php';
             const hasSelectedTable = !!selectedTable;
 
             $('#createTableBtn').prop('disabled', !hasDatabase);
+            $('#createTableMenuItem').prop('disabled', !hasDatabase);
 
             $('#exportDatabaseBtn').prop('disabled', !hasDatabase);
 
