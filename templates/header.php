@@ -101,7 +101,7 @@ if (!empty($selectedTable) && !empty($currentDatabase)) {
             
             <?php if (!empty($currentDatabase)): ?>
             <div class="control-group" style="margin-left: auto;">
-                <span style="font-size: 12px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 6px;">
+                <span style="font-size: 18px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 6px;">
                     <span style="color: var(--color-success); padding: 6px 10px; border-radius: 6px; font-weight: 600; margin-right: 0px;">
                         🗄️ <?php echo htmlspecialchars($databaseDisplay); ?>
                     </span>

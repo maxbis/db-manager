@@ -596,6 +596,11 @@ require_once 'login/auth_check.php';
             border-bottom: none;
         }
 
+        .table-item.selected {
+            background: var(--color-bg-active);
+            border-left: 4px solid var(--color-primary-light);
+        }
+
         .table-info {
             display: flex;
             align-items: center;
@@ -1230,6 +1235,7 @@ require_once 'login/auth_check.php';
         let currentDatabase = '';
         let databases = [];
         let tables = [];
+        let selectedTable = '';
 
         // Initialize
         $(document).ready(function() {
@@ -1248,6 +1254,7 @@ require_once 'login/auth_check.php';
 
             $('#databaseSelect').change(function() {
                 currentDatabase = $(this).val();
+                selectedTable = ''; // Reset table selection when database changes
                 if (currentDatabase) {
                     // Update session cache so header shows correct database
                     $.ajax({
@@ -1289,7 +1296,9 @@ require_once 'login/auth_check.php';
             });
 
             $('#deleteTableBtn').click(function() {
-                // This will be handled by individual table delete buttons
+                if (selectedTable) {
+                    deleteTable(selectedTable);
+                }
             });
 
             $('#exportDatabaseBtn').click(function() {
@@ -1444,12 +1453,15 @@ require_once 'login/auth_check.php';
                         <p>Create your first table to get started.</p>
                     </div>
                 `);
+                selectedTable = '';
+                updateButtonStates();
                 return;
             }
 
             tables.forEach(function(table) {
+                const isSelected = table === selectedTable;
                 const tableItem = $(`
-                    <div class="table-item" data-table="${table}">
+                    <div class="table-item ${isSelected ? 'selected' : ''}" data-table="${table}" style="cursor: pointer;">
                         <div class="table-info">
                             <span class="table-icon">📋</span>
                             <div class="table-details">
@@ -1458,11 +1470,22 @@ require_once 'login/auth_check.php';
                             </div>
                         </div>
                         <div class="table-actions" style="display: flex; gap: 6px;">
-                            <button class="btn-success" onclick="viewTable('${table}')" style="padding: 4px 8px; font-size: 11px;">View</button>
-                            <button class="btn-danger" onclick="deleteTable('${table}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>
+                            <button class="btn-success" onclick="event.stopPropagation(); viewTable('${table}')" style="padding: 4px 8px; font-size: 11px;">View</button>
+                            <button class="btn-danger" onclick="event.stopPropagation(); deleteTable('${table}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>
                         </div>
                     </div>
                 `);
+                
+                // Add click handler to select the table
+                tableItem.click(function(e) {
+                    // Don't trigger if clicking on buttons
+                    if ($(e.target).is('button') || $(e.target).closest('button').length) {
+                        return;
+                    }
+                    
+                    selectTable(table);
+                });
+                
                 tableList.append(tableItem);
             });
         }
@@ -1510,13 +1533,14 @@ require_once 'login/auth_check.php';
         function updateButtonStates() {
             const hasDatabase = !!currentDatabase;
             const hasTables = tables.length > 0;
+            const hasSelectedTable = !!selectedTable;
 
             $('#deleteDatabaseBtn').prop('disabled', !hasDatabase)
                 .attr('data-tooltip', hasDatabase ? '' : 'Select a database to delete');
             $('#createTableBtn').prop('disabled', !hasDatabase)
                 .attr('data-tooltip', hasDatabase ? '' : 'Select a database to create tables');
-            $('#deleteTableBtn').prop('disabled', !hasTables)
-                .attr('data-tooltip', hasTables ? '' : 'No tables to delete');
+            $('#deleteTableBtn').prop('disabled', !hasSelectedTable)
+                .attr('data-tooltip', hasSelectedTable ? '' : 'Select a table to delete');
             $('#exportDatabaseBtn').prop('disabled', !hasDatabase)
                 .attr('data-tooltip', hasDatabase ? '' : 'Select a database to export');
             $('#importDatabaseBtn').prop('disabled', false)
@@ -1535,6 +1559,17 @@ require_once 'login/auth_check.php';
         // Select database
         function selectDatabase(databaseName) {
             $('#databaseSelect').val(databaseName).trigger('change');
+        }
+
+        // Select table
+        function selectTable(tableName) {
+            selectedTable = tableName;
+            
+            // Update visual selection
+            $('.table-item').removeClass('selected');
+            $(`.table-item[data-table="${tableName}"]`).addClass('selected');
+            
+            updateButtonStates();
         }
 
         // Update database badge in header
@@ -1737,6 +1772,10 @@ require_once 'login/auth_check.php';
                     success: function(response) {
                         if (response.success) {
                             showToast('Table deleted successfully!', 'success');
+                            // Clear selection if the deleted table was selected
+                            if (selectedTable === tableName) {
+                                selectedTable = '';
+                            }
                             loadTables();
                             loadDatabases(); // Refresh stats
                         } else {
