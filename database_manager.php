@@ -315,6 +315,13 @@ require_once 'login/auth_check.php';
         .actions-dropdown .dropdown-menu .menu-item:hover { background: var(--color-bg-hover); color: var(--color-primary); }
         .actions-dropdown .dropdown-menu .menu-item:disabled { opacity: 0.5; cursor: not-allowed; }
 
+        /* Column builder grouping */
+        #columnsBuilder { margin-top: 4px; }
+        #columnsBuilder .column-rows { display: flex; flex-direction: column; gap: 10px; }
+        .column-row { border: 1px solid var(--color-border-light); background: var(--color-bg-lighter); border-radius: 10px; padding: 10px; box-shadow: var(--shadow-sm); }
+        .column-row .row-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .column-row .col-badge { background: var(--color-primary-pale); color: var(--color-primary); font-weight: 600; font-size: 12px; padding: 2px 8px; border-radius: 999px; }
+
         /* Compact button for header controls */
         .controls button {
             padding: 4px 4px;
@@ -1147,13 +1154,17 @@ require_once 'login/auth_check.php';
                     <label for="newTableName">Table Name: <span style="color: var(--color-danger);">*</span></label>
                     <input type="text" id="newTableName" placeholder="e.g., users" required>
                 </div>
+
                 <div class="form-group">
-                    <label for="newTableColumns">Columns (one per line): <span
-                            style="color: var(--color-danger);">*</span></label>
-                    <textarea id="newTableColumns"
-                        placeholder="id INT AUTO_INCREMENT PRIMARY KEY&#10;name VARCHAR(255) NOT NULL&#10;email VARCHAR(255) UNIQUE&#10;created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-                        rows="8"></textarea>
+                    <label>Columns:</label>
+                    <div id="columnsBuilder">
+                        <div class="column-rows"></div>
+                        <button type="button" class="btn-secondary" id="addColumnRowBtn" style="margin-top: 8px; padding: 6px 10px; font-size: 12px;">➕ Add Column</button>
+                    </div>
+                    <!-- Hidden textarea kept for API compatibility; populated on submit -->
+                    <textarea id="newTableColumns" style="display:none;"></textarea>
                 </div>
+
                 <div class="form-group">
                     <label for="newTableEngine">Storage Engine:</label>
                     <select id="newTableEngine">
@@ -1394,6 +1405,41 @@ require_once 'login/auth_check.php';
             });
 
             $('#confirmCreateTableBtn').click(function () {
+                // Build columns DDL from builder rows
+                const lines = [];
+                $('#columnsBuilder .column-row').each(function(){
+                    const name = $(this).find('.col-name').val().trim();
+                    const type = $(this).find('.col-type').val();
+                    const length = $(this).find('.col-length').val().trim();
+                    const allowNull = $(this).find('.col-null').is(':checked');
+                    const autoInc = $(this).find('.col-ai').is(':checked');
+                    const defaultMode = $(this).find('.col-default-mode').val();
+                    const defaultVal = $(this).find('.col-default').val();
+
+                    if (!name) return; // skip empty rows
+
+                    let ddl = name + ' ' + type + (length ? '(' + length + ')' : '');
+                    if (!allowNull) ddl += ' NOT NULL';
+
+                    // Default handling
+                    if (defaultMode === 'value' && defaultVal !== '') {
+                        // Quote string-like types
+                        const needsQuotes = /^(CHAR|VARCHAR|TEXT|TINYTEXT|MEDIUMTEXT|LONGTEXT)$/i.test(type);
+                        ddl += ' DEFAULT ' + (needsQuotes ? `'${defaultVal.replace(/'/g, "''")}'` : defaultVal);
+                    } else if (defaultMode === 'current_timestamp') {
+                        ddl += ' DEFAULT CURRENT_TIMESTAMP';
+                    }
+
+                    if (autoInc) ddl += ' AUTO_INCREMENT';
+
+                    lines.push(ddl);
+                });
+
+                // Fallback: if no rows, keep existing textarea value (manual entry)
+                if (lines.length > 0) {
+                    $('#newTableColumns').val(lines.join('\n'));
+                }
+
                 createTable();
             });
 
@@ -1419,6 +1465,10 @@ require_once 'login/auth_check.php';
                 dbSortMode = $(this).val();
                 displayDatabases();
             });
+
+            // Initialize column builder with one default row
+            addColumnRow();
+            $('#addColumnRowBtn').on('click', function(){ addColumnRow(); });
 
             // Close modal on outside click
             $(document).click(function (e) {
@@ -1607,6 +1657,61 @@ require_once 'login/auth_check.php';
 
                 tableList.append(tableItem);
             });
+        }
+
+        // Add a column row to the builder
+        function addColumnRow() {
+            const commonTypes = [
+                { v: 'INT', label: 'INT' },
+                { v: 'BIGINT', label: 'BIGINT' },
+                { v: 'VARCHAR', label: 'VARCHAR' },
+                { v: 'TEXT', label: 'TEXT' },
+                { v: 'DATE', label: 'DATE' },
+                { v: 'DATETIME', label: 'DATETIME' },
+                { v: 'TIMESTAMP', label: 'TIMESTAMP' },
+                { v: 'BOOLEAN', label: 'BOOLEAN' }
+            ];
+
+            const index = $('#columnsBuilder .column-row').length + 1;
+            const row = $(`
+                <div class="column-row">
+                    <div class="row-line" style="justify-content: space-between;">
+                        <span class="col-badge">Column ${index}</span>
+                        <button type="button" class="btn-danger remove-col" style="padding:4px 8px; font-size:11px;">✖</button>
+                    </div>
+                    <div class="row-line" style="margin-top:6px;">
+                        <input type="text" class="col-name" placeholder="column_name" style="flex:1 1 160px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
+                        <select class="col-type" style="flex:0 0 160px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
+                            ${commonTypes.map(t => `<option value="${t.v}">${t.label}</option>`).join('')}
+                        </select>
+                        <input type="text" class="col-length" placeholder="len" style="flex:0 0 100px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
+                    </div>
+                    <div class="row-line" style="margin-top:6px;">
+                        <select class="col-default-mode" style="flex:0 0 200px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
+                            <option value="none">Default: None</option>
+                            <option value="value">Default: Value…</option>
+                            <option value="current_timestamp">Default: CURRENT_TIMESTAMP</option>
+                        </select>
+                        <input type="text" class="col-default" placeholder="default value" style="flex:1 1 200px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px; display:none;">
+                        <label style="display:flex; align-items:center; gap:6px;">
+                            <input type="checkbox" class="col-null"> NULL
+                        </label>
+                        <label style="display:flex; align-items:center; gap:6px;">
+                            <input type="checkbox" class="col-ai"> AI
+                        </label>
+                    </div>
+                </div>
+            `);
+
+            // Toggle default value input visibility
+            row.find('.col-default-mode').on('change', function(){
+                const mode = $(this).val();
+                row.find('.col-default').toggle(mode === 'value');
+            });
+
+            row.find('.remove-col').on('click', function(){ row.remove(); });
+
+            $('#columnsBuilder .column-rows').append(row);
         }
 
         // Populate database select dropdown
