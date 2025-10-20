@@ -5,7 +5,7 @@
  * Checks if the current IP address is authorized to access the application
  * - Allows all access from localhost
  * - Checks whitelist from ipAllowed.txt for other IPs
- * - Validates remember-me tokens for auto-login
+ * - Validates remember-me tokens for auto-loginn 
  */
 
 require_once __DIR__ . '/remember_tokens.php';

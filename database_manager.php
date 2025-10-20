@@ -303,7 +303,7 @@ require_once 'login/auth_check.php';
         .actions-dropdown .dropdown-menu {
             position: absolute; right: 0; top: 100%; margin-top: 6px; min-width: 180px;
             background: var(--color-bg-white); border: 1px solid var(--color-border-light);
-            border-radius: 10px; box-shadow: var(--shadow-lg); padding: 8px; display: none; z-index: 20;
+            border-radius: 10px; box-shadow: var(--shadow-lg); padding: 8px; display: none; z-index: 100;
         }
         .actions-dropdown .dropdown-menu.show { display: block; }
         .actions-dropdown .dropdown-menu ul { list-style: none; margin: 0; padding: 0; }
@@ -360,7 +360,6 @@ require_once 'login/auth_check.php';
 
         .dashboard-card:hover {
             box-shadow: var(--shadow-md);
-            transform: translateY(-2px);
         }
 
         .dashboard-card h3 {
