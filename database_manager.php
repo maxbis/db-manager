@@ -319,7 +319,7 @@ require_once 'login/auth_check.php';
         #columnsBuilder { margin-top: 4px; }
         #columnsBuilder .column-rows { display: flex; flex-direction: column; gap: 10px; }
         .column-row { border: 1px solid var(--color-border-light); background: var(--color-bg-lighter); border-radius: 10px; padding: 10px; box-shadow: var(--shadow-sm); }
-        .column-row .row-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .column-row .row-line { display: flex; gap: 8px; align-items: center; flex-wrap: nowrap; }
         .column-row .col-badge { background: var(--color-primary-pale); color: var(--color-primary); font-weight: 600; font-size: 12px; padding: 2px 8px; border-radius: 999px; }
 
         /* Compact button for header controls */
@@ -1680,11 +1680,11 @@ require_once 'login/auth_check.php';
                         <button type="button" class="btn-danger remove-col" style="padding:4px 8px; font-size:11px;">✖</button>
                     </div>
                     <div class="row-line" style="margin-top:6px;">
-                        <input type="text" class="col-name" placeholder="column_name" style="flex:1 1 160px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
-                        <select class="col-type" style="flex:0 0 160px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
+                        <input type="text" class="col-name" placeholder="column_name" style="flex:1 1 240px; min-width:140px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
+                        <select class="col-type" style="flex:0 0 120px; min-width:80px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
                             ${commonTypes.map(t => `<option value="${t.v}">${t.label}</option>`).join('')}
                         </select>
-                        <input type="text" class="col-length" placeholder="len" style="flex:0 0 100px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
+                        <input type="text" class="col-length" placeholder="len" style="flex:0 0 80px; min-width:70px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
                     </div>
                     <div class="row-line" style="margin-top:6px;">
                         <select class="col-default-mode" style="flex:0 0 200px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px;">
