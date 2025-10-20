@@ -151,30 +151,59 @@ require_once 'login/auth_check.php';
         .database-item {
             padding: 15px 20px;
             border-bottom: 1px solid var(--color-border-lighter);
-            display: grid;
-            grid-template-columns: auto 1fr auto auto;
-            gap: 15px;
+            display: flex;
+            gap: 20px;
             align-items: center;
             transition: all 0.2s ease;
         }
 
-        .database-item:hover {
-            background: var(--color-bg-hover);
+        /* Database Name Section (Left Part) */
+        .database-name-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0; /* Allow text truncation */
         }
 
-        .database-item:last-child {
-            border-bottom: none;
+        .expand-indicator {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--color-text-tertiary);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .expand-indicator:hover {
+            color: var(--color-primary);
+            transform: scale(1.1);
+        }
+
+        .expand-indicator::before {
+            content: '▶';
+            font-size: 12px;
+            transition: transform 0.2s ease;
+        }
+
+        .expand-indicator.expanded::before {
+            transform: rotate(90deg);
         }
 
         .database-icon {
             font-size: 20px;
             color: var(--color-primary);
+            flex-shrink: 0;
         }
 
         .database-main-info {
             display: flex;
             flex-direction: column;
             gap: 4px;
+            min-width: 0; /* Allow text truncation */
         }
 
         .database-name {
@@ -182,6 +211,9 @@ require_once 'login/auth_check.php';
             font-size: 16px;
             font-weight: 600;
             margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .database-tables {
@@ -190,12 +222,13 @@ require_once 'login/auth_check.php';
             margin: 0;
         }
 
-        .database-size-column {
+        /* Size Indicator Section (Center Part) */
+        .database-size-section {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 6px;
-            min-width: 140px;
+            flex: 0 0 160px; /* Fixed width for size section */
         }
 
         .database-size-info {
@@ -203,16 +236,19 @@ require_once 'login/auth_check.php';
             flex-direction: column;
             align-items: center;
             gap: 6px;
+            width: 100%;
         }
 
         .database-size-bar {
-            width: 120px;
+            width: 100%;
+            max-width: 140px;
             height: 8px;
             border: 1px solid var(--color-border-lighter);
             border-radius: 4px;
             background: var(--color-bg-light);
             position: relative;
             overflow: hidden;
+            cursor: help;
         }
 
         .database-size-fill {
@@ -230,13 +266,120 @@ require_once 'login/auth_check.php';
             font-size: 12px;
             color: var(--color-text-primary);
             font-weight: 500;
+            text-align: center;
         }
 
-        .database-size-bar {
-            position: relative;
-            cursor: help;
+        /* Buttons Section (Right Part) */
+        .database-actions-section {
+            display: flex;
+            gap: 8px;
+            flex: 0 0 auto; /* Don't grow or shrink */
         }
 
+        .database-actions-section button {
+            padding: 6px 12px;
+            font-size: 12px;
+            min-width: auto;
+            white-space: nowrap;
+        }
+
+        /* Database Table Subsection (Hidden by default) */
+        .database-tables-subsection {
+            display: none;
+            background: var(--color-bg-lighter);
+            border-top: 1px solid var(--color-border-lighter);
+            padding: 15px 20px 15px 50px; /* Extra left padding for indentation */
+            margin-top: 0;
+        }
+
+        .database-tables-subsection.expanded {
+            display: block;
+        }
+
+        .database-tables-subsection h4 {
+            color: var(--color-text-secondary);
+            font-size: 14px;
+            margin: 0 0 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .database-tables-subsection h4::before {
+            content: '📋';
+            font-size: 16px;
+        }
+
+        .database-tables-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .database-table-item {
+            background: var(--color-bg-white);
+            border: 1px solid var(--color-border-light);
+            border-radius: 6px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .database-table-item:hover {
+            background: var(--color-bg-hover);
+            border-color: var(--color-primary-light);
+        }
+
+        .database-table-item .table-icon {
+            font-size: 16px;
+            color: var(--color-primary);
+            flex-shrink: 0;
+        }
+
+        .database-table-item .table-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--color-text-primary);
+            flex: 1;
+            min-width: 0;
+        }
+
+        .database-table-item .table-type {
+            font-size: 11px;
+            color: var(--color-text-tertiary);
+            background: var(--color-bg-light);
+            padding: 3px 8px;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+
+        .database-table-item .table-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .database-table-item .table-actions button {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            min-width: 50px;
+        }
+
+        .database-item:hover {
+            background: var(--color-bg-hover);
+        }
+
+        .database-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Tooltip styles for size bar */
         .database-size-bar::after {
             content: attr(data-tooltip);
             position: absolute;
@@ -276,17 +419,6 @@ require_once 'login/auth_check.php';
         .database-size-bar:hover::before {
             opacity: 1;
             visibility: visible;
-        }
-
-        .database-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .database-actions button {
-            padding: 6px 12px;
-            font-size: 12px;
-            min-width: auto;
         }
 
         .table-list {
@@ -416,6 +548,56 @@ require_once 'login/auth_check.php';
             .action-buttons button {
                 min-width: auto;
             }
+
+            /* Database list responsive styles */
+            .database-item {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+                padding: 15px;
+            }
+
+            .database-name-section {
+                flex: none;
+                order: 1;
+            }
+
+            .database-size-section {
+                flex: none;
+                order: 2;
+                align-self: center;
+            }
+
+            .database-actions-section {
+                flex: none;
+                order: 3;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .database-actions-section button {
+                flex: 1;
+                min-width: 80px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .database-item {
+                padding: 12px;
+            }
+
+            .database-size-section {
+                flex: 0 0 120px;
+            }
+
+            .database-actions-section {
+                gap: 6px;
+            }
+
+            .database-actions-section button {
+                padding: 8px 10px;
+                font-size: 11px;
+            }
         }
     </style>
 </head>
@@ -479,8 +661,6 @@ require_once 'login/auth_check.php';
                 </div>
             </div>
         </div>
-
-
 
         <!-- Database List -->
         <div class="database-list">
@@ -756,6 +936,16 @@ require_once 'login/auth_check.php';
             $('#databaseSelect').change(function () {
                 currentDatabase = $(this).val();
                 selectedTable = ''; // Reset table selection when database changes
+                
+                // Close any expanded databases when selecting from dropdown
+                closeAllExpandedDatabases();
+                
+                // Update visual state of database items
+                $('.database-item').removeClass('active');
+                if (currentDatabase) {
+                    $(`.database-item[data-database="${currentDatabase}"]`).addClass('active');
+                }
+                
                 if (currentDatabase) {
                     // Update session cache so header shows correct database
                     $.ajax({
@@ -1025,6 +1215,148 @@ require_once 'login/auth_check.php';
             });
         }
 
+        // Load tables for a specific database (for expand/collapse functionality)
+        function loadTablesForDatabase(databaseName, callback) {
+            $.ajax({
+                url: 'api.php?action=getTables&database=' + encodeURIComponent(databaseName),
+                method: 'GET',
+                dataType: 'json',
+                success: function (response) {
+                    if (response.success) {
+                        if (typeof callback === 'function') {
+                            callback(response.tables);
+                        }
+                    }
+                },
+                error: function (xhr) {
+                    showToast('Error loading tables for ' + databaseName + ': ' + xhr.responseText, 'error');
+                }
+            });
+        }
+
+        // Toggle database tables expand/collapse
+        function toggleDatabaseTables(databaseName) {
+            const expandIndicator = $(`.expand-indicator[aria-label*="${databaseName}"]`);
+            const tablesSubsection = $(`.database-tables-subsection[data-database="${databaseName}"]`);
+            
+            if (tablesSubsection.hasClass('expanded')) {
+                // Collapse this database
+                tablesSubsection.removeClass('expanded').slideUp(200);
+                expandIndicator.removeClass('expanded');
+            } else {
+                // Close any other expanded databases first (but not this one)
+                closeAllExpandedDatabases(databaseName);
+                
+                // Expand the selected database
+                expandIndicator.addClass('expanded');
+                tablesSubsection.addClass('expanded');
+                
+                // Select this database as the current database (without triggering change event)
+                currentDatabase = databaseName;
+                $('#databaseSelect').val(databaseName);
+                
+                // Update visual state manually
+                $('.database-item').removeClass('active');
+                $(`.database-item[data-database="${databaseName}"]`).addClass('active');
+                
+                // Update database badges manually
+                $('.database-name').each(function() {
+                    const $this = $(this);
+                    const $badge = $this.find('.badge-current');
+                    if ($this.text().includes(databaseName) && !$badge.length) {
+                        $this.append('<span class="badge-current" title="Currently selected">Current</span>');
+                    } else if (!$this.text().includes(databaseName) && $badge.length) {
+                        $badge.remove();
+                    }
+                });
+                
+                // Update session cache
+                $.ajax({
+                    url: 'api.php',
+                    method: 'POST',
+                    data: {
+                        action: 'setCurrentDatabase',
+                        database: databaseName
+                    },
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.success) {
+                            updateDatabaseBadge(databaseName);
+                        }
+                    }
+                });
+                
+                // Load tables if not already loaded
+                const tablesGrid = tablesSubsection.find('.database-tables-grid');
+                if (tablesGrid.children().length === 0) {
+                    loadTablesForDatabase(databaseName, function(tables) {
+                        displayTablesInSubsection(databaseName, tables);
+                    });
+                } else {
+                    tablesSubsection.slideDown(200);
+                }
+                
+                // Update button states and stats
+                updateButtonStates();
+                updateStats();
+            }
+        }
+
+        // Close all expanded databases (optionally exclude a specific database)
+        function closeAllExpandedDatabases(excludeDatabase = null) {
+            $('.database-tables-subsection.expanded').each(function() {
+                const databaseName = $(this).data('database');
+                
+                // Skip the excluded database
+                if (excludeDatabase && databaseName === excludeDatabase) {
+                    return;
+                }
+                
+                const expandIndicator = $(`.expand-indicator[aria-label*="${databaseName}"]`);
+                
+                $(this).removeClass('expanded').slideUp(200);
+                expandIndicator.removeClass('expanded');
+            });
+        }
+
+        // Display tables in the subsection
+        function displayTablesInSubsection(databaseName, tables) {
+            const tablesGrid = $(`.database-tables-subsection[data-database="${databaseName}"] .database-tables-grid`);
+            tablesGrid.empty();
+
+            if (tables.length === 0) {
+                tablesGrid.append(`
+                    <div style="text-align: center; color: var(--color-text-tertiary); padding: 20px; background: var(--color-bg-white); border: 1px solid var(--color-border-light); border-radius: 6px;">
+                        No tables found in this database.
+                    </div>
+                `);
+            } else {
+                tables.forEach(function (table) {
+                    const tableName = typeof table === 'string' ? table : table.name;
+                    const tableType = typeof table === 'object' ? table.type : 'BASE TABLE';
+                    const isView = tableType === 'VIEW';
+                    const tableIcon = isView ? '👁️' : '📋';
+                    
+                    const tableItem = $(`
+                        <div class="database-table-item" data-table="${tableName}">
+                            <span class="table-icon">${tableIcon}</span>
+                            <span class="table-name">${tableName}</span>
+                            ${isView ? '<span class="table-type">View</span>' : '<span class="table-type">Table</span>'}
+                            <div class="table-actions">
+                                <button class="btn-success" onclick="viewTableFromSubsection('${tableName}', '${databaseName}')" title="View table">View</button>
+                                ${!isView ? `<button class="btn-danger" onclick="deleteTableFromSubsection('${tableName}', '${databaseName}')" title="Delete table">Delete</button>` : ''}
+                            </div>
+                        </div>
+                    `);
+                    
+                    tablesGrid.append(tableItem);
+                });
+            }
+            
+            // Show the subsection with animation
+            $(`.database-tables-subsection[data-database="${databaseName}"]`).slideDown(200);
+        }
+
         // Display databases list (with search + sort + better progress)
         function displayDatabases() {
             const databaseList = $('#databaseList');
@@ -1054,12 +1386,18 @@ require_once 'login/auth_check.php';
 
                 const databaseItem = $(`
                     <div class="database-item ${isCurrent ? 'active' : ''}" data-database="${db.name}" tabindex="0">
-                        <span class="database-icon" aria-hidden="true">🗄️</span>
-                        <div class="database-main-info">
-                            <h4 class="database-name">${db.name}${isCurrent ? '<span class="badge-current" title="Currently selected">Current</span>' : ''}</h4>
-                            <p class="database-tables">${db.tables || 0} tables</p>
+                        <!-- Database Name Section (Left Part) -->
+                        <div class="database-name-section">
+                            <span class="expand-indicator" title="Click to expand/collapse" aria-label="Expand database ${db.name}"></span>
+                            <span class="database-icon" aria-hidden="true">🗄️</span>
+                            <div class="database-main-info">
+                                <h4 class="database-name">${db.name}${isCurrent ? '<span class="badge-current" title="Currently selected">Current</span>' : ''}</h4>
+                                <p class="database-tables">${db.tables || 0} tables</p>
+                            </div>
                         </div>
-                        <div class="database-size-column">
+                        
+                        <!-- Size Indicator Section (Center Part) -->
+                        <div class="database-size-section">
                             <div class="database-size-info">
                                 <div class="database-size-bar" data-tooltip="Size: ${displaySize}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${sizePercent}" aria-label="Database size of ${db.name}">
                                     <div class="database-size-fill ${isLarge ? 'large' : ''}" style="width: ${sizePercent}%;"></div>
@@ -1067,10 +1405,19 @@ require_once 'login/auth_check.php';
                                 <span class="database-size-text">${displaySize}</span>
                             </div>
                         </div>
-                        <div class="database-actions" style="display: flex; gap: 6px;">
-                            <button class="btn-success" aria-label="Select ${db.name}" onclick="selectDatabase('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Select</button>
-                            <button class="btn-warning" aria-label="Export ${db.name}" onclick="openExportModal('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Export</button>
-                            <button class="btn-danger" aria-label="Delete ${db.name}" onclick="deleteDatabase('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>
+                        
+                        <!-- Buttons Section (Right Part) -->
+                        <div class="database-actions-section">
+                            <button class="btn-success" aria-label="Select ${db.name}" onclick="selectDatabase('${db.name}')">Select</button>
+                            <button class="btn-warning" aria-label="Export ${db.name}" onclick="openExportModal('${db.name}')">Export</button>
+                            <button class="btn-danger" aria-label="Delete ${db.name}" onclick="deleteDatabase('${db.name}')">Delete</button>
+                        </div>
+                    </div>
+                    <!-- Database Tables Subsection (Hidden by default) -->
+                    <div class="database-tables-subsection" data-database="${db.name}">
+                        <h4>Tables in ${db.name}</h4>
+                        <div class="database-tables-grid">
+                            <!-- Tables will be populated here when expanded -->
                         </div>
                     </div>
                 `);
@@ -1078,6 +1425,12 @@ require_once 'login/auth_check.php';
                 // Keyboard support: Enter/Space to select
                 databaseItem.on('keydown', function(e){
                     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectDatabase(db.name); }
+                });
+
+                // Expand indicator click handler
+                databaseItem.find('.expand-indicator').on('click', function(e){
+                    e.stopPropagation(); // Prevent database selection
+                    toggleDatabaseTables(db.name);
                 });
 
                 databaseList.append(databaseItem);
@@ -1285,7 +1638,23 @@ require_once 'login/auth_check.php';
 
         // Select database
         function selectDatabase(databaseName) {
+            currentDatabase = databaseName;
             $('#databaseSelect').val(databaseName).trigger('change');
+            
+            // Update visual state of database items
+            $('.database-item').removeClass('active');
+            $(`.database-item[data-database="${databaseName}"]`).addClass('active');
+            
+            // Update database badges
+            $('.database-name').each(function() {
+                const $this = $(this);
+                const $badge = $this.find('.badge-current');
+                if ($this.text().includes(databaseName) && !$badge.length) {
+                    $this.append('<span class="badge-current" title="Currently selected">Current</span>');
+                } else if (!$this.text().includes(databaseName) && $badge.length) {
+                    $badge.remove();
+                }
+            });
         }
 
         // Select table
@@ -1317,6 +1686,58 @@ require_once 'login/auth_check.php';
             // Update the database badge to show database.table before navigating
             updateDatabaseBadge(currentDatabase, tableName);
             window.location.href = `table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(currentDatabase)}`;
+        }
+
+        // View table from subsection (when clicked from expanded database)
+        function viewTableFromSubsection(tableName, databaseName) {
+            // Update the database badge to show database.table before navigating
+            updateDatabaseBadge(databaseName, tableName);
+            window.location.href = `table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(databaseName)}`;
+        }
+
+        // Delete table from subsection (when clicked from expanded database)
+        function deleteTableFromSubsection(tableName, databaseName) {
+            showConfirmDialog({
+                title: 'Delete Table',
+                message: `Are you sure you want to delete the table "${tableName}" from database "${databaseName}"? This action cannot be undone!`,
+                confirmText: 'Delete',
+                confirmClass: 'btn-danger'
+            }, function onConfirm() {
+                $.ajax({
+                    url: 'api.php',
+                    method: 'POST',
+                    data: {
+                        action: 'deleteTable',
+                        database: databaseName,
+                        name: tableName
+                    },
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.success) {
+                            showToast('Table deleted successfully!', 'success');
+                            // Remove the table from the subsection
+                            $(`.database-table-item[data-table="${tableName}"]`).remove();
+                            // Update the table count in the database item
+                            updateDatabaseTableCount(databaseName);
+                            // Refresh the main database list stats
+                            loadDatabases();
+                        } else {
+                            showToast('Error: ' + response.error, 'error');
+                        }
+                    },
+                    error: function (xhr) {
+                        const response = JSON.parse(xhr.responseText);
+                        showToast('Error: ' + (response.error || 'Unknown error'), 'error');
+                    }
+                });
+            });
+        }
+
+        // Update table count in database item after table deletion
+        function updateDatabaseTableCount(databaseName) {
+            const databaseItem = $(`.database-item[data-database="${databaseName}"]`);
+            const tablesCount = $(`.database-table-item[data-database="${databaseName}"]`).length;
+            databaseItem.find('.database-tables').text(tablesCount + ' tables');
         }
 
         // Export all databases
