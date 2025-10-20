@@ -74,7 +74,7 @@ assets/
 
 **Files to extract from:**
 - database_manager.php (lines 15-100)
-- Same variables appear in: database_manager2.php, index.php, query.php, table_structure.php
+- Same variables appear in: database_manager2.php, table_data.php, query.php, table_structure.php
 
 **Verification:** All variables start with `--` and are identical across files
 
@@ -228,7 +228,7 @@ $pageConfig = [
 ```
 
 **Apply same pattern to:**
-- index.php → `'page_css' => 'data'` (will need to create data.css if unique styles exist)
+- table_data.php → `'page_css' => 'data'` (will need to create data.css if unique styles exist)
 - table_structure.php → `'page_css' => 'table'`
 - query.php → `'page_css' => 'query'`
 
@@ -237,7 +237,7 @@ $pageConfig = [
 **Files to modify:**
 - database_manager.php: Remove lines 15-999 (`<style>...</style>`)
 - database_manager2.php: Remove lines 15-999 (will delete this file later)
-- index.php: Remove lines 14-718 (`<style>...</style>`)
+- table_data.php: Remove lines 14-718 (`<style>...</style>`)
 - query.php: Remove lines 14-901 (`<style>...</style>`)
 - table_structure.php: Remove lines 14-774 (`<style>...</style>`)
 
@@ -247,7 +247,7 @@ $pageConfig = [
 
 **Test each page:**
 - [ ] database_manager.php loads with correct styling
-- [ ] index.php loads with correct styling
+- [ ] table_data.php loads with correct styling
 - [ ] query.php loads with correct styling
 - [ ] table_structure.php loads with correct styling
 - [ ] All buttons maintain hover effects
@@ -264,7 +264,7 @@ $pageConfig = [
 ```bash
 git add assets/css/
 git add templates/header.php
-git add database_manager.php index.php query.php table_structure.php
+git add database_manager.php table_data.php query.php table_structure.php
 git commit -m "Phase 1: Extract CSS to separate files"
 ```
 
@@ -574,7 +574,7 @@ API.getDatabases()
 
 **Action:** Create `assets/js/pages/index.js`
 
-**Extract from:** index.php lines 803-1437
+**Extract from:** table_data.php lines 803-1437
 
 **Content:**
 - Global state (currentTable, tableInfo, currentOffset, etc.)
@@ -664,7 +664,7 @@ $pageConfig = [
 ];
 ```
 
-index.php:
+table_data.php:
 ```php
 $pageConfig = [
     'id' => 'index',
@@ -708,7 +708,7 @@ $pageConfig = [
    - Remove lines 1308-2314 (entire `<script>` block)
    - Keep only the jQuery CDN include temporarily in footer
 
-2. **index.php:**
+2. **table_data.php:**
    - Remove lines 802-1437 (entire `<script>` block)
 
 3. **query.php:**
@@ -739,7 +739,7 @@ $pageConfig = [
 - [ ] Search and sort databases works
 - [ ] Refresh button works
 
-**index.php:**
+**table_data.php:**
 - [ ] Table list loads
 - [ ] Table selection works
 - [ ] Records display in table
@@ -790,7 +790,7 @@ $pageConfig = [
 ```bash
 git add assets/js/
 git add templates/footer.php
-git add database_manager.php index.php query.php table_structure.php
+git add database_manager.php table_data.php query.php table_structure.php
 git commit -m "Phase 2: Extract JavaScript to separate files"
 ```
 
@@ -1057,7 +1057,7 @@ Create a testing checklist covering all features:
 ```
 database_manager.php:    2,319 lines
 database_manager2.php:   2,162 lines (deleted)
-index.php:               1,443 lines
+table_data.php:          1,443 lines
 query.php:               1,740 lines
 table_structure.php:     1,308 lines
 api.php:                 1,363 lines (not modified)
@@ -1070,7 +1070,7 @@ TOTAL:                  10,483 lines
 **After refactoring (expected):**
 ```
 database_manager.php:      ~400 lines
-index.php:                 ~300 lines
+table_data.php:            ~300 lines
 query.php:                 ~350 lines
 table_structure.php:       ~280 lines
 api.php:                 1,363 lines (unchanged)
@@ -1180,13 +1180,13 @@ git revert [phase-1-commit-hash]
 OLD (monolithic):
 database_manager.php (2,319 lines)
 database_manager2.php (2,162 lines)
-index.php (1,443 lines)
+table_data.php (1,443 lines)
 query.php (1,740 lines)
 table_structure.php (1,308 lines)
 
 NEW (organized):
 database_manager.php (~400 lines HTML)
-index.php (~300 lines HTML)
+table_data.php (~300 lines HTML)
 query.php (~350 lines HTML)
 table_structure.php (~280 lines HTML)
 

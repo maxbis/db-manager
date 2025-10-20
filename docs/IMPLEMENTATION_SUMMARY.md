@@ -22,7 +22,7 @@ Added IP authorization to all application entry points:
 
 | File | Status | Description |
 |------|--------|-------------|
-| `index.php` | ✅ Protected | Main data manager interface |
+| `table_data.php` | ✅ Protected | Main data manager interface |
 | `api.php` | ✅ Protected | API backend for all AJAX operations |
 | `query.php` | ✅ Protected | SQL query builder interface |
 | `table_structure.php` | ✅ Protected | Table structure viewer/editor |
@@ -120,13 +120,13 @@ When access is denied, users see:
 
 ### Test Localhost (Should Pass)
 ```bash
-curl http://localhost/db-manager/index.php
+curl http://localhost/db-manager/table_data.php
 # Should load the page normally
 ```
 
 ### Test Remote IP (Should Check Whitelist)
 ```bash
-curl http://your-server/db-manager/index.php
+curl http://your-server/db-manager/table_data.php
 # Should show access denied if IP not in ipAllowed.txt
 ```
 
@@ -201,7 +201,7 @@ Supports standard CIDR notation:
 db-manager/
 ├── auth_check.php              # Authorization module (NEW)
 ├── ipAllowed.txt               # IP whitelist (MODIFIED)
-├── index.php                   # Protected
+├── table_data.php              # Protected
 ├── api.php                     # Protected
 ├── query.php                   # Protected
 ├── table_structure.php         # Protected

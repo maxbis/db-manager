@@ -101,7 +101,7 @@ db-manager/
 ├── logout.php              # Logout handler
 ├── session_check.php       # Session validation
 ├── auth_check.php          # IP + Login verification (updated)
-├── index.php               # Main app (protected)
+├── table_data.php          # Main app (protected)
 ├── api.php                 # API (protected)
 └── ... (all other pages protected)
 ```
@@ -365,7 +365,7 @@ echo date('Y-m-d H:i:s', $_SESSION['last_activity']);
 
 ### Add Logout Button to Other Pages
 
-Copy from `index.php` to other pages:
+Copy from `table_data.php` to other pages:
 ```php
 <?php if (isset($_SESSION['username'])): ?>
 <div class="control-group" style="margin-left: auto;">

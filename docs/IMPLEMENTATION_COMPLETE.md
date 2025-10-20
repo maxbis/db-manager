@@ -26,7 +26,7 @@ A complete, production-ready authentication system with:
 
 ### Files Modified:
 1. ✅ **auth_check.php** - Added session authentication layer
-2. ✅ **index.php** - Added logout button and username display
+2. ✅ **table_data.php** - Added logout button and username display
 
 ### Files Protected:
 All existing pages now require both:

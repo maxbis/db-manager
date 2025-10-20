@@ -55,7 +55,7 @@ To allow access from a new IP address:
 ## Protected Pages
 
 All main entry points are protected:
-- ✅ `index.php` - Main data manager
+- ✅ `table_data.php` - Main data manager
 - ✅ `api.php` - API backend
 - ✅ `query.php` - SQL query builder
 - ✅ `table_structure.php` - Table structure viewer

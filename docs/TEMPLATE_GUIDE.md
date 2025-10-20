@@ -67,7 +67,7 @@ Add this code after your `</head>` tag:
 ### Available Page IDs
 
 - `database_manager` - Database Manager (database_manager.php) - *First tab*
-- `index` - Data Manager (index.php)
+- `index` - Data Manager (table_data.php)
 - `table_structure` - Table Structure (table_structure.php)
 - `query` - SQL Query Builder (query.php)
 

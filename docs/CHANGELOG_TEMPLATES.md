@@ -51,7 +51,7 @@ $pageConfig = [
 - ✅ `templates/README.md` - Updated documentation
 
 #### Page Files
-- ✅ `index.php` - Removed `show_user_info` parameter
+- ✅ `table_data.php` - Removed `show_user_info` parameter
 - ✅ `query.php` - Removed `show_user_info` parameter
 - ✅ `table_structure.php` - Removed `show_user_info` parameter
 - ✅ `database_manager.php` - Removed `show_user_info` parameter

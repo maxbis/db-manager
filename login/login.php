@@ -24,7 +24,7 @@ $credentialsFile = __DIR__ . '/credentials.txt';
 
 // Check if user is already logged in
 if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
-    header('Location: ../index.php');
+    header('Location: ../table_data.php');
     exit;
 }
 
@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         file_put_contents($credentialsFile, $updatedCredentials);
                         
                         // Redirect to main page
-                        header('Location: ../index.php');
+                        header('Location: ../table_data.php');
                         exit;
                     } else {
                         // Password incorrect - increment failed attempts

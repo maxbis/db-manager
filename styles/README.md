@@ -6,12 +6,12 @@ This directory contains the shared CSS file used across all database manager pag
 
 ## File Structure
 
-- **common.css** - Shared styles used by all pages (database_manager, index, table_structure, query, view_fixer)
+- **common.css** - Shared styles used by all pages (database_manager, table_data, table_structure, query, view_fixer)
 
 ## Pages Using common.css
 
 - **database_manager.php** - Database and table management
-- **index.php** - Data manager (CRUD operations)
+- **table_data.php** - Data manager (CRUD operations)
 - **table_structure.php** - Table structure viewer/editor
 - **query.php** - SQL query builder
 - **view_fixer.php** - View definer fixer tool
@@ -92,7 +92,7 @@ Each page keeps its own unique styles in the `<style>` tag:
 - Size bars and badges
 - Searchbar
 
-### index.php
+### table_data.php
 - Table wrapper and data tables
 - Filter rows
 - Pagination

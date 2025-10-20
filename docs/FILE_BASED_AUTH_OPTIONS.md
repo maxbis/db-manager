@@ -672,7 +672,7 @@ if (isset($_POST['login'])) {
     if ($result['success']) {
         $_SESSION['session_token'] = $result['session_token'];
         $_SESSION['user'] = $result['user'];
-        header('Location: index.php');
+        header('Location: table_data.php');
         exit;
     } else {
         $error = $result['error'];

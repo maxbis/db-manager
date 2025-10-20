@@ -35,7 +35,7 @@ $menuItems = [
     ],
     [
         'id' => 'index',
-        'url' => 'index.php',
+        'url' => 'table_data.php',
         'icon' => '📊',
         'name' => 'Data Manager'
     ],

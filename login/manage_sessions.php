@@ -279,7 +279,7 @@ $currentTokenHash = isset($_COOKIE['remember_token']) ? hash('sha256', $_COOKIE[
             <h1>🔐 Session Management</h1>
             <p>Manage your active "Remember Me" sessions across devices</p>
             <div class="nav-links">
-                <a href="../index.php">← Back to Dashboard</a>
+                <a href="../table_data.php">← Back to Dashboard</a>
                 <a href="logout.php">🚪 Logout</a>
             </div>
         </div>

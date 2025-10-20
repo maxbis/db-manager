@@ -13,7 +13,7 @@ require_once 'login/auth_check.php';
     <title>Database CRUD Manager</title>
     <link rel="stylesheet" href="styles/common.css">
     <style>
-        /* Page-specific styles for index.php */
+        /* Page-specific styles for table_data.php */
 
         button.delete-btn {
             background: linear-gradient(135deg, var(--color-danger-lighter) 0%, var(--color-danger-lightest) 100%);

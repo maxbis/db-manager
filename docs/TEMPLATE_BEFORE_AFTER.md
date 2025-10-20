@@ -51,7 +51,7 @@ A centralized template system with just 2 files in the `templates/` directory:
             
             <!-- Navigation Menu -->
             <nav class="nav-menu">
-                <a href="index.php" class="active nav-link">
+                <a href="table_data.php" class="active nav-link">
                     <span class="nav-icon">📊</span>
                     <span>Data Manager</span>
                 </a>
@@ -139,10 +139,10 @@ A centralized template system with just 2 files in the `templates/` directory:
 
 ### Before (editing 4 files)
 
-**index.php**:
+**table_data.php**:
 ```php
 <nav class="nav-menu">
-    <a href="index.php" class="active nav-link">...</a>
+    <a href="table_data.php" class="active nav-link">...</a>
     <a href="table_structure.php" class="nav-link">...</a>
     <a href="query.php" class="nav-link">...</a>
     <a href="database_manager.php" class="nav-link">...</a>
@@ -177,7 +177,7 @@ Done! All pages automatically get the new menu item. 🎉
 **Scenario**: Change the "Data Manager" icon from 📊 to 📋
 
 ### Before
-- Open `index.php` → Change `<span class="nav-icon">📊</span>` to `📋`
+- Open `table_data.php` → Change `<span class="nav-icon">📊</span>` to `📋`
 - Open `query.php` → Change `<span class="nav-icon">📊</span>` to `📋`
 - Open `table_structure.php` → Change `<span class="nav-icon">📊</span>` to `📋`
 - Open `database_manager.php` → Change `<span class="nav-icon">📊</span>` to `📋`

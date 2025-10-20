@@ -110,7 +110,7 @@ if ($failedAttempts >= 5) {  // Number of attempts
 
 ## 🎨 Add Logout to Other Pages
 
-Copy this code from `index.php` to your other pages:
+Copy this code from `table_data.php` to your other pages:
 
 ```php
 <?php if (isset($_SESSION['username'])): ?>
