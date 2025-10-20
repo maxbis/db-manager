@@ -12,6 +12,7 @@ db_config.php
 
 # Session files
 sessions/
+login/remember_token.php
 
 # Logs
 *.log

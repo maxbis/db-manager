@@ -279,11 +279,24 @@ require_once 'login/auth_check.php';
             transition: all 0.3s ease;
             z-index: 1000;
             pointer-events: none;
+            min-width: 0;
+            min-height: 0;
         }
 
         button:disabled:hover::after {
             opacity: 1;
             visibility: visible;
+        }
+
+        button:disabled[data-tooltip=""]::after,
+        button:disabled[data-tooltip=""]:hover::after {
+            content: none;
+            display: none;
+            opacity: 0;
+            visibility: hidden;
+            padding: 0;
+            min-width: 0;
+            min-height: 0;
         }
 
         .btn-danger {
@@ -916,6 +929,18 @@ require_once 'login/auth_check.php';
             }
         }
 
+        /* === Enhancements: searchbar, badges, focus, sticky header === */
+        .searchbar { display:flex; gap:8px; align-items:center; }
+        .searchbar input[type="search"],
+        .searchbar select {
+            height: 36px; padding: 0 12px; border: 1px solid var(--color-border-input);
+            border-radius: 8px; background: var(--color-bg-white);
+        }
+        .database-list-header { position: sticky; top: 0; z-index: 5; }
+        .database-item.active { background: var(--color-bg-active); border-left: 4px solid var(--color-primary-light); }
+        .database-item:focus { outline: 3px solid var(--color-primary-lightest); outline-offset: -3px; }
+        .badge-current { display:inline-block; margin-left:8px; padding:2px 8px; font-size:11px; border-radius:999px; background: var(--color-primary-pale); color: var(--color-primary); border:1px solid var(--color-border-light); }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header {
@@ -1038,8 +1063,19 @@ require_once 'login/auth_check.php';
         <div class="database-list">
             <div class="database-list-header">
                 <h3>🗄️ Available Databases</h3>
-                <button id="refreshDatabasesBtn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;">🔄
-                    Refresh</button>
+                <div class="searchbar">
+                    <input type="search" id="dbSearchInput" placeholder="Search databases…" aria-label="Search databases">
+                    <select id="dbSortSelect" aria-label="Sort databases">
+                        <option value="name_asc">Name (A–Z)</option>
+                        <option value="name_desc">Name (Z–A)</option>
+                        <option value="size_desc">Size (largest)</option>
+                        <option value="size_asc">Size (smallest)</option>
+                        <option value="tables_desc">Tables (most)</option>
+                        <option value="tables_asc">Tables (least)</option>
+                    </select>
+                    <button id="refreshDatabasesBtn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;" aria-label="Refresh databases">🔄 Refresh</button>
+                </div>
+            </div>
             </div>
             <div id="databaseList">
                 <!-- Database list will be populated here -->
@@ -1272,6 +1308,8 @@ require_once 'login/auth_check.php';
         let databases = [];
         let tables = [];
         let selectedTable = '';
+        let dbSearchQuery = '';
+        let dbSortMode = 'name_asc';
 
         // Initialize
         $(document).ready(function () {
@@ -1374,6 +1412,17 @@ require_once 'login/auth_check.php';
                 exportAllDatabases();
             });
 
+            // Search & sort handlers
+            const debouncedFilter = debounce(function(){
+                dbSearchQuery = ($('#dbSearchInput').val() || '').toLowerCase();
+                displayDatabases();
+            }, 250);
+            $('#dbSearchInput').on('input', debouncedFilter);
+            $('#dbSortSelect').on('change', function(){
+                dbSortMode = $(this).val();
+                displayDatabases();
+            });
+
             // Close modal on outside click
             $(document).click(function (e) {
                 if ($(e.target).hasClass('modal')) {
@@ -1381,6 +1430,11 @@ require_once 'login/auth_check.php';
                 }
             });
         });
+
+        // Debounce helper
+        function debounce(fn, delay = 250){
+            let t; return function(...args){ clearTimeout(t); t = setTimeout(() => fn.apply(this, args), delay); };
+        }
 
         // Load all databases
         function loadDatabases() {
@@ -1430,53 +1484,82 @@ require_once 'login/auth_check.php';
             });
         }
 
-        // Display databases list
+        // Display databases list (with search + sort + better progress)
         function displayDatabases() {
             const databaseList = $('#databaseList');
             databaseList.empty();
 
-            if (databases.length === 0) {
+            let list = getFilteredAndSortedDatabases();
+
+            if (list.length === 0) {
                 databaseList.append(`
                     <div class="empty-state" style="padding: 40px 20px;">
                         <div class="empty-state-icon">🗄️</div>
                         <h3>No Databases Found</h3>
-                        <p>Create your first database to get started.</p>
+                        <p>Adjust your search or create a new database.</p>
                     </div>
                 `);
                 return;
             }
 
-            databases.forEach(function (db) {
+            const maxSize = Math.max(1, ...list.map(db => (db.size || 0)));
+
+            list.forEach(function (db) {
                 const isCurrent = db.name === currentDatabase;
-                const sizeInMB = Math.round((db.size || 0) / (1024 * 1024));
-                const barWidth = Math.min(sizeInMB, 100); // Cap at 100px for 100MB
-                const isLarge = sizeInMB > 100;
-                const displaySize = formatBytes(db.size || 0);
+                const sizeBytes = db.size || 0;
+                const sizePercent = Math.max(4, Math.round((sizeBytes / maxSize) * 100));
+                const displaySize = formatBytes(sizeBytes);
+                const isLarge = sizeBytes > 100 * 1024 * 1024; // >100MB
 
                 const databaseItem = $(`
-                    <div class="database-item ${isCurrent ? 'active' : ''}" data-database="${db.name}">
-                        <span class="database-icon">🗄️</span>
+                    <div class="database-item ${isCurrent ? 'active' : ''}" data-database="${db.name}" tabindex="0">
+                        <span class="database-icon" aria-hidden="true">🗄️</span>
                         <div class="database-main-info">
-                            <h4 class="database-name">${db.name}</h4>
+                            <h4 class="database-name">${db.name}${isCurrent ? '<span class="badge-current" title="Currently selected">Current</span>' : ''}</h4>
                             <p class="database-tables">${db.tables || 0} tables</p>
                         </div>
                         <div class="database-size-column">
                             <div class="database-size-info">
-                                <div class="database-size-bar" data-tooltip="Size: ${displaySize} (${sizeInMB}MB)${isLarge ? ' - Large database!' : ''}">
-                                    <div class="database-size-fill ${isLarge ? 'large' : ''}" style="width: ${barWidth}px;"></div>
+                                <div class="database-size-bar" data-tooltip="Size: ${displaySize}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${sizePercent}" aria-label="Database size of ${db.name}">
+                                    <div class="database-size-fill ${isLarge ? 'large' : ''}" style="width: ${sizePercent}%;"></div>
                                 </div>
                                 <span class="database-size-text">${displaySize}</span>
                             </div>
                         </div>
                         <div class="database-actions" style="display: flex; gap: 6px;">
-                            <button class="btn-success" onclick="selectDatabase('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Select</button>
-                            <button class="btn-warning" onclick="openExportModal('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Export</button>
-                            <button class="btn-danger" onclick="deleteDatabase('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>
+                            <button class="btn-success" aria-label="Select ${db.name}" onclick="selectDatabase('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Select</button>
+                            <button class="btn-warning" aria-label="Export ${db.name}" onclick="openExportModal('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Export</button>
+                            <button class="btn-danger" aria-label="Delete ${db.name}" onclick="deleteDatabase('${db.name}')" style="padding: 4px 8px; font-size: 11px;">Delete</button>
                         </div>
                     </div>
                 `);
+
+                // Keyboard support: Enter/Space to select
+                databaseItem.on('keydown', function(e){
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectDatabase(db.name); }
+                });
+
                 databaseList.append(databaseItem);
             });
+        }
+
+        function getFilteredAndSortedDatabases(){
+            let result = databases.slice();
+            if (dbSearchQuery) {
+                result = result.filter(db => (db.name || '').toLowerCase().includes(dbSearchQuery));
+            }
+            const byName = (a,b) => (a.name || '').localeCompare(b.name || '');
+            const bySize = (a,b) => (b.size || 0) - (a.size || 0);
+            const byTables = (a,b) => (b.tables || 0) - (a.tables || 0);
+            switch (dbSortMode) {
+                case 'name_desc': result.sort((a,b)=>byName(b,a)); break;
+                case 'size_desc': result.sort(bySize); break;
+                case 'size_asc': result.sort((a,b)=>-bySize(a,b)); break;
+                case 'tables_desc': result.sort(byTables); break;
+                case 'tables_asc': result.sort((a,b)=>-byTables(a,b)); break;
+                default: result.sort(byName);
+            }
+            return result;
         }
 
         // Display tables list
@@ -1574,16 +1657,35 @@ require_once 'login/auth_check.php';
             const hasTables = tables.length > 0;
             const hasSelectedTable = !!selectedTable;
 
-            $('#deleteDatabaseBtn').prop('disabled', !hasDatabase)
-                .attr('data-tooltip', hasDatabase ? '' : 'Select a database to delete');
-            $('#createTableBtn').prop('disabled', !hasDatabase)
-                .attr('data-tooltip', hasDatabase ? '' : 'Select a database to create tables');
-            $('#deleteTableBtn').prop('disabled', !hasSelectedTable)
-                .attr('data-tooltip', hasSelectedTable ? '' : 'Select a table to delete');
-            $('#exportDatabaseBtn').prop('disabled', !hasDatabase)
-                .attr('data-tooltip', hasDatabase ? '' : 'Select a database to export');
-            $('#importDatabaseBtn').prop('disabled', false)
-                .attr('data-tooltip', ''); // Can always import
+            $('#deleteDatabaseBtn').prop('disabled', !hasDatabase);
+            if (hasDatabase) {
+                $('#deleteDatabaseBtn').removeAttr('data-tooltip');
+            } else {
+                $('#deleteDatabaseBtn').attr('data-tooltip', 'Select a database to delete');
+            }
+
+            $('#createTableBtn').prop('disabled', !hasDatabase);
+            if (hasDatabase) {
+                $('#createTableBtn').removeAttr('data-tooltip');
+            } else {
+                $('#createTableBtn').attr('data-tooltip', 'Select a database to create tables');
+            }
+
+            $('#deleteTableBtn').prop('disabled', !hasSelectedTable);
+            if (hasSelectedTable) {
+                $('#deleteTableBtn').removeAttr('data-tooltip');
+            } else {
+                $('#deleteTableBtn').attr('data-tooltip', 'Select a table to delete');
+            }
+
+            $('#exportDatabaseBtn').prop('disabled', !hasDatabase);
+            if (hasDatabase) {
+                $('#exportDatabaseBtn').removeAttr('data-tooltip');
+            } else {
+                $('#exportDatabaseBtn').attr('data-tooltip', 'Select a database to export');
+            }
+
+            $('#importDatabaseBtn').prop('disabled', false).removeAttr('data-tooltip'); // Can always import
         }
 
         // Show/hide table list
