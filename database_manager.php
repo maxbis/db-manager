@@ -294,6 +294,20 @@ require_once 'login/auth_check.php';
             background: linear-gradient(135deg, var(--color-warning-light) 0%, var(--color-warning-lighter) 100%);
         }
 
+        /* Actions dropdown */
+        .actions-dropdown { position: relative; }
+        .actions-dropdown .dropdown-toggle {
+            padding: 6px 12px; font-size: 12px; border: 1px solid var(--color-border-light);
+            background: var(--color-bg-white); color: var(--color-text-primary); border-radius: 8px;
+        }
+        .actions-dropdown .dropdown-menu {
+            position: absolute; right: 0; top: 100%; margin-top: 6px; min-width: 180px;
+            background: var(--color-bg-white); border: 1px solid var(--color-border-light);
+            border-radius: 10px; box-shadow: var(--shadow-lg); padding: 8px; display: none; z-index: 20;
+        }
+        .actions-dropdown .dropdown-menu.show { display: block; }
+        .actions-dropdown .dropdown-menu .menu-item { width: 100%; text-align: left; padding: 6px 10px; font-size: 12px; }
+
         /* Compact button for header controls */
         .controls button {
             padding: 4px 4px;
@@ -1002,16 +1016,15 @@ require_once 'login/auth_check.php';
                     </h3>
 
                     <div class="action-buttons" style="display: flex; gap: 8px;">
-                        <button id="createDatabaseBtn" class="btn-success" style="padding: 5px 10px; font-size: 10px;">➕
-                            Create DB</button>
-                        <button id="exportDatabaseBtn" class="btn-warning" disabled
-                            style="padding: 5px 10px; font-size: 10px;">📤 Export DB</button>
-                        <button id="importDatabaseBtn" class="btn-warning"
-                            style="padding: 5px 10px; font-size: 10px;">📥 Import DB</button>
-                        <button id="exportAllDatabasesBtn"
-                            style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 10px;">
-                            📦 Export All
-                        </button>
+                        <div class="actions-dropdown" id="statsActions">
+                            <button type="button" class="dropdown-toggle">⚙️ Actions</button>
+                            <div class="dropdown-menu" role="menu" aria-label="Database actions">
+                                <button id="createDatabaseBtn" class="menu-item btn-success">➕ Create DB</button>
+                                <button id="exportDatabaseBtn" class="menu-item btn-warning" disabled>📤 Export DB</button>
+                                <button id="importDatabaseBtn" class="menu-item btn-warning">📥 Import DB</button>
+                                <button id="exportAllDatabasesBtn" class="menu-item" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; border: none; border-radius: 6px;">📦 Export All</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1346,6 +1359,19 @@ require_once 'login/auth_check.php';
             $('#exportAllDatabasesBtn').click(function () {
                 openModal('exportAllDatabasesModal');
             });
+
+            // Actions dropdown open/close
+            (function(){
+                const $dropdown = $('#statsActions');
+                const $menu = $dropdown.find('.dropdown-menu');
+                $dropdown.find('.dropdown-toggle').on('click', function(e){
+                    e.stopPropagation();
+                    $menu.toggleClass('show');
+                });
+                $(document).on('click', function(){
+                    $menu.removeClass('show');
+                });
+            })();
 
             $('#confirmCreateDatabaseBtn').click(function () {
                 createDatabase();
