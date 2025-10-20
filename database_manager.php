@@ -1008,7 +1008,6 @@ require_once 'login/auth_check.php';
                             Manage tables within the selected database.
                         </p> -->
                         <div class="action-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button id="createTableBtn" class="btn-success" disabled style="padding: 6px 12px; font-size: 12px;">➕ Create Table</button>
                             <button id="deleteTableBtn" class="btn-danger" disabled style="padding: 6px 12px; font-size: 12px;">🗑️ Delete Table</button>
                         </div>
                     </div>
@@ -1043,10 +1042,13 @@ require_once 'login/auth_check.php';
                 </div>
 
                 <!-- Table List -->
-                <div class="table-list" id="tableListSection" style="display: none;">
+                    <div class="table-list" id="tableListSection" style="display: none;margin-top:10px;">
                     <div class="table-list-header">
                         <h3>📋 Tables in <span id="currentDatabaseName"></span></h3>
-                        <button id="refreshTablesBtn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;">🔄 Refresh</button>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button id="refreshTablesBtn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;">🔄 Refresh</button>
+                            <button id="createTableBtn" class="btn-success" disabled style="padding: 6px 12px; font-size: 12px;">➕ Create Table</button>
+                        </div>
                     </div>
                     <div id="tableList">
                         <!-- Table list will be populated here -->
@@ -1225,6 +1227,23 @@ require_once 'login/auth_check.php';
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal('exportAllDatabasesModal')">Cancel</button>
                 <button class="btn-success" id="confirmExportAllBtn" style="padding: 6px 12px; font-size: 12px;">📦 Export All</button>
+            </div>
+        </div>
+    </div>
+
+                <!-- Confirm Dialog (Reusable) -->
+                <div class="modal" id="confirmActionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="confirmActionTitle">Confirm Action</h2>
+                <button class="modal-close" onclick="closeModal('confirmActionModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmActionMessage" style="margin: 0; font-size: 14px; color: var(--color-text-secondary);"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="confirmActionCancelBtn">Cancel</button>
+                <button class="btn-danger" id="confirmActionConfirmBtn">Delete</button>
             </div>
         </div>
     </div>
@@ -1726,9 +1745,14 @@ require_once 'login/auth_check.php';
             });
         }
 
-        // Delete database
+        // Delete database (with custom confirm modal)
         function deleteDatabase(databaseName) {
-            if (confirm(`Are you sure you want to delete the database "${databaseName}"? This action cannot be undone!`)) {
+            showConfirmDialog({
+                title: 'Delete Database',
+                message: `Are you sure you want to delete the database "${databaseName}"? This action cannot be undone!`,
+                confirmText: 'Delete',
+                confirmClass: 'btn-danger'
+            }, function onConfirm() {
                 $.ajax({
                     url: 'api.php',
                     method: 'POST',
@@ -1754,12 +1778,17 @@ require_once 'login/auth_check.php';
                         showToast('Error: ' + (response.error || 'Unknown error'), 'error');
                     }
                 });
-            }
+            });
         }
 
-        // Delete table
+        // Delete table (with custom confirm modal)
         function deleteTable(tableName) {
-            if (confirm(`Are you sure you want to delete the table "${tableName}"? This action cannot be undone!`)) {
+            showConfirmDialog({
+                title: 'Delete Table',
+                message: `Are you sure you want to delete the table "${tableName}"? This action cannot be undone!`,
+                confirmText: 'Delete',
+                confirmClass: 'btn-danger'
+            }, function onConfirm() {
                 $.ajax({
                     url: 'api.php',
                     method: 'POST',
@@ -1787,7 +1816,39 @@ require_once 'login/auth_check.php';
                         showToast('Error: ' + (response.error || 'Unknown error'), 'error');
                     }
                 });
+            });
+        }
+
+        // Reusable confirm dialog helper
+        function showConfirmDialog(options, onConfirm) {
+            const { title, message, confirmText = 'Confirm', confirmClass = '' } = options || {};
+            $('#confirmActionTitle').text(title || 'Confirm Action');
+            $('#confirmActionMessage').text(message || 'Are you sure?');
+            const $confirmBtn = $('#confirmActionConfirmBtn');
+            $confirmBtn.text(confirmText);
+            // reset classes
+            $confirmBtn.removeClass('btn-success btn-warning btn-danger');
+            if (confirmClass) {
+                $confirmBtn.addClass(confirmClass);
             }
+
+            // Clean previous handlers
+            $confirmBtn.off('click');
+            $('#confirmActionCancelBtn').off('click');
+
+            // Bind actions
+            $('#confirmActionCancelBtn').on('click', function() {
+                closeModal('confirmActionModal');
+            });
+            $confirmBtn.on('click', function() {
+                closeModal('confirmActionModal');
+                if (typeof onConfirm === 'function') {
+                    onConfirm();
+                }
+            });
+
+            // Open
+            openModal('confirmActionModal');
         }
 
         // Open export modal
