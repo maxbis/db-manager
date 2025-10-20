@@ -203,12 +203,12 @@ try {
             $queryId = $_POST['queryId'] ?? 0;
             deleteSavedQuery($conn, $queryId);
             break;
+        */
             
         case 'getViewSource':
             $tableName = $_GET['table'] ?? '';
             getViewSource($conn, $tableName);
             break;
-        */
             
         default:
             throw new Exception("Invalid action: $action");

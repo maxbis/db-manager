@@ -230,90 +230,9 @@ function fixAllViewDefiners($conn, $database) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Definer Fixer - Database CRUD Manager</title>
+    <link rel="stylesheet" href="styles/common.css">
     <style>
-        :root {
-            /* Sapphire Nightfall Whisper Color Palette */
-            --color-sapphire-bright: #0474C4;
-            --color-sapphire-muted: #5379AE;
-            --color-sapphire-dark: #2C444C;
-            --color-sapphire-light: #A8C4EC;
-            --color-sapphire-rich: #06457F;
-            --color-sapphire-navy: #262B40;
-            
-            --color-primary: var(--color-sapphire-rich);
-            --color-primary-light: var(--color-sapphire-bright);
-            --color-primary-lighter: var(--color-sapphire-muted);
-            --color-primary-lightest: var(--color-sapphire-light);
-            --color-primary-pale: #E8F2FF;
-            
-            --color-success: var(--color-sapphire-dark);
-            --color-success-light: #4A6B73;
-            
-            --color-danger: #C44704;
-            --color-danger-light: #E06B3A;
-            --color-danger-lighter: #F08F70;
-            
-            --color-warning: #C4A004;
-            --color-warning-light: #E0C63A;
-            --color-warning-pale: #FFF9E6;
-            
-            --color-text-primary: var(--color-sapphire-navy);
-            --color-text-secondary: var(--color-sapphire-dark);
-            --color-text-tertiary: var(--color-sapphire-muted);
-            --color-text-muted: #8A9BA8;
-            
-            --color-bg-body-start: #F8FAFC;
-            --color-bg-body-end: #F0F4F8;
-            --color-bg-white: #FFFFFF;
-            --color-bg-light: #F5F8FC;
-            --color-bg-lighter: #E8F2FF;
-            --color-bg-hover: #F0F7FF;
-            
-            --color-border-primary: var(--color-sapphire-light);
-            --color-border-light: #D1E0F0;
-            --color-border-lighter: #E0E8F0;
-            
-            --shadow-sm: 0 2px 8px rgba(6, 69, 127, 0.08);
-            --shadow-md: 0 4px 12px rgba(6, 69, 127, 0.12);
-            --shadow-lg: 0 4px 20px rgba(6, 69, 127, 0.10);
-            --shadow-xl: 0 10px 40px rgba(6, 69, 127, 0.15);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--color-bg-body-start) 0%, var(--color-bg-body-end) 100%);
-            color: var(--color-text-primary);
-            padding: 20px;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: var(--color-bg-white);
-            border-radius: 12px;
-            box-shadow: var(--shadow-lg);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, var(--color-primary-lightest) 0%, var(--color-bg-white) 100%);
-            padding: 25px 30px;
-            border-bottom: 3px solid var(--color-primary-light);
-        }
-
-        .header h1 {
-            color: var(--color-primary);
-            font-size: 28px;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
+        /* Page-specific styles for view_fixer.php */
 
         .header p {
             color: var(--color-text-secondary);
@@ -334,10 +253,6 @@ function fixAllViewDefiners($conn, $database) {
         .back-link:hover {
             color: var(--color-primary-light);
             transform: translateX(-2px);
-        }
-
-        .content {
-            padding: 30px;
         }
 
         .info-box {
@@ -410,56 +325,6 @@ function fixAllViewDefiners($conn, $database) {
             border-radius: 8px;
         }
 
-        button {
-            font-family: inherit;
-            font-size: 14px;
-            padding: 10px 20px;
-            border: 2px solid var(--color-border-primary);
-            border-radius: 6px;
-            outline: none;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary-lighter) 100%);
-            color: var(--color-bg-white);
-            border: 2px solid var(--color-primary);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, var(--color-success-light) 0%, var(--color-success) 100%);
-            color: var(--color-bg-white);
-            border: 2px solid var(--color-success);
-        }
-
-        .btn-success:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, var(--color-warning-light) 0%, var(--color-warning) 100%);
-            color: var(--color-bg-white);
-            border: 2px solid var(--color-warning);
-        }
-
-        .btn-warning:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
 
         .table-wrapper {
             overflow-x: auto;
@@ -522,119 +387,7 @@ function fixAllViewDefiners($conn, $database) {
             color: #721c24;
         }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--color-text-muted);
-        }
 
-        .spinner {
-            border: 4px solid var(--color-border-light);
-            border-top: 4px solid var(--color-primary-light);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--color-sapphire-dark);
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: var(--shadow-xl);
-            z-index: 3000;
-            display: none;
-            max-width: 400px;
-        }
-
-        .toast.active {
-            display: block;
-            animation: slideInRight 0.3s ease;
-        }
-
-        .toast.success {
-            background: var(--color-success);
-        }
-
-        .toast.error {
-            background: var(--color-danger);
-        }
-
-        .toast.warning {
-            background: var(--color-warning);
-        }
-
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--color-text-muted);
-        }
-
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-
-        /* Navigation Menu Styles */
-        .nav-menu {
-            display: flex;
-            gap: 0;
-            margin-top: 20px;
-            border-bottom: 2px solid var(--color-border-light);
-            background: var(--color-bg-white);
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 15px 20px;
-            text-decoration: none;
-            color: var(--color-text-secondary);
-            font-weight: 500;
-            font-size: 14px;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .nav-link:hover {
-            color: var(--color-primary);
-            background: var(--color-bg-hover);
-            border-bottom-color: var(--color-primary-light);
-        }
-
-        .nav-link.active {
-            color: var(--color-primary);
-            background: var(--color-bg-lighter);
-            border-bottom-color: var(--color-primary);
-            font-weight: 600;
-        }
-
-        .nav-icon {
-            font-size: 16px;
-        }
     </style>
 </head>
 <body>
