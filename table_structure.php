@@ -227,6 +227,25 @@ require_once 'login/auth_check.php';
             visibility: visible;
         }
 
+        .btn-add-column {
+            background: linear-gradient(135deg, var(--color-success-light) 0%, var(--color-success-lighter) 100%);
+            color: var(--color-bg-white);
+            border: 1px solid var(--color-success);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-add-column:hover {
+            background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-light) 100%);
+            box-shadow: var(--shadow-sm);
+            transform: translateY(-1px);
+        }
+
         .back-link {
             display: inline-flex;
             align-items: center;
@@ -295,7 +314,6 @@ require_once 'login/auth_check.php';
                     <option value="">-- Choose a table --</option>
                 </select>
             </div>
-            <button id="addColumnBtn" style="display: none;">➕ Add Column</button>
         '
     ];
     include 'templates/header.php';
@@ -325,6 +343,9 @@ require_once 'login/auth_check.php';
                                 <th>Default</th>
                                 <th>Extra</th>
                                 <th>Attributes</th>
+                                <th style="text-align: right; width: 150px;">
+                                    <button id="addColumnBtn" class="btn-add-column" style="display: none;">➕ Add Column</button>
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="structureBody">
@@ -583,6 +604,7 @@ require_once 'login/auth_check.php';
                         <td>${col.default !== null ? col.default : '<em>NULL</em>'}</td>
                         <td>${col.extra || ''}</td>
                         <td><div class="field-attributes">${attributesHtml}</div></td>
+                        <td></td>
                     </tr>
                 `;
                 tbody.append(row);
@@ -658,6 +680,7 @@ require_once 'login/auth_check.php';
                         <select id="fieldType" name="type">
                             <option value="VARCHAR(255)" ${column && column.type.startsWith('VARCHAR') ? 'selected' : ''}>VARCHAR(255)</option>
                             <option value="INT" ${column && column.type === 'INT' ? 'selected' : ''}>INT</option>
+                            <option value="TINYINT" ${column && column.type === 'TINYINT' ? 'selected' : ''}>TINYINT</option>
                             <option value="BIGINT" ${column && column.type === 'BIGINT' ? 'selected' : ''}>BIGINT</option>
                             <option value="TEXT" ${column && column.type === 'TEXT' ? 'selected' : ''}>TEXT</option>
                             <option value="DATETIME" ${column && column.type === 'DATETIME' ? 'selected' : ''}>DATETIME</option>
