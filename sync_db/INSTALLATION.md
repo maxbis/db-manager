@@ -30,27 +30,41 @@ Upload these files to your REMOTE server:
 ```
 remote-server/
   ├── sync_db/
-  │   ├── api.php         ⬅️ REQUIRED
+  │   ├── api.php         ⬅️ REQUIRED - Main sync API
+  │   ├── get_ip.php      ⬅️ REQUIRED - IP detection (no security needed)
   │   └── config.php      ⬅️ REQUIRED (with same API key!)
   └── login/
       └── ipAllowed.txt   ⬅️ Should already exist
 ```
 
-**Important**: Update `config.php` on the remote server with the SAME API key from Step 2!
+**Important**: 
+- Update `config.php` on the remote server with the SAME API key from Step 2!
+- `get_ip.php` has no security restrictions - it only returns the requesting IP address
 
-### Step 4: Configure Remote IP Whitelist
+### Step 4: Find Your Public IP
+
+Use the built-in IP checker to find your public IP:
+
+1. Navigate to: `http://localhost/sync_db/check_ip.php`
+2. Or click the **"Check My IP"** button on the sync page
+3. The page will contact your remote server to detect your public IP
+4. Copy the displayed IP address
+
+**Note**: Make sure you've filled in the "Remote Server URL" on the sync page at least once (it's saved in a cookie).
+
+### Step 5: Configure Remote IP Whitelist
 
 On the REMOTE server, add your LOCAL server's IP to `login/ipAllowed.txt`:
 
 ```bash
 # Edit login/ipAllowed.txt
-# Add your local server's IP address
+# Add the IP address from Step 4
 
 127.0.0.1
-123.456.789.012    # ⬅️ Add your local server's IP
+81.204.237.36    # ⬅️ Your public IP from check_ip.php
 ```
 
-### Step 5: Access the Sync Page
+### Step 6: Access the Sync Page
 
 1. Log in to your local database manager
 2. Navigate to: `http://your-local-server/sync_db/`

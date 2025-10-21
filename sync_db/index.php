@@ -103,28 +103,34 @@ $pageConfig = [
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            background: linear-gradient(135deg, #06457F 0%, #04324D 100%);
             color: white;
+            border: 2px solid #06457F;
+            box-shadow: 0 2px 8px rgba(6, 69, 127, 0.3);
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+            box-shadow: 0 4px 12px rgba(6, 69, 127, 0.5);
+            background: linear-gradient(135deg, #0856A0 0%, #06457F 100%);
         }
 
         .btn-primary:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            box-shadow: none;
         }
 
         .btn-secondary {
-            background: var(--color-bg-lighter);
-            color: var(--color-text-primary);
-            border: 1px solid var(--color-border-light);
+            background: #F8FAFC;
+            color: #262B40;
+            border: 2px solid #D1D9E0;
         }
 
         .btn-secondary:hover:not(:disabled) {
-            background: var(--color-bg-white);
+            background: #FFFFFF;
+            border-color: #06457F;
+            color: #06457F;
         }
 
         .progress-container {
@@ -269,8 +275,14 @@ $pageConfig = [
 
         .button-group {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .button-group .btn {
+            min-width: 140px;
+            justify-content: center;
         }
     </style>
 </head>
