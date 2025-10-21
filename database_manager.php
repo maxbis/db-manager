@@ -923,7 +923,7 @@ require_once 'login/auth_check.php';
             loadDatabases();
 
             // Event handlers
-            $('#refreshBtn, #refreshDatabasesBtn').click(function () {
+            $('#refreshBtn').click(function () {
                 loadDatabases();
             });
 
@@ -1628,11 +1628,7 @@ require_once 'login/auth_check.php';
             $('#importDatabaseBtn').prop('disabled', false); // Can always import
         }
 
-        // Show/hide table list
-        function showTableList() {
-            $('#tableListSection').show();
-        }
-
+        // Hide table list
         function hideTableList() {
             $('#tableListSection').hide();
         }
@@ -1684,24 +1680,25 @@ require_once 'login/auth_check.php';
         }
 
         // View table (navigate to table structure page)
-        function viewTable(tableName) {
+        function viewTable(tableName, databaseName = null) {
+            const dbName = databaseName || currentDatabase;
             // Update the database badge to show database.table before navigating
-            updateDatabaseBadge(currentDatabase, tableName);
-            window.location.href = `table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(currentDatabase)}`;
+            updateDatabaseBadge(dbName, tableName);
+            window.location.href = `table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
         }
 
-        // View table from subsection (when clicked from expanded database)
+        // Legacy wrapper for subsection calls
         function viewTableFromSubsection(tableName, databaseName) {
-            // Update the database badge to show database.table before navigating
-            updateDatabaseBadge(databaseName, tableName);
-            window.location.href = `table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(databaseName)}`;
+            viewTable(tableName, databaseName);
         }
 
-        // Delete table from subsection (when clicked from expanded database)
-        function deleteTableFromSubsection(tableName, databaseName) {
+        // Delete table (consolidated function)
+        function deleteTable(tableName, databaseName = null, fromSubsection = false) {
+            const dbName = databaseName || currentDatabase;
+            
             showConfirmDialog({
                 title: 'Delete Table',
-                message: `Are you sure you want to delete the table "${tableName}" from database "${databaseName}"? This action cannot be undone!`,
+                message: `Are you sure you want to delete the table "${tableName}" from database "${dbName}"? This action cannot be undone!`,
                 confirmText: 'Delete',
                 confirmClass: 'btn-danger'
             }, function onConfirm() {
@@ -1710,17 +1707,27 @@ require_once 'login/auth_check.php';
                     method: 'POST',
                     data: {
                         action: 'deleteTable',
-                        database: databaseName,
+                        database: dbName,
                         name: tableName
                     },
                     dataType: 'json',
                     success: function (response) {
                         if (response.success) {
                             showToast('Table deleted successfully!', 'success');
-                            // Remove the table from the subsection
-                            $(`.database-table-item[data-table="${tableName}"]`).remove();
-                            // Update the table count in the database item
-                            updateDatabaseTableCount(databaseName);
+                            
+                            if (fromSubsection) {
+                                // Remove the table from the subsection
+                                $(`.database-table-item[data-table="${tableName}"]`).remove();
+                                // Update the table count in the database item
+                                updateDatabaseTableCount(dbName);
+                            } else {
+                                // Clear selection if the deleted table was selected
+                                if (selectedTable === tableName) {
+                                    selectedTable = '';
+                                }
+                                loadTables();
+                            }
+                            
                             // Refresh the main database list stats
                             loadDatabases();
                         } else {
@@ -1733,6 +1740,11 @@ require_once 'login/auth_check.php';
                     }
                 });
             });
+        }
+
+        // Legacy wrapper for subsection calls
+        function deleteTableFromSubsection(tableName, databaseName) {
+            deleteTable(tableName, databaseName, true);
         }
 
         // Update table count in database item after table deletion
@@ -1912,43 +1924,6 @@ require_once 'login/auth_check.php';
             });
         }
 
-        // Delete table (with custom confirm modal)
-        function deleteTable(tableName) {
-            showConfirmDialog({
-                title: 'Delete Table',
-                message: `Are you sure you want to delete the table "${tableName}"? This action cannot be undone!`,
-                confirmText: 'Delete',
-                confirmClass: 'btn-danger'
-            }, function onConfirm() {
-                $.ajax({
-                    url: 'api.php',
-                    method: 'POST',
-                    data: {
-                        action: 'deleteTable',
-                        database: currentDatabase,
-                        name: tableName
-                    },
-                    dataType: 'json',
-                    success: function (response) {
-                        if (response.success) {
-                            showToast('Table deleted successfully!', 'success');
-                            // Clear selection if the deleted table was selected
-                            if (selectedTable === tableName) {
-                                selectedTable = '';
-                            }
-                            loadTables();
-                            loadDatabases(); // Refresh stats
-                        } else {
-                            showToast('Error: ' + response.error, 'error');
-                        }
-                    },
-                    error: function (xhr) {
-                        const response = JSON.parse(xhr.responseText);
-                        showToast('Error: ' + (response.error || 'Unknown error'), 'error');
-                    }
-                });
-            });
-        }
 
         // Reusable confirm dialog helper
         function showConfirmDialog(options, onConfirm) {
