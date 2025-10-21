@@ -155,6 +155,7 @@ require_once 'login/auth_check.php';
             gap: 20px;
             align-items: center;
             transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         /* Database Name Section (Left Part) */
@@ -1344,8 +1345,8 @@ require_once 'login/auth_check.php';
                             <span class="table-name">${tableName}</span>
                             ${isView ? '<span class="table-type">View</span>' : '<span class="table-type">Table</span>'}
                             <div class="table-actions">
-                                <button class="btn-success" onclick="viewTableFromSubsection('${tableName}', '${databaseName}')" title="View table">View</button>
-                                ${!isView ? `<button class="btn-danger" onclick="deleteTableFromSubsection('${tableName}', '${databaseName}')" title="Delete table">Delete</button>` : ''}
+                                <button class="btn-success" onclick="viewTable('${tableName}', '${databaseName}')" title="View table">View</button>
+                                ${!isView ? `<button class="btn-danger" onclick="deleteTable('${tableName}', '${databaseName}', true)" title="Delete table">Delete</button>` : ''}
                             </div>
                         </div>
                     `);
@@ -1409,9 +1410,8 @@ require_once 'login/auth_check.php';
                         
                         <!-- Buttons Section (Right Part) -->
                         <div class="database-actions-section">
-                            <button class="btn-success" aria-label="Select ${db.name}" onclick="selectDatabase('${db.name}')">Select</button>
-                            <button class="btn-warning" aria-label="Export ${db.name}" onclick="openExportModal('${db.name}')">Export</button>
-                            <button class="btn-danger" aria-label="Delete ${db.name}" onclick="deleteDatabase('${db.name}')">Delete</button>
+                            <button class="btn-warning" aria-label="Export ${db.name}" onclick="event.stopPropagation(); openExportModal('${db.name}')">Export</button>
+                            <button class="btn-danger" aria-label="Delete ${db.name}" onclick="event.stopPropagation(); deleteDatabase('${db.name}')">Delete</button>
                         </div>
                     </div>
                     <!-- Database Tables Subsection (Hidden by default) -->
@@ -1422,6 +1422,15 @@ require_once 'login/auth_check.php';
                         </div>
                     </div>
                 `);
+
+                // Click on database item to select it
+                databaseItem.on('click', function(e){
+                    // Don't select if clicking on buttons or expand indicator
+                    if ($(e.target).is('button') || $(e.target).closest('button').length || $(e.target).hasClass('expand-indicator')) {
+                        return;
+                    }
+                    selectDatabase(db.name);
+                });
 
                 // Keyboard support: Enter/Space to select
                 databaseItem.on('keydown', function(e){
@@ -1687,11 +1696,6 @@ require_once 'login/auth_check.php';
             window.location.href = `table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
         }
 
-        // Legacy wrapper for subsection calls
-        function viewTableFromSubsection(tableName, databaseName) {
-            viewTable(tableName, databaseName);
-        }
-
         // Delete table (consolidated function)
         function deleteTable(tableName, databaseName = null, fromSubsection = false) {
             const dbName = databaseName || currentDatabase;
@@ -1740,11 +1744,6 @@ require_once 'login/auth_check.php';
                     }
                 });
             });
-        }
-
-        // Legacy wrapper for subsection calls
-        function deleteTableFromSubsection(tableName, databaseName) {
-            deleteTable(tableName, databaseName, true);
         }
 
         // Update table count in database item after table deletion
