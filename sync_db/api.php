@@ -114,8 +114,8 @@ switch ($action) {
         break;
         
     case 'get_tables':
-        // Get list of tables in database
-        $result = $conn->query("SHOW TABLES");
+        // Get list of tables in database (excluding views)
+        $result = $conn->query("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'");
         $tables = [];
         while ($row = $result->fetch_array()) {
             $tables[] = $row[0];
