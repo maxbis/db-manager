@@ -40,7 +40,7 @@
         function showDeleteDatabaseDialog() {
             Dialog.confirm({
                 title: 'Delete Database',
-                message: 'Are you sure you want to delete the database "bookstack-roc"? This action cannot be undone!',
+                message: 'Are you sure you want to delete the database "bookstack-roc"?<br>This action cannot be undone!',
                 confirmText: 'Delete',
                 cancelText: 'Cancel',
                 confirmClass: 'btn-danger',
@@ -75,11 +75,50 @@
                 body: `
                     <div style="padding: 10px;">
                         <p>Please choose how you want to proceed:</p>
-                        <select id="customSelect" style="width: 100%; padding: 8px; margin-top: 10px;">
-                            <option value="option1">Option 1</option>
-                            <option value="option2">Option 2</option>
-                            <option value="option3">Option 3</option>
-                        </select>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+                            <button class="option-btn" data-value="option1" style="
+                                padding: 12px 16px; 
+                                border: 2px solid var(--color-border-light); 
+                                border-radius: 8px; 
+                                background: var(--color-bg-white); 
+                                color: var(--color-text-primary); 
+                                cursor: pointer; 
+                                transition: all 0.2s ease;
+                                text-align: left;
+                                font-size: 14px;
+                            ">
+                                <strong>Option 1</strong><br>
+                                <span style="color: var(--color-text-secondary); font-size: 12px;">Description for option 1</span>
+                            </button>
+                            <button class="option-btn" data-value="option2" style="
+                                padding: 12px 16px; 
+                                border: 2px solid var(--color-border-light); 
+                                border-radius: 8px; 
+                                background: var(--color-bg-white); 
+                                color: var(--color-text-primary); 
+                                cursor: pointer; 
+                                transition: all 0.2s ease;
+                                text-align: left;
+                                font-size: 14px;
+                            ">
+                                <strong>Option 2</strong><br>
+                                <span style="color: var(--color-text-secondary); font-size: 12px;">Description for option 2</span>
+                            </button>
+                            <button class="option-btn" data-value="option3" style="
+                                padding: 12px 16px; 
+                                border: 2px solid var(--color-border-light); 
+                                border-radius: 8px; 
+                                background: var(--color-bg-white); 
+                                color: var(--color-text-primary); 
+                                cursor: pointer; 
+                                transition: all 0.2s ease;
+                                text-align: left;
+                                font-size: 14px;
+                            ">
+                                <strong>Option 3</strong><br>
+                                <span style="color: var(--color-text-secondary); font-size: 12px;">Description for option 3</span>
+                            </button>
+                        </div>
                     </div>
                 `,
                 buttons: [
@@ -89,18 +128,49 @@
                         action: function() {
                             console.log('Cancelled');
                         }
-                    },
-                    {
-                        text: 'Apply',
-                        class: 'btn-primary',
-                        action: function() {
-                            const value = document.getElementById('customSelect').value;
-                            console.log('Selected:', value);
-                        }
                     }
                 ],
-                width: '600px'
+                width: '500px'
             });
+
+            // Add click handlers for option buttons after dialog is shown
+            setTimeout(function() {
+                const optionButtons = document.querySelectorAll('.option-btn');
+                optionButtons.forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        const value = this.getAttribute('data-value');
+                        console.log('Selected:', value);
+                        
+                        // Visual feedback - highlight selected option
+                        optionButtons.forEach(b => {
+                            b.style.borderColor = 'var(--color-border-light)';
+                            b.style.background = 'var(--color-bg-white)';
+                        });
+                        this.style.borderColor = 'var(--color-primary)';
+                        this.style.background = 'var(--color-primary-lightest)';
+                        
+                        // Close dialog after selection
+                        setTimeout(function() {
+                            Dialog.close();
+                        }, 300);
+                    });
+
+                    // Hover effects
+                    btn.addEventListener('mouseenter', function() {
+                        if (this.style.borderColor !== 'var(--color-primary)') {
+                            this.style.borderColor = 'var(--color-primary-light)';
+                            this.style.background = 'var(--color-bg-hover)';
+                        }
+                    });
+
+                    btn.addEventListener('mouseleave', function() {
+                        if (this.style.borderColor !== 'var(--color-primary)') {
+                            this.style.borderColor = 'var(--color-border-light)';
+                            this.style.background = 'var(--color-bg-white)';
+                        }
+                    });
+                });
+            }, 100);
         }
 
         // Auto-show the delete database dialog when page loads (to match the image)
