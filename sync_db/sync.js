@@ -231,6 +231,11 @@ async function apiRequest(url, apiKey, action, params = {}) {
  * Execute SQL query on local database
  */
 async function executeLocalSQL(sql, dbName = null) {
+    // Validate SQL before sending
+    if (!sql || sql === 'null' || sql === 'undefined') {
+        throw new Error('Invalid SQL statement: SQL cannot be null or undefined');
+    }
+    
     const formData = new FormData();
     formData.append('action', 'execute_sql');
     formData.append('sql', sql);
@@ -440,6 +445,11 @@ async function startSync() {
                 table: table
             });
             
+            // Validate structure data
+            if (!structureData || !structureData.create_statement) {
+                throw new Error(`Failed to retrieve valid CREATE TABLE statement for table: ${table}`);
+            }
+            
             // Drop table if exists and recreate
             await executeLocalSQL(`DROP TABLE IF EXISTS \`${table}\``, config.localDbName);
             await executeLocalSQL(structureData.create_statement, config.localDbName);
@@ -505,6 +515,10 @@ async function startSync() {
                 view: view
             });
             
+            if (!viewStructure || !viewStructure.create_statement) {
+                throw new Error(`Failed to retrieve valid CREATE VIEW statement for view: ${view}`);
+            }
+            
             await executeLocalSQL(`DROP VIEW IF EXISTS \`${view}\``, config.localDbName);
             await executeLocalSQL(viewStructure.create_statement, config.localDbName);
             addLog(`  ✓ Created view: ${view}`, 'success');
@@ -523,6 +537,10 @@ async function startSync() {
                 procedure: procedure
             });
             
+            if (!procedureStructure || !procedureStructure.create_statement) {
+                throw new Error(`Failed to retrieve valid CREATE PROCEDURE statement for procedure: ${procedure}`);
+            }
+            
             await executeLocalSQL(`DROP PROCEDURE IF EXISTS \`${procedure}\``, config.localDbName);
             await executeLocalSQL(procedureStructure.create_statement, config.localDbName);
             addLog(`  ✓ Created procedure: ${procedure}`, 'success');
@@ -540,6 +558,10 @@ async function startSync() {
                 ...params,
                 function: func
             });
+            
+            if (!functionStructure || !functionStructure.create_statement) {
+                throw new Error(`Failed to retrieve valid CREATE FUNCTION statement for function: ${func}`);
+            }
             
             await executeLocalSQL(`DROP FUNCTION IF EXISTS \`${func}\``, config.localDbName);
             await executeLocalSQL(functionStructure.create_statement, config.localDbName);

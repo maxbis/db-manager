@@ -137,7 +137,14 @@ switch ($action) {
         }
         
         $row = $result->fetch_assoc();
+        if (!$row || !isset($row['Create Table'])) {
+            sendResponse(false, null, 'Failed to retrieve CREATE TABLE statement for table: ' . $table, 500);
+        }
+        
         $createStatement = $row['Create Table'];
+        if (empty($createStatement)) {
+            sendResponse(false, null, 'Empty CREATE TABLE statement for table: ' . $table, 500);
+        }
         
         logSync("Retrieved structure for table: $table");
         sendResponse(true, ['create_statement' => $createStatement], 'Table structure retrieved successfully');
@@ -203,7 +210,14 @@ switch ($action) {
         }
         
         $row = $result->fetch_assoc();
+        if (!$row || !isset($row['Create View'])) {
+            sendResponse(false, null, 'Failed to retrieve CREATE VIEW statement for view: ' . $view, 500);
+        }
+        
         $createStatement = $row['Create View'];
+        if (empty($createStatement)) {
+            sendResponse(false, null, 'Empty CREATE VIEW statement for view: ' . $view, 500);
+        }
         
         logSync("Retrieved structure for view: $view");
         sendResponse(true, ['create_statement' => $createStatement], 'View structure retrieved successfully');
@@ -244,7 +258,14 @@ switch ($action) {
         }
         
         $row = $result->fetch_assoc();
+        if (!$row || !isset($row['Create Procedure'])) {
+            sendResponse(false, null, 'Failed to retrieve CREATE PROCEDURE statement for procedure: ' . $procedure, 500);
+        }
+        
         $createStatement = $row['Create Procedure'];
+        if (empty($createStatement)) {
+            sendResponse(false, null, 'Empty CREATE PROCEDURE statement for procedure: ' . $procedure, 500);
+        }
         
         logSync("Retrieved structure for procedure: $procedure");
         sendResponse(true, ['create_statement' => $createStatement], 'Procedure structure retrieved successfully');
@@ -274,7 +295,14 @@ switch ($action) {
         }
         
         $row = $result->fetch_assoc();
+        if (!$row || !isset($row['Create Function'])) {
+            sendResponse(false, null, 'Failed to retrieve CREATE FUNCTION statement for function: ' . $function, 500);
+        }
+        
         $createStatement = $row['Create Function'];
+        if (empty($createStatement)) {
+            sendResponse(false, null, 'Empty CREATE FUNCTION statement for function: ' . $function, 500);
+        }
         
         logSync("Retrieved structure for function: $function");
         sendResponse(true, ['create_statement' => $createStatement], 'Function structure retrieved successfully');
