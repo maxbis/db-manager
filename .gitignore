@@ -9,6 +9,9 @@ config
 database_syncing/sync_config.php
 database_syncing/sync_remote_api.php
 sync_audit.log
+login/ipAllowed.txt
+login/remember_token.php
+login/credentials.txt
 
 # Database Sync - sensitive configuration
 sync_db/config.php
