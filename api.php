@@ -21,7 +21,7 @@ try {
     $database = $_GET['database'] ?? $_POST['database'] ?? DB_NAME;
     
     // For operations that require a database (not database management operations)
-    $needsDatabase = !in_array($action, ['getDatabases', 'createDatabase', 'deleteDatabase']);
+    $needsDatabase = !in_array($action, ['getDatabases', 'createDatabase', 'deleteDatabase', 'getCurrentDatabase', 'setCurrentDatabase']);
     
     if ($needsDatabase) {
         // If no database specified, try to auto-select first available
@@ -157,6 +157,17 @@ try {
             echo json_encode([
                 'success' => true,
                 'message' => 'Current database updated'
+            ]);
+            break;
+            
+        case 'getCurrentDatabase':
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            $currentDb = $_SESSION['auto_selected_database'] ?? '';
+            echo json_encode([
+                'success' => true,
+                'database' => $currentDb
             ]);
             break;
             

@@ -921,7 +921,27 @@ require_once 'login/auth_check.php';
 
         // Initialize
         $(document).ready(function () {
-            loadDatabases();
+            // Get current database from session first
+            $.ajax({
+                url: 'api.php?action=getCurrentDatabase',
+                method: 'GET',
+                dataType: 'json',
+                success: function (response) {
+                    if (response.success && response.database !== undefined && response.database !== null && response.database !== '') {
+                        currentDatabase = response.database;
+                        console.log('Restored current database from session:', currentDatabase);
+                    } else {
+                        console.log('No database in session to restore');
+                    }
+                    // Then load databases (which will select the current one if set)
+                    loadDatabases();
+                },
+                error: function (err) {
+                    console.error('Error getting current database:', err);
+                    // If error, just load databases without pre-selection
+                    loadDatabases();
+                }
+            });
 
             // Event handlers
             $('#refreshBtn').click(function () {
@@ -1006,18 +1026,58 @@ require_once 'login/auth_check.php';
                 openModal('exportAllDatabasesModal');
             });
 
-            // Actions dropdown open/close
+            // Actions dropdown open/close (for stats section)
             (function(){
                 const $dropdown = $('#statsActions');
                 const $menu = $dropdown.find('.dropdown-menu');
                 $dropdown.find('.dropdown-toggle').on('click', function(e){
                     e.stopPropagation();
+                    // Close all database action dropdowns
+                    $('.db-actions-dropdown .dropdown-menu').removeClass('show');
+                    // Toggle stats dropdown
                     $menu.toggleClass('show');
                 });
-                $(document).on('click', function(){
-                    $menu.removeClass('show');
-                });
             })();
+
+            // Database actions dropdowns - delegated event handler
+            $(document).on('click', '.db-actions-dropdown .dropdown-toggle', function(e){
+                e.stopPropagation();
+                const $this = $(this);
+                const $menu = $this.siblings('.dropdown-menu');
+                const isOpen = $menu.hasClass('show');
+                
+                // Close all dropdowns (including stats)
+                $('#statsActions .dropdown-menu').removeClass('show');
+                $('.db-actions-dropdown .dropdown-menu').removeClass('show');
+                
+                // Toggle this one
+                if (!isOpen) {
+                    $menu.addClass('show');
+                }
+            });
+
+            // Close all dropdowns when clicking anywhere on document
+            $(document).on('click', function(){
+                $('#statsActions .dropdown-menu').removeClass('show');
+                $('.db-actions-dropdown .dropdown-menu').removeClass('show');
+            });
+
+            // Database dropdown menu item handlers
+            $(document).on('click', '.db-export-btn', function(e){
+                e.stopPropagation();
+                const dbName = $(this).data('database');
+                openExportModal(dbName);
+                // Close the dropdown
+                $('.db-actions-dropdown .dropdown-menu').removeClass('show');
+            });
+
+            $(document).on('click', '.db-delete-btn', function(e){
+                e.stopPropagation();
+                const dbName = $(this).data('database');
+                deleteDatabase(dbName);
+                // Close the dropdown
+                $('.db-actions-dropdown .dropdown-menu').removeClass('show');
+            });
 
             $('#confirmCreateDatabaseBtn').click(function () {
                 createDatabase();
@@ -1181,6 +1241,39 @@ require_once 'login/auth_check.php';
                         databases = response.databases;
                         displayDatabases();
                         populateDatabaseSelect();
+                        
+                        // If there's a current database set from session, restore its state
+                        if (currentDatabase) {
+                            console.log('Restoring state for currentDatabase:', currentDatabase);
+                            
+                            // Update visual state of database items
+                            $('.database-item').removeClass('active');
+                            const $currentDbItem = $(`.database-item[data-database="${currentDatabase}"]`);
+                            $currentDbItem.addClass('active');
+                            console.log('Active class added to:', $currentDbItem.length, 'items');
+                            
+                            // Update database badges
+                            let badgesUpdated = 0;
+                            $('.database-name').each(function() {
+                                const $this = $(this);
+                                const $badge = $this.find('.badge-current');
+                                const itemDbName = $this.closest('.database-item').data('database');
+                                if (itemDbName === currentDatabase && !$badge.length) {
+                                    $this.append('<span class="badge-current" title="Currently selected">Current</span>');
+                                    badgesUpdated++;
+                                } else if (itemDbName !== currentDatabase && $badge.length) {
+                                    $badge.remove();
+                                }
+                            });
+                            console.log('Badges updated:', badgesUpdated);
+                            
+                            loadTables();
+                            updateButtonStates();
+                        } else {
+                            console.log('No currentDatabase set, skipping state restoration');
+                        }
+                        
+                        // Update stats AFTER setting the visual state
                         updateStats();
                     }
                     $('#loading').removeClass('active');
@@ -1340,16 +1433,26 @@ require_once 'login/auth_check.php';
                     const tableIcon = isView ? '👁️' : '📋';
                     
                     const tableItem = $(`
-                        <div class="database-table-item" data-table="${tableName}">
+                        <div class="database-table-item" data-table="${tableName}" data-database="${databaseName}" style="cursor: pointer;">
                             <span class="table-icon">${tableIcon}</span>
                             <span class="table-name">${tableName}</span>
                             ${isView ? '<span class="table-type">View</span>' : '<span class="table-type">Table</span>'}
                             <div class="table-actions">
-                                <button class="btn-success" onclick="viewTable('${tableName}', '${databaseName}')" title="View table">View</button>
-                                ${!isView ? `<button class="btn-danger" onclick="deleteTable('${tableName}', '${databaseName}', true)" title="Delete table">Delete</button>` : ''}
+                                <button class="btn-success" onclick="event.stopPropagation(); viewTable('${tableName}', '${databaseName}')" title="View table">View</button>
+                                ${!isView ? `<button class="btn-danger" onclick="event.stopPropagation(); deleteTable('${tableName}', '${databaseName}', true)" title="Delete table">Delete</button>` : ''}
                             </div>
                         </div>
                     `);
+                    
+                    // Add click handler to view the table
+                    tableItem.click(function (e) {
+                        // Don't trigger if clicking on buttons
+                        if ($(e.target).is('button') || $(e.target).closest('button').length) {
+                            return;
+                        }
+                        e.stopPropagation(); // Prevent event bubbling
+                        viewTable(tableName, databaseName);
+                    });
                     
                     tablesGrid.append(tableItem);
                 });
@@ -1410,8 +1513,15 @@ require_once 'login/auth_check.php';
                         
                         <!-- Buttons Section (Right Part) -->
                         <div class="database-actions-section">
-                            <button class="btn-warning" aria-label="Export ${db.name}" onclick="event.stopPropagation(); openExportModal('${db.name}')">Export</button>
-                            <button class="btn-danger" aria-label="Delete ${db.name}" onclick="event.stopPropagation(); deleteDatabase('${db.name}')">Delete</button>
+                            <div class="actions-dropdown db-actions-dropdown" data-database="${db.name}">
+                                <button type="button" class="dropdown-toggle">⚙️ Actions</button>
+                                <div class="dropdown-menu" role="menu" aria-label="Actions for ${db.name}">
+                                    <ul>
+                                        <li><button class="menu-item db-export-btn" data-database="${db.name}">📤 Export</button></li>
+                                        <li><button class="menu-item db-delete-btn" data-database="${db.name}">🗑️ Delete</button></li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <!-- Database Tables Subsection (Hidden by default) -->
@@ -1425,8 +1535,11 @@ require_once 'login/auth_check.php';
 
                 // Click on database item to select it
                 databaseItem.on('click', function(e){
-                    // Don't select if clicking on buttons or expand indicator
-                    if ($(e.target).is('button') || $(e.target).closest('button').length || $(e.target).hasClass('expand-indicator')) {
+                    // Don't select if clicking on buttons, dropdown, or expand indicator
+                    if ($(e.target).is('button') || 
+                        $(e.target).closest('button').length || 
+                        $(e.target).closest('.actions-dropdown').length ||
+                        $(e.target).hasClass('expand-indicator')) {
                         return;
                     }
                     selectDatabase(db.name);
@@ -1510,14 +1623,15 @@ require_once 'login/auth_check.php';
                     </div>
                 `);
 
-                // Add click handler to select the table
+                // Add click handler to view the table
                 tableItem.click(function (e) {
                     // Don't trigger if clicking on buttons
                     if ($(e.target).is('button') || $(e.target).closest('button').length) {
                         return;
                     }
-
-                    selectTable(tableName);
+                    
+                    e.stopPropagation(); // Prevent event bubbling
+                    viewTable(tableName);
                 });
 
                 tableList.append(tableItem);

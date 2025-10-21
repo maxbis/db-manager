@@ -5,6 +5,10 @@ credentials.txt
 *.db
 data/
 db_config.php
+config
+database_syncing/sync_config.php
+database_syncing/sync_remote_api.php
+sync_audit.log
 
 # IP whitelist (may contain sensitive IPs)
 # Uncomment if you don't want to track this:
