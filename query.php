@@ -623,6 +623,10 @@ require_once 'login/auth_check.php';
                 saveCurrentQuery();
             });
             
+            // Check for SQL parameter in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const sqlParam = urlParams.get('sql');
+            
             $('#tableSelect').change(function() {
                 const previousTable = currentTable;
                 currentTable = $(this).val();
@@ -632,23 +636,32 @@ require_once 'login/auth_check.php';
                 if (currentTable) {
                     loadTableInfo();
                     
+                    // Check if SQL query was passed via URL parameter (takes priority)
+                    if (sqlParam && !$('#queryInput').data('sql-loaded')) {
+                        $('#queryInput').val(decodeURIComponent(sqlParam));
+                        $('#queryInput').data('sql-loaded', true);
+                        // Show a notification
+                        showToast('SQL query loaded from table structure editor', 'success');
+                    } 
                     // Check if we have a saved query for this table
-                    const savedQueryState = localStorage.getItem('currentQuery');
-                    if (savedQueryState) {
-                        try {
-                            const queryState = JSON.parse(savedQueryState);
-                            // Restore query if it's for the same table
-                            if (queryState.table === currentTable) {
-                                $('#queryInput').val(queryState.query);
-                            } else {
-                                // Different table selected, clear and set default query
+                    else {
+                        const savedQueryState = localStorage.getItem('currentQuery');
+                        if (savedQueryState) {
+                            try {
+                                const queryState = JSON.parse(savedQueryState);
+                                // Restore query if it's for the same table
+                                if (queryState.table === currentTable) {
+                                    $('#queryInput').val(queryState.query);
+                                } else {
+                                    // Different table selected, clear and set default query
+                                    $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
+                                }
+                            } catch (e) {
                                 $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
                             }
-                        } catch (e) {
+                        } else {
                             $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
                         }
-                    } else {
-                        $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
                     }
                     
                     loadSavedQueries(currentTable);

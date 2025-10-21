@@ -354,8 +354,8 @@ require_once 'login/auth_check.php';
             </div>
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                <button class="btn-danger" id="deleteColumnBtn" style="display: none;">🗑️ Delete Column</button>
-                <button class="btn-primary" id="saveColumnBtn">💾 Save</button>
+                <button class="btn-danger" id="deleteColumnBtn" style="display: none;">🗑️ Generate Delete SQL</button>
+                <button class="btn-primary" id="saveColumnBtn">⚡ Generate SQL</button>
             </div>
         </div>
     </div>
@@ -743,66 +743,126 @@ require_once 'login/auth_check.php';
                 return;
             }
             
-            const action = currentEditColumn ? 'updateColumn' : 'addColumn';
-            const data = {
-                action: action,
-                table: currentTable,
-                data: JSON.stringify(formData)
-            };
+            // Generate SQL query instead of executing
+            const sqlQuery = generateColumnSQL(formData, currentEditColumn);
             
-            if (currentEditColumn) {
-                data.oldName = currentEditColumn.name;
+            // Redirect to SQL Query Builder with the generated SQL
+            const queryParam = encodeURIComponent(sqlQuery);
+            const tableParam = encodeURIComponent(currentTable);
+            window.location.href = `query.php?table=${tableParam}&sql=${queryParam}`;
+        }
+        
+        // Generate SQL for column modification
+        function generateColumnSQL(formData, editColumn) {
+            let sql = '';
+            
+            // Build column definition
+            let columnDef = `\`${formData.name}\` ${formData.type}`;
+            
+            // Add NOT NULL or NULL
+            if (!formData.null) {
+                columnDef += ' NOT NULL';
+            } else {
+                columnDef += ' NULL';
             }
             
-            $.ajax({
-                url: 'api.php',
-                method: 'POST',
-                data: data,
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        alert(response.message);
-                        closeModal();
-                        loadTableStructure();
-                    } else {
-                        alert('Error: ' + response.error);
-                    }
-                },
-                error: function(xhr) {
-                    const response = JSON.parse(xhr.responseText);
-                    alert('Error: ' + (response.error || 'Unknown error'));
+            // Add DEFAULT value
+            if (formData.default !== null && formData.default !== '') {
+                // Check if default should be quoted (non-numeric types)
+                if (formData.type.toUpperCase().includes('INT') || 
+                    formData.type.toUpperCase().includes('DECIMAL') || 
+                    formData.type.toUpperCase().includes('FLOAT') ||
+                    formData.type.toUpperCase().includes('DOUBLE')) {
+                    columnDef += ` DEFAULT ${formData.default}`;
+                } else {
+                    columnDef += ` DEFAULT '${formData.default.replace(/'/g, "''")}'`;
                 }
-            });
+            }
+            
+            // Add AUTO_INCREMENT
+            if (formData.auto_increment) {
+                columnDef += ' AUTO_INCREMENT';
+            }
+            
+            // Add extra attributes
+            if (formData.extra && formData.extra.trim() !== '') {
+                columnDef += ' ' + formData.extra.trim();
+            }
+            
+            if (editColumn) {
+                // MODIFY existing column
+                sql = `ALTER TABLE \`${currentTable}\` MODIFY COLUMN ${columnDef};`;
+                
+                // If column name changed, we need CHANGE instead of MODIFY
+                if (editColumn.name !== formData.name) {
+                    sql = `ALTER TABLE \`${currentTable}\` CHANGE COLUMN \`${editColumn.name}\` ${columnDef};`;
+                }
+                
+                // Add index modifications if needed
+                const indexSQL = [];
+                
+                // Handle PRIMARY KEY
+                if (formData.primary && editColumn.key !== 'PRI') {
+                    indexSQL.push(`ALTER TABLE \`${currentTable}\` ADD PRIMARY KEY (\`${formData.name}\`);`);
+                } else if (!formData.primary && editColumn.key === 'PRI') {
+                    indexSQL.push(`ALTER TABLE \`${currentTable}\` DROP PRIMARY KEY;`);
+                }
+                
+                // Handle UNIQUE
+                if (formData.unique && editColumn.key !== 'UNI') {
+                    indexSQL.push(`ALTER TABLE \`${currentTable}\` ADD UNIQUE (\`${formData.name}\`);`);
+                } else if (!formData.unique && editColumn.key === 'UNI') {
+                    indexSQL.push(`ALTER TABLE \`${currentTable}\` DROP INDEX \`${formData.name}\`;`);
+                }
+                
+                if (indexSQL.length > 0) {
+                    sql = sql + '\n\n' + indexSQL.join('\n');
+                }
+                
+            } else {
+                // ADD new column
+                sql = `ALTER TABLE \`${currentTable}\` ADD COLUMN ${columnDef}`;
+                
+                // Add position
+                const position = formData.position || 'end';
+                if (position === 'first') {
+                    sql += ' FIRST';
+                } else if (position.startsWith('after_')) {
+                    const afterColumn = position.substring(6);
+                    sql += ` AFTER \`${afterColumn}\``;
+                }
+                
+                sql += ';';
+                
+                // Add index if needed
+                const indexSQL = [];
+                if (formData.primary) {
+                    indexSQL.push(`ALTER TABLE \`${currentTable}\` ADD PRIMARY KEY (\`${formData.name}\`);`);
+                }
+                if (formData.unique) {
+                    indexSQL.push(`ALTER TABLE \`${currentTable}\` ADD UNIQUE (\`${formData.name}\`);`);
+                }
+                
+                if (indexSQL.length > 0) {
+                    sql = sql + '\n\n' + indexSQL.join('\n');
+                }
+            }
+            
+            return sql;
         }
 
         // Delete column
         function deleteColumn() {
             if (!currentEditColumn) return;
             
-            if (confirm('Are you sure you want to delete the column "' + currentEditColumn.name + '"? This action cannot be undone.')) {
-                $.ajax({
-                    url: 'api.php',
-                    method: 'POST',
-                    data: {
-                        action: 'deleteColumn',
-                        table: currentTable,
-                        columnName: currentEditColumn.name
-                    },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            alert(response.message);
-                            closeModal();
-                            loadTableStructure();
-                        } else {
-                            alert('Error: ' + response.error);
-                        }
-                    },
-                    error: function(xhr) {
-                        const response = JSON.parse(xhr.responseText);
-                        alert('Error: ' + (response.error || 'Unknown error'));
-                    }
-                });
+            if (confirm('Are you sure you want to delete the column "' + currentEditColumn.name + '"? This will generate the DELETE query for you to execute.')) {
+                // Generate SQL query for column deletion
+                const sqlQuery = `ALTER TABLE \`${currentTable}\` DROP COLUMN \`${currentEditColumn.name}\`;`;
+                
+                // Redirect to SQL Query Builder with the generated SQL
+                const queryParam = encodeURIComponent(sqlQuery);
+                const tableParam = encodeURIComponent(currentTable);
+                window.location.href = `query.php?table=${tableParam}&sql=${queryParam}`;
             }
         }
 
