@@ -355,9 +355,12 @@ $pageConfig = [
 
                     <!-- Local Database Settings -->
                     <div class="form-group">
-                        <label for="localDbName">Local Database Name</label>
-                        <input type="text" id="localDbName" name="localDbName" placeholder="local_database" required>
-                        <small>Name for local database (will be created if doesn't exist)</small>
+                        <label for="localDbName">
+                            Local Database Name
+                            <span id="localDbLock" style="color: var(--color-text-tertiary); font-size: 12px; margin-left: 5px;">🔒</span>
+                        </label>
+                        <input type="text" id="localDbName" name="localDbName" placeholder="Specify remote DB first" readonly style="background: #F0F4F8; cursor: not-allowed;" required>
+                        <small id="localDbHelp">Auto-synced from remote database name (editable after setting remote)</small>
                     </div>
 
                     <div class="form-group">

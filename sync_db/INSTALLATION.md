@@ -82,10 +82,15 @@ On the REMOTE server, add your LOCAL server's IP to `login/ipAllowed.txt`:
 | **Remote DB Username** | Database username on remote | `db_user` |
 | **Remote DB Password** | Database password on remote (NOT saved) | `SecurePass123` |
 | **Remote Database Name** | Database to sync FROM | `production_db` |
-| **Local Database Name** | Database to sync TO (will be created) | `local_copy_db` |
+| **Local Database Name** | Database to sync TO (auto-synced from remote) | `production_db` |
 | **Chunk Size** | Rows per batch (default: 1000) | `1000` |
 
-**Note**: All fields except database passwords are saved in cookies for convenience. Use the "Clear Form" button to delete all saved data.
+**Cookie Storage**: 
+- **Regular fields**: Saved for 3 months, renewed on each visit
+- **Password fields** (API Key, DB Password): Saved for 1 hour only
+- Local Database Name auto-syncs from Remote Database Name
+- You can customize the local name after entering the remote name
+- Use the "Clear Form" button to delete all saved data immediately
 
 ## Adding to Navigation Menu (Optional)
 

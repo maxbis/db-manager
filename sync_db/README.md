@@ -81,6 +81,9 @@ You must be logged in to access this page.
 - **Remote Database Name**: Name of the database you want to sync FROM
   
 - **Local Database Name**: Name of the database to create/replace locally
+  - 🔒 Auto-syncs from Remote Database Name
+  - 🔓 Becomes editable after Remote DB is specified
+  - ✏️ Customize if you want a different local name
   
 - **Chunk Size**: Number of rows to transfer per request (default: 1000)
   - Larger values = faster but more memory usage
@@ -107,9 +110,23 @@ The page will show:
 
 ### Cookie Storage
 
-All form values (including API key, but excluding database passwords) are automatically saved in cookies for convenience. Next time you visit the page, your settings will be pre-filled.
+Form values are automatically saved in cookies with different expiration times:
 
-**Note**: The API key is stored in a cookie for convenience. If this is a security concern, use the "Clear Form" button to remove all saved data when done.
+**Regular Fields (3 months):**
+- Remote Server URL
+- Remote DB Host
+- Remote DB Username
+- Remote Database Name
+- Local Database Name
+- Chunk Size
+
+**Password Fields (1 hour only):**
+- API Key
+- Remote DB Password
+
+**Auto-renewal**: Cookie expiration dates are renewed every time you visit the page, so actively used cookies stay valid.
+
+**Security Note**: Use the "Clear Form" button to immediately remove all saved data when done.
 
 ### Progress Tracking
 

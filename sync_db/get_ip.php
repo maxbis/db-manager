@@ -19,32 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-/**
- * Get the client's real IP address
- * Handles various proxy configurations
- */
-function getClientIP() {
-    $ip = '';
-    
-    // Check for various headers that might contain the real IP
-    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-        $ip = $_SERVER['HTTP_CLIENT_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        // X-Forwarded-For can contain multiple IPs, get the first one
-        $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-        $ip = trim($ips[0]);
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED'])) {
-        $ip = $_SERVER['HTTP_X_FORWARDED'];
-    } elseif (!empty($_SERVER['HTTP_FORWARDED_FOR'])) {
-        $ip = $_SERVER['HTTP_FORWARDED_FOR'];
-    } elseif (!empty($_SERVER['HTTP_FORWARDED'])) {
-        $ip = $_SERVER['HTTP_FORWARDED'];
-    } else {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    }
-    
-    return $ip;
-}
+// Load shared IP functions
+require_once __DIR__ . '/../login/ip_functions.php';
 
 $clientIP = getClientIP();
 

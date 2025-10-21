@@ -6,16 +6,31 @@
 
 // Cookie management
 const COOKIE_PREFIX = 'db_sync_';
-const COOKIE_EXPIRY_DAYS = 365;
+const COOKIE_EXPIRY_DAYS = 90;  // 3 months for regular fields
+const PASSWORD_EXPIRY_HOURS = 1;  // 1 hour for passwords
 
 /**
  * Set a cookie
+ * @param {string} name - Cookie name
+ * @param {string} value - Cookie value
+ * @param {number} days - Expiration in days (can be fractional for hours)
  */
 function setCookie(name, value, days = COOKIE_EXPIRY_DAYS) {
     const date = new Date();
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     const expires = "expires=" + date.toUTCString();
     document.cookie = COOKIE_PREFIX + name + "=" + encodeURIComponent(value) + ";" + expires + ";path=/";
+}
+
+/**
+ * Set a cookie with expiration in hours
+ * @param {string} name - Cookie name
+ * @param {string} value - Cookie value
+ * @param {number} hours - Expiration in hours
+ */
+function setCookieHours(name, value, hours) {
+    const days = hours / 24;
+    setCookie(name, value, days);
 }
 
 /**
@@ -37,21 +52,29 @@ function getCookie(name) {
 
 /**
  * Save form values to cookies
+ * Regular fields: 3 months, renewed on each use
+ * Passwords: 1 hour only
  */
 function saveFormToCookies() {
     const form = document.getElementById('syncForm');
     const inputs = form.querySelectorAll('input, select');
     
     inputs.forEach(input => {
-        // Save API key, but not database passwords
-        if (input.type !== 'password' || input.name === 'apiKey') {
-            setCookie(input.name, input.value);
+        if (input.type === 'password') {
+            // Save passwords (including API key and DB passwords) with 1 hour expiration
+            if (input.value) {
+                setCookieHours(input.name, input.value, PASSWORD_EXPIRY_HOURS);
+            }
+        } else {
+            // Save other fields with 3 months expiration
+            setCookie(input.name, input.value, COOKIE_EXPIRY_DAYS);
         }
     });
 }
 
 /**
  * Load form values from cookies
+ * Also loads password fields (if not expired)
  */
 function loadFormFromCookies() {
     const form = document.getElementById('syncForm');
@@ -59,9 +82,29 @@ function loadFormFromCookies() {
     
     inputs.forEach(input => {
         const savedValue = getCookie(input.name);
-        // Load API key from cookie, but not database passwords
-        if (savedValue && (input.type !== 'password' || input.name === 'apiKey')) {
+        if (savedValue) {
             input.value = savedValue;
+        }
+    });
+}
+
+/**
+ * Renew all existing cookies by resaving them with updated expiration
+ * Called on page load to extend cookie life
+ */
+function renewCookies() {
+    const form = document.getElementById('syncForm');
+    const inputs = form.querySelectorAll('input, select');
+    
+    inputs.forEach(input => {
+        const savedValue = getCookie(input.name);
+        if (savedValue) {
+            // Renew with appropriate expiration time
+            if (input.type === 'password') {
+                setCookieHours(input.name, savedValue, PASSWORD_EXPIRY_HOURS);
+            } else {
+                setCookie(input.name, savedValue, COOKIE_EXPIRY_DAYS);
+            }
         }
     });
 }
@@ -568,6 +611,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load saved form values
     loadFormFromCookies();
     
+    // Renew cookie expiration dates (3 months for regular fields, 1 hour for passwords)
+    renewCookies();
+    
     // Form submit
     document.getElementById('syncForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -594,5 +640,94 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('change', function() {
         saveFormToCookies();
     });
+    
+    // Auto-sync local database name from remote database name
+    const remoteDbNameInput = document.getElementById('remoteDbName');
+    const localDbNameInput = document.getElementById('localDbName');
+    const localDbLock = document.getElementById('localDbLock');
+    const localDbHelp = document.getElementById('localDbHelp');
+    let userEditedLocalDb = false; // Track if user manually edited the local DB name
+    
+    // Function to unlock local DB field
+    function unlockLocalDbField() {
+        localDbNameInput.removeAttribute('readonly');
+        localDbNameInput.style.background = '';
+        localDbNameInput.style.cursor = '';
+        localDbLock.textContent = '🔓';
+        localDbHelp.textContent = 'Editable - customize if needed';
+    }
+    
+    // Function to lock local DB field
+    function lockLocalDbField() {
+        localDbNameInput.setAttribute('readonly', 'readonly');
+        localDbNameInput.style.background = '#F0F4F8';
+        localDbNameInput.style.cursor = 'not-allowed';
+        localDbLock.textContent = '🔒';
+        localDbHelp.textContent = 'Auto-synced from remote database name (editable after setting remote)';
+    }
+    
+    // When remote DB name changes
+    remoteDbNameInput.addEventListener('input', function() {
+        const remoteDbValue = this.value.trim();
+        
+        if (remoteDbValue) {
+            // Unlock the field if it was locked
+            unlockLocalDbField();
+            
+            // Only auto-sync if user hasn't manually edited it
+            if (!userEditedLocalDb) {
+                localDbNameInput.value = remoteDbValue;
+                localDbHelp.textContent = 'Auto-synced from remote (click to customize)';
+            }
+        } else {
+            // Lock the field if remote DB is empty
+            lockLocalDbField();
+            if (!userEditedLocalDb) {
+                localDbNameInput.value = '';
+            }
+        }
+    });
+    
+    // Track when user manually edits local DB name
+    localDbNameInput.addEventListener('input', function() {
+        if (!this.hasAttribute('readonly')) {
+            userEditedLocalDb = true;
+            localDbHelp.textContent = 'Custom name (will not auto-sync)';
+        }
+    });
+    
+    // Reset user-edited flag when remote DB changes significantly
+    remoteDbNameInput.addEventListener('blur', function() {
+        const remoteDbValue = this.value.trim();
+        const localDbValue = localDbNameInput.value.trim();
+        
+        // If they match, reset the flag (user accepted the auto-sync)
+        if (remoteDbValue && remoteDbValue === localDbValue) {
+            userEditedLocalDb = false;
+            localDbHelp.textContent = 'Auto-synced from remote (click to customize)';
+        }
+    });
+    
+    // Check initial state after loading from cookies
+    setTimeout(function() {
+        const remoteDbValue = remoteDbNameInput.value.trim();
+        const localDbValue = localDbNameInput.value.trim();
+        
+        if (remoteDbValue) {
+            unlockLocalDbField();
+            
+            // If local is different from remote, user has customized it
+            if (localDbValue && localDbValue !== remoteDbValue) {
+                userEditedLocalDb = true;
+                localDbHelp.textContent = 'Custom name (will not auto-sync)';
+            } else if (!localDbValue) {
+                // If local is empty but remote has value, auto-fill it
+                localDbNameInput.value = remoteDbValue;
+                localDbHelp.textContent = 'Auto-synced from remote (click to customize)';
+            }
+        } else if (!remoteDbValue && !localDbValue) {
+            lockLocalDbField();
+        }
+    }, 100);
 });
 

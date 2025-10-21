@@ -27,96 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Load configuration
 require_once __DIR__ . '/config.php';
 
+// Load shared IP functions
+require_once __DIR__ . '/../login/ip_functions.php';
+
 // Set execution limits for large databases
 set_time_limit(SYNC_MAX_EXECUTION_TIME);
 ini_set('memory_limit', SYNC_MEMORY_LIMIT);
-
-/**
- * Get the client's real IP address
- */
-function getClientIP() {
-    $ip = '';
-    if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-        $ip = $_SERVER['HTTP_CLIENT_IP'];
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $ips = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-        $ip = trim($ips[0]);
-    } elseif (!empty($_SERVER['HTTP_X_FORWARDED'])) {
-        $ip = $_SERVER['HTTP_X_FORWARDED'];
-    } elseif (!empty($_SERVER['HTTP_FORWARDED_FOR'])) {
-        $ip = $_SERVER['HTTP_FORWARDED_FOR'];
-    } elseif (!empty($_SERVER['HTTP_FORWARDED'])) {
-        $ip = $_SERVER['HTTP_FORWARDED'];
-    } else {
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    }
-    return $ip;
-}
-
-/**
- * Check if IP is localhost
- */
-function isLocalhost($ip) {
-    $localhostPatterns = ['127.0.0.1', '::1', 'localhost', '::ffff:127.0.0.1'];
-    return in_array($ip, $localhostPatterns);
-}
-
-/**
- * Check if IP matches a CIDR pattern
- */
-function ipMatchesCIDR($ip, $cidr) {
-    // Handle simple IP without CIDR
-    if (strpos($cidr, '/') === false) {
-        return $ip === $cidr;
-    }
-    
-    list($subnet, $mask) = explode('/', $cidr);
-    
-    // Convert IP addresses to long integers
-    $ipLong = ip2long($ip);
-    $subnetLong = ip2long($subnet);
-    
-    if ($ipLong === false || $subnetLong === false) {
-        return false;
-    }
-    
-    // Create mask
-    $maskLong = -1 << (32 - (int)$mask);
-    
-    // Compare network addresses
-    return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
-}
-
-/**
- * Check if IP is in whitelist
- */
-function isIPAllowed($ip) {
-    // Always allow localhost
-    if (isLocalhost($ip)) {
-        return true;
-    }
-    
-    // Check whitelist file
-    $whitelistFile = __DIR__ . '/../login/ipAllowed.txt';
-    if (!file_exists($whitelistFile)) {
-        return false;
-    }
-    
-    $allowedIPs = file($whitelistFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($allowedIPs as $allowedIP) {
-        $allowedIP = trim($allowedIP);
-        if (empty($allowedIP) || strpos($allowedIP, '#') === 0) {
-            continue;
-        }
-        
-        // Check exact match or CIDR match
-        if ($allowedIP === $ip || ipMatchesCIDR($ip, $allowedIP)) {
-            return true;
-        }
-    }
-    
-    return false;
-}
 
 /**
  * Send JSON response
@@ -147,7 +63,7 @@ function logSync($message) {
 
 // Check IP whitelist
 $clientIP = getClientIP();
-if (!isIPAllowed($clientIP)) {
+if (!isIPWhitelisted($clientIP)) {
     logSync("UNAUTHORIZED: IP not in whitelist");
     sendResponse(false, null, "Unauthorized: IP address '$clientIP' not allowed", 403);
 }

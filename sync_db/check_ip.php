@@ -66,42 +66,35 @@ if (!empty($remoteServerUrl)) {
 // Determine which IP to show prominently
 $isLocalhost = in_array($myLocalIP, ['127.0.0.1', '::1', 'localhost', '::ffff:127.0.0.1']);
 $displayIP = $isLocalhost && $myPublicIP ? $myPublicIP : $myLocalIP;
+
+// Page configuration for template
+$pageConfig = [
+    'id' => 'check_ip',
+    'title' => 'Check My IP',
+    'icon' => '🌐',
+    'controls_html' => ''
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check My IP</title>
+    <title><?php echo $pageConfig['icon']; ?> <?php echo htmlspecialchars($pageConfig['title']); ?></title>
     <link rel="stylesheet" href="../styles/common.css">
     <style>
-        :root {
-            --color-bg-white: #FFFFFF;
-            --color-border-light: #D1D9E0;
-            --color-primary: #06457F;
-            --color-primary-dark: #04324D;
-            --color-primary-pale: #E5F0FF;
-            --color-success: #27AE60;
-            --color-warning: #F39C12;
-            --color-warning-pale: #FEF5E7;
-            --color-info: #3498DB;
-            --color-info-pale: #EBF5FB;
-            --color-bg-lighter: #F8FAFC;
-            --color-text-secondary: #5A6C7D;
-            --shadow-lg: 0 8px 24px rgba(6, 69, 127, 0.12);
-        }
-        
         .ip-container {
-            max-width: 600px;
-            margin: 50px auto;
-            text-align: center;
+            max-width: 700px;
+            margin: 0 auto;
         }
         .ip-card {
             background: var(--color-bg-white);
             border: 2px solid var(--color-border-light);
             border-radius: 12px;
-            padding: 40px;
+            padding: 30px;
             box-shadow: var(--shadow-lg);
+            margin-bottom: 20px;
+            text-align: center;
         }
         .ip-display {
             font-size: 32px;
@@ -116,7 +109,7 @@ $displayIP = $isLocalhost && $myPublicIP ? $myPublicIP : $myLocalIP;
         }
         .copy-btn {
             padding: 12px 24px;
-            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            background: linear-gradient(135deg, #06457F 0%, #04324D 100%);
             color: white;
             border: none;
             border-radius: 8px;
@@ -124,14 +117,16 @@ $displayIP = $isLocalhost && $myPublicIP ? $myPublicIP : $myLocalIP;
             font-weight: 600;
             cursor: pointer;
             margin-top: 10px;
+            border: 2px solid #06457F;
+            box-shadow: 0 2px 8px rgba(6, 69, 127, 0.3);
         }
         .copy-btn:hover {
             transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+            box-shadow: 0 4px 12px rgba(6, 69, 127, 0.5);
         }
         .instructions {
             text-align: left;
-            margin-top: 30px;
+            margin-top: 20px;
             padding: 20px;
             background: var(--color-bg-lighter);
             border-radius: 8px;
@@ -148,12 +143,29 @@ $displayIP = $isLocalhost && $myPublicIP ? $myPublicIP : $myLocalIP;
         .instructions li {
             margin: 8px 0;
         }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: var(--color-bg-lighter);
+            color: var(--color-primary);
+            text-decoration: none;
+            border-radius: 8px;
+            border: 2px solid var(--color-border-light);
+            font-weight: 600;
+        }
+        .back-link:hover {
+            background: var(--color-bg-white);
+            border-color: var(--color-primary);
+        }
     </style>
 </head>
 <body>
+    <?php include __DIR__ . '/../templates/header.php'; ?>
+
     <div class="ip-container">
         <div class="ip-card">
-            <h1>🌐 Your IP Address</h1>
+            <h2 style="margin-top: 0;">🌐 Your IP Address</h2>
             
             <?php if (empty($remoteServerUrl)): ?>
                 <div style="background: var(--color-info-pale); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--color-info);">
@@ -227,10 +239,12 @@ $displayIP = $isLocalhost && $myPublicIP ? $myPublicIP : $myLocalIP;
             </div>
             
             <div style="margin-top: 20px;">
-                <a href="index.php" style="text-decoration: none; color: var(--color-primary); font-weight: 600;">← Back to Sync Page</a>
+                <a href="index.php" class="back-link">← Back to Sync Page</a>
             </div>
         </div>
     </div>
+
+    <?php include __DIR__ . '/../templates/footer.php'; ?>
     
     <script>
         function copyIP() {
@@ -239,11 +253,11 @@ $displayIP = $isLocalhost && $myPublicIP ? $myPublicIP : $myLocalIP;
                 const btn = document.querySelector('.copy-btn');
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '✅ Copied!';
-                btn.style.background = 'linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%)';
+                btn.style.background = 'linear-gradient(135deg, #27AE60 0%, #229954 100%)';
                 
                 setTimeout(function() {
                     btn.innerHTML = originalText;
-                    btn.style.background = 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)';
+                    btn.style.background = 'linear-gradient(135deg, #06457F 0%, #04324D 100%)';
                 }, 2000);
             }).catch(function(err) {
                 alert('Failed to copy: ' + err);
