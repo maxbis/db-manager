@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="../styles/common.css">
     
     <!-- Then include dialog-specific styles -->
-    <link rel="stylesheet" href="dialog.css">
+    <link rel="stylesheet" href="dialog.css?v=3">
 </head>
 <body>
     <div class="container">
@@ -33,7 +33,7 @@
     <?php include 'dialog.php'; ?>
 
     <!-- Include dialog JavaScript -->
-    <script src="dialog.js"></script>
+    <script src="dialog.js?v=3"></script>
     
     <script>
         // Function to show the exact dialog from the image

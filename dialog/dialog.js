@@ -82,7 +82,7 @@ const Dialog = (function() {
         document.getElementById('dialogTitle').textContent = config.title;
         
         const bodyHtml = config.icon 
-            ? `<div class="dialog-icon">${config.icon}</div><p id="dialogMessage">${config.message}</p>`
+            ? `<div class="dialog-message-container"><span class="dialog-icon">${config.icon}</span><div class="dialog-message-text">${config.message}</div></div>`
             : `<p id="dialogMessage">${config.message}</p>`;
         document.getElementById('dialogBody').innerHTML = bodyHtml;
 
@@ -130,7 +130,7 @@ const Dialog = (function() {
         document.getElementById('dialogTitle').textContent = config.title;
         
         const bodyHtml = config.icon 
-            ? `<div class="dialog-icon">${config.icon}</div><p id="dialogMessage">${config.message}</p>`
+            ? `<div class="dialog-message-container"><span class="dialog-icon">${config.icon}</span><div class="dialog-message-text">${config.message}</div></div>`
             : `<p id="dialogMessage">${config.message}</p>`;
         document.getElementById('dialogBody').innerHTML = bodyHtml;
 
