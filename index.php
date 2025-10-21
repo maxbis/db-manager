@@ -6,6 +6,6 @@
  * users to the main Database Manager interface.
  */
 
-header('Location: database_manager.php');
+header('Location: database_manager');
 exit;
 

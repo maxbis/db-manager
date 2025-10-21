@@ -3,8 +3,8 @@
  * View Definer Fixer Tool
  * Automatically fixes MySQL view definer issues
  */
-require_once 'login/auth_check.php';
-require_once 'db_config.php';
+require_once '../login/auth_check.php';
+require_once '../db_config.php';
 
 // Handle AJAX requests
 if (isset($_POST['action'])) {
@@ -230,7 +230,7 @@ function fixAllViewDefiners($conn, $database) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Definer Fixer - Database CRUD Manager</title>
-    <link rel="stylesheet" href="styles/common.css">
+    <link rel="stylesheet" href="../styles/common.css">
     <style>
         /* Page-specific styles for view_fixer.php */
 
@@ -398,11 +398,11 @@ function fixAllViewDefiners($conn, $database) {
         'icon' => '🔧',
         'controls_html' => ''
     ];
-    include 'templates/header.php';
+    include '../templates/header.php';
     ?>
 
         <div style="margin-bottom: 20px;">
-            <a href="database_manager.php" style="display: inline-flex; align-items: center; gap: 8px; color: var(--color-primary); text-decoration: none; font-weight: 500; transition: all 0.3s ease;">
+            <a href="../db_manager/" style="display: inline-flex; align-items: center; gap: 8px; color: var(--color-primary); text-decoration: none; font-weight: 500; transition: all 0.3s ease;">
                 ← Back to Database Manager
             </a>
         </div>
@@ -485,7 +485,7 @@ function fixAllViewDefiners($conn, $database) {
             $('#emptyState').hide();
 
             $.ajax({
-                url: 'view_fixer.php',
+                url: '',
                 method: 'POST',
                 data: { action: 'getViews' },
                 dataType: 'json',
@@ -587,7 +587,7 @@ function fixAllViewDefiners($conn, $database) {
             btn.textContent = '🔄 Fixing...';
 
             $.ajax({
-                url: 'view_fixer.php',
+                url: '',
                 method: 'POST',
                 data: {
                     action: 'fixView',
@@ -642,7 +642,7 @@ function fixAllViewDefiners($conn, $database) {
                 const database = databases[index];
                 
                 $.ajax({
-                    url: 'view_fixer.php',
+                    url: '',
                     method: 'POST',
                     data: {
                         action: 'fixAllViews',
@@ -685,7 +685,7 @@ function fixAllViewDefiners($conn, $database) {
         }
     </script>
 
-    <?php include 'templates/footer.php'; ?>
+    <?php include '../templates/footer.php'; ?>
 </body>
 </html>
 

@@ -3,7 +3,7 @@
  * Database CRUD Manager - Main Interface
  * IP Authorization Check
  */
-require_once 'login/auth_check.php';
+require_once '../login/auth_check.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -11,7 +11,7 @@ require_once 'login/auth_check.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Database CRUD Manager</title>
-    <link rel="stylesheet" href="styles/common.css">
+    <link rel="stylesheet" href="../styles/common.css">
     <style>
         /* Page-specific styles for table_data.php */
 
@@ -231,7 +231,7 @@ require_once 'login/auth_check.php';
             <button id="addRecordBtn" style="display: none;">➕ Add New Record</button>
         '
     ];
-    include 'templates/header.php';
+    include '../templates/header.php';
     ?>
             <div class="loading active" id="loading">
                 <div class="spinner"></div>
@@ -388,7 +388,7 @@ require_once 'login/auth_check.php';
         // Load all tables
         function loadTables() {
             $.ajax({
-                url: 'api.php?action=getTables',
+                url: '../api/?action=getTables',
                 method: 'GET',
                 dataType: 'json',
                 success: function(response) {
@@ -431,7 +431,7 @@ require_once 'login/auth_check.php';
             $('#tableContent').hide();
             
             $.ajax({
-                url: 'api.php?action=getTableInfo&table=' + encodeURIComponent(currentTable),
+                url: '../api/?action=getTableInfo&table=' + encodeURIComponent(currentTable),
                 method: 'GET',
                 dataType: 'json',
                 success: function(response) {
@@ -550,7 +550,7 @@ require_once 'login/auth_check.php';
             };
             
             $.ajax({
-                url: 'api.php?' + $.param(params),
+                url: '../api/?' + $.param(params),
                 method: 'GET',
                 dataType: 'json',
                 success: function(response) {
@@ -658,7 +658,7 @@ require_once 'login/auth_check.php';
             $('#loading').addClass('active');
             
             $.ajax({
-                url: 'api.php',
+                url: '../api/',
                 method: 'POST',
                 data: {
                     action: 'getRecord',
@@ -832,7 +832,7 @@ require_once 'login/auth_check.php';
             $('#loading').addClass('active');
             
             $.ajax({
-                url: 'api.php',
+                url: '../api/',
                 method: 'POST',
                 data: data,
                 dataType: 'json',
@@ -872,7 +872,7 @@ require_once 'login/auth_check.php';
             closeConfirmDialog();
             
             $.ajax({
-                url: 'api.php',
+                url: '../api/',
                 method: 'POST',
                 data: {
                     action: 'deleteRecord',
@@ -966,7 +966,7 @@ require_once 'login/auth_check.php';
         });
     </script>
 
-    <?php include 'templates/footer.php'; ?>
+    <?php include '../templates/footer.php'; ?>
 </body>
 </html>
 

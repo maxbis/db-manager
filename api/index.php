@@ -6,10 +6,10 @@
  */
 
 // IP Authorization Check
-require_once 'login/auth_check.php';
+require_once '../login/auth_check.php';
 
 header('Content-Type: application/json');
-require_once 'db_config.php';
+require_once '../db_config.php';
 
 // Get the action from request
 $action = $_GET['action'] ?? $_POST['action'] ?? '';

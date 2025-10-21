@@ -3,7 +3,7 @@
  * SQL Query Builder - Database CRUD Manager
  * IP Authorization Check
  */
-require_once 'login/auth_check.php';
+require_once '../login/auth_check.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -11,7 +11,7 @@ require_once 'login/auth_check.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SQL Query Builder - Database CRUD Manager</title>
-    <link rel="stylesheet" href="styles/common.css">
+    <link rel="stylesheet" href="../styles/common.css">
     <style>
         /* Page-specific styles for query.php */
 
@@ -442,7 +442,7 @@ require_once 'login/auth_check.php';
             </div>
         '
     ];
-    include 'templates/header.php';
+    include '../templates/header.php';
     ?>
             <div class="loading active" id="loading">
                 <div class="spinner"></div>
@@ -724,7 +724,7 @@ require_once 'login/auth_check.php';
         // Load all tables
         function loadTables() {
             $.ajax({
-                url: 'api.php?action=getTables',
+                url: '../api/?action=getTables',
                 method: 'GET',
                 dataType: 'json',
                 success: function(response) {
@@ -766,7 +766,7 @@ require_once 'login/auth_check.php';
             $('#loading').addClass('active');
             
             $.ajax({
-                url: 'api.php?action=getTableInfo&table=' + encodeURIComponent(currentTable),
+                url: '../api/?action=getTableInfo&table=' + encodeURIComponent(currentTable),
                 method: 'GET',
                 dataType: 'json',
                 success: function(response) {
@@ -837,7 +837,7 @@ require_once 'login/auth_check.php';
             $('#executeBtn').prop('disabled', true);
             
             $.ajax({
-                url: 'api.php',
+                url: '../api/',
                 method: 'POST',
                 data: {
                     action: 'executeQuery',
@@ -1285,7 +1285,7 @@ require_once 'login/auth_check.php';
         });
     </script>
 
-    <?php include 'templates/footer.php'; ?>
+    <?php include '../templates/footer.php'; ?>
 </body>
 </html>
 

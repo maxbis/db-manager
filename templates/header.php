@@ -29,25 +29,25 @@ $pageConfig = array_merge([
 $menuItems = [
     [
         'id' => 'database_manager',
-        'url' => '../db_manager/database_manager.php',
+        'url' => '../db_manager',
         'icon' => '🗄️',
         'name' => 'Database Manager'
     ],
     [
         'id' => 'index',
-        'url' => 'table_data.php',
+        'url' => '../data_manager',
         'icon' => '📊',
         'name' => 'Data Manager'
     ],
     [
         'id' => 'table_structure',
-        'url' => 'table_structure.php',
+        'url' => '../table_structure',
         'icon' => '🔍',
         'name' => 'Table Structure'
     ],
     [
         'id' => 'query',
-        'url' => 'query.php',
+        'url' => '../query',
         'icon' => '⚡',
         'name' => 'SQL Query Builder'
     ]

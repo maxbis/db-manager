@@ -3,7 +3,7 @@
  * Database Manager - Database CRUD Manager
  * IP Authorization Check
  */
-require_once 'login/auth_check.php';
+require_once '../login/auth_check.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -12,7 +12,7 @@ require_once 'login/auth_check.php';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Database Manager - Database CRUD Manager</title>
-    <link rel="stylesheet" href="styles/common.css">
+    <link rel="stylesheet" href="../styles/common.css">
     <style>
         /* Page-specific styles for database_manager.php */
 
@@ -619,7 +619,7 @@ require_once 'login/auth_check.php';
             <button id="refreshBtn">🔄 Refresh</button>
         '
     ];
-    include 'templates/header.php';
+    include '../templates/header.php';
     ?>
     <div class="loading active" id="loading">
         <div class="spinner"></div>
@@ -649,8 +649,8 @@ require_once 'login/auth_check.php';
                                     <li><button id="exportDatabaseBtn" class="menu-item" disabled>📤 Export DB</button></li>
                                     <li><button id="importDatabaseBtn" class="menu-item">📥 Import DB</button></li>
                                     <li><button id="exportAllDatabasesBtn" class="menu-item">📦 Export All</button></li>
-                                    <li><a href="sync_db/" class="menu-item" style="display: block; text-decoration: none; color: inherit;">🔄 Sync Database</a></li>
-                                    <li><a href="view_fixer.php" class="menu-item" style="display: block; text-decoration: none; color: inherit;">🔧 Fix View Definers</a></li>
+                                    <li><a href="../sync_db/" class="menu-item" style="display: block; text-decoration: none; color: inherit;">🔄 Sync Database</a></li>
+                                    <li><a href="../view_fixer" class="menu-item" style="display: block; text-decoration: none; color: inherit;">🔧 Fix View Definers</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -924,7 +924,7 @@ require_once 'login/auth_check.php';
         $(document).ready(function () {
             // Get current database from session first
             $.ajax({
-                url: 'api.php?action=getCurrentDatabase',
+                url: '../api/?action=getCurrentDatabase',
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
@@ -971,7 +971,7 @@ require_once 'login/auth_check.php';
                 if (currentDatabase) {
                     // Update session cache so header shows correct database
                     $.ajax({
-                        url: 'api.php',
+                        url: '../api/',
                         method: 'POST',
                         data: {
                             action: 'setCurrentDatabase',
@@ -1234,7 +1234,7 @@ require_once 'login/auth_check.php';
             $('#loading').addClass('active');
 
             $.ajax({
-                url: 'api.php?action=getDatabases',
+                url: '../api/?action=getDatabases',
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
@@ -1293,7 +1293,7 @@ require_once 'login/auth_check.php';
             if (!currentDatabase) return;
 
             $.ajax({
-                url: 'api.php?action=getTables&database=' + encodeURIComponent(currentDatabase),
+                url: '../api/?action=getTables&database=' + encodeURIComponent(currentDatabase),
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
@@ -1313,7 +1313,7 @@ require_once 'login/auth_check.php';
         // Load tables for a specific database (for expand/collapse functionality)
         function loadTablesForDatabase(databaseName, callback) {
             $.ajax({
-                url: 'api.php?action=getTables&database=' + encodeURIComponent(databaseName),
+                url: '../api/?action=getTables&database=' + encodeURIComponent(databaseName),
                 method: 'GET',
                 dataType: 'json',
                 success: function (response) {
@@ -1368,7 +1368,7 @@ require_once 'login/auth_check.php';
                 
                 // Update session cache
                 $.ajax({
-                    url: 'api.php',
+                    url: '../api/',
                     method: 'POST',
                     data: {
                         action: 'setCurrentDatabase',
@@ -1808,7 +1808,7 @@ require_once 'login/auth_check.php';
             const dbName = databaseName || currentDatabase;
             // Update the database badge to show database.table before navigating
             updateDatabaseBadge(dbName, tableName);
-            window.location.href = `table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
+            window.location.href = `../table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
         }
 
         // Delete table (consolidated function)
@@ -1822,7 +1822,7 @@ require_once 'login/auth_check.php';
                 confirmClass: 'btn-danger'
             }, function onConfirm() {
                 $.ajax({
-                    url: 'api.php',
+                    url: '../api/',
                     method: 'POST',
                     data: {
                         action: 'deleteTable',
@@ -1888,7 +1888,7 @@ require_once 'login/auth_check.php';
             // Create a form to submit the request
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = 'api.php';
+            form.action = '../api/';
             // Remove target='_blank' to stay in same window
 
             const actionInput = document.createElement('input');
@@ -1938,7 +1938,7 @@ require_once 'login/auth_check.php';
             }
 
             $.ajax({
-                url: 'api.php',
+                url: '../api/',
                 method: 'POST',
                 data: {
                     action: 'createDatabase',
@@ -1975,7 +1975,7 @@ require_once 'login/auth_check.php';
             }
 
             $.ajax({
-                url: 'api.php',
+                url: '../api/',
                 method: 'POST',
                 data: {
                     action: 'createTable',
@@ -2011,7 +2011,7 @@ require_once 'login/auth_check.php';
                 confirmClass: 'btn-danger'
             }, function onConfirm() {
                 $.ajax({
-                    url: 'api.php',
+                    url: '../api/',
                     method: 'POST',
                     data: {
                         action: 'deleteDatabase',
@@ -2095,7 +2095,7 @@ require_once 'login/auth_check.php';
             showToast('Exporting database...', 'warning');
 
             $.ajax({
-                url: 'api.php',
+                url: '../api/',
                 method: 'POST',
                 data: {
                     action: 'exportDatabase',
@@ -2156,7 +2156,7 @@ require_once 'login/auth_check.php';
             showToast('Importing database...', 'warning');
 
             $.ajax({
-                url: 'api.php',
+                url: '../api/',
                 method: 'POST',
                 data: formData,
                 processData: false,
@@ -2256,7 +2256,7 @@ require_once 'login/auth_check.php';
         });
     </script>
 
-    <?php include 'templates/footer.php'; ?>
+    <?php include '../templates/footer.php'; ?>
 </body>
 
 </html>
