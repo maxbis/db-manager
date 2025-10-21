@@ -62,6 +62,32 @@ function isLocalhost($ip) {
 }
 
 /**
+ * Check if IP matches a CIDR pattern
+ */
+function ipMatchesCIDR($ip, $cidr) {
+    // Handle simple IP without CIDR
+    if (strpos($cidr, '/') === false) {
+        return $ip === $cidr;
+    }
+    
+    list($subnet, $mask) = explode('/', $cidr);
+    
+    // Convert IP addresses to long integers
+    $ipLong = ip2long($ip);
+    $subnetLong = ip2long($subnet);
+    
+    if ($ipLong === false || $subnetLong === false) {
+        return false;
+    }
+    
+    // Create mask
+    $maskLong = -1 << (32 - (int)$mask);
+    
+    // Compare network addresses
+    return ($ipLong & $maskLong) === ($subnetLong & $maskLong);
+}
+
+/**
  * Check if IP is in whitelist
  */
 function isIPAllowed($ip) {
@@ -82,7 +108,9 @@ function isIPAllowed($ip) {
         if (empty($allowedIP) || strpos($allowedIP, '#') === 0) {
             continue;
         }
-        if ($allowedIP === $ip) {
+        
+        // Check exact match or CIDR match
+        if ($allowedIP === $ip || ipMatchesCIDR($ip, $allowedIP)) {
             return true;
         }
     }
