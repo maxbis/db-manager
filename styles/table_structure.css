@@ -1,0 +1,286 @@
+/* Page-specific styles for table_structure.php */
+
+.table-info {
+    background: var(--color-bg-lighter);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    border: 1px solid var(--color-border-light);
+}
+
+.table-info h2 {
+    color: var(--color-primary);
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+
+.table-info p {
+    color: var(--color-text-secondary);
+    margin-bottom: 5px;
+}
+
+.structure-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-bg-white);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.structure-table thead {
+    background: linear-gradient(135deg, var(--color-primary-lightest) 0%, var(--color-primary-pale) 100%);
+}
+
+.structure-table th {
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--color-sapphire-navy);
+    border-bottom: 2px solid var(--color-primary-light);
+    white-space: nowrap;
+}
+
+.structure-table td {
+    padding: 12px;
+    color: var(--color-text-secondary);
+    border-bottom: 1px solid var(--color-border-lighter);
+    vertical-align: top;
+}
+
+.structure-table tbody tr:hover {
+    background: var(--color-bg-hover);
+}
+
+.structure-table tbody tr {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.structure-table tbody tr:hover {
+    background: var(--color-bg-hover);
+    box-shadow: var(--shadow-sm);
+}
+
+.field-type {
+    font-family: 'Courier New', monospace;
+    background: var(--color-bg-light);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--color-primary);
+}
+
+.field-attributes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.attribute-badge {
+    background: var(--color-primary-pale);
+    color: var(--color-primary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    border: 1px solid var(--color-border-primary);
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.attribute-badge.primary {
+    background: var(--color-success-lightest);
+    color: var(--color-success);
+    border-color: var(--color-success-light);
+}
+
+.attribute-badge.required {
+    background: var(--color-danger-lightest);
+    color: var(--color-danger);
+    border-color: var(--color-danger-light);
+}
+
+.attribute-badge.auto-increment {
+    background: var(--color-warning-lightest);
+    color: var(--color-warning);
+    border-color: var(--color-warning-light);
+}
+
+.attribute-badge.unique {
+    background: var(--color-primary-lightest);
+    color: var(--color-primary);
+    border-color: var(--color-primary-light);
+}
+
+.attribute-badge.index {
+    background: var(--color-sapphire-light);
+    color: var(--color-sapphire-muted);
+    border-color: var(--color-sapphire-muted);
+}
+
+.attribute-badge.dimmed {
+    opacity: 0.2;
+    cursor: default;
+}
+
+/* Form overrides for table structure */
+.form-group textarea {
+    min-height: 60px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+}
+
+.info-button {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background: var(--color-primary-light);
+    color: var(--color-bg-white);
+    border-radius: 50%;
+    text-align: center;
+    line-height: 16px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.info-button:hover {
+    background: var(--color-primary);
+    transform: scale(1.1);
+}
+
+.info-tooltip {
+    position: absolute;
+    top: 25px;
+    left: 0;
+    background: var(--color-sapphire-navy);
+    color: var(--color-bg-white);
+    padding: 16px 20px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: left;
+    z-index: 1001;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    width: 400px;
+    white-space: normal;
+}
+
+.info-tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 20px;
+    border: 6px solid transparent;
+    border-bottom-color: var(--color-sapphire-navy);
+}
+
+.info-button:hover .info-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.btn-add-column {
+    background: linear-gradient(135deg, var(--color-success-light) 0%, var(--color-success-lighter) 100%);
+    color: var(--color-bg-white);
+    border: 1px solid var(--color-success);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-add-column:hover {
+    background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-light) 100%);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.back-link:hover {
+    color: var(--color-primary-light);
+    transform: translateX(-2px);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: var(--color-bg-white);
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+}
+
+.stat-card h3 {
+    color: var(--color-primary);
+    font-size: 24px;
+    margin-bottom: 5px;
+}
+
+.stat-card p {
+    color: var(--color-text-secondary);
+    font-size: 14px;
+}
+
+/* Page-specific responsive styles */
+@media (max-width: 768px) {
+    .structure-table {
+        font-size: 14px;
+    }
+
+    .structure-table th,
+    .structure-table td {
+        padding: 8px;
+    }
+}
