@@ -107,7 +107,9 @@ The page will show:
 
 ### Cookie Storage
 
-All form values (except passwords) are automatically saved in cookies for convenience. Next time you visit the page, your settings will be pre-filled.
+All form values (including API key, but excluding database passwords) are automatically saved in cookies for convenience. Next time you visit the page, your settings will be pre-filled.
+
+**Note**: The API key is stored in a cookie for convenience. If this is a security concern, use the "Clear Form" button to remove all saved data when done.
 
 ### Progress Tracking
 
@@ -158,12 +160,13 @@ Real-time progress updates showing:
 
 ### IP Whitelist Issues
 
-**Problem**: "Unauthorized: IP address not allowed"
+**Problem**: "Unauthorized: IP address 'x.x.x.x' not allowed"
 
 **Solutions**:
-1. Add your local server's IP to remote `ipAllowed.txt`
-2. If behind a proxy, add the proxy IP
-3. Check that you're getting the correct IP (check remote logs)
+1. The error message displays your detected IP address
+2. Add this exact IP to remote `ipAllowed.txt`
+3. If behind a proxy, add the proxy IP instead
+4. Check remote server logs (`sync_log.txt`) for more details
 
 ## Configuration Options
 

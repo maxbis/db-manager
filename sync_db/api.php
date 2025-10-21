@@ -121,7 +121,7 @@ function logSync($message) {
 $clientIP = getClientIP();
 if (!isIPAllowed($clientIP)) {
     logSync("UNAUTHORIZED: IP not in whitelist");
-    sendResponse(false, null, 'Unauthorized: IP address not allowed', 403);
+    sendResponse(false, null, "Unauthorized: IP address '$clientIP' not allowed", 403);
 }
 
 // Check API key

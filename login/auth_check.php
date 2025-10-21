@@ -180,7 +180,11 @@ function checkAuthorization() {
                 }
                 
                 // Not authenticated and no valid remember-me token - redirect to login
-                header('Location: login/login.php');
+                // Calculate relative path to login from current directory
+                $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
+                $depth = substr_count(trim($scriptDir, '/'), '/');
+                $prefix = str_repeat('../', $depth);
+                header('Location: ' . $prefix . 'login/login.php');
                 exit;
             }
         }

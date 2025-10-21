@@ -63,13 +63,15 @@ On the REMOTE server, add your LOCAL server's IP to `login/ipAllowed.txt`:
 | Field | Description | Example |
 |-------|-------------|---------|
 | **Remote Server URL** | Full URL to api.php on remote server | `https://remote.com/sync_db/api.php` |
-| **API Key** | The key from config.php | `your-secure-api-key-here` |
+| **API Key** | The key from config.php (saved in cookie) | `your-secure-api-key-here` |
 | **Remote DB Host** | MySQL host on remote server | `localhost` |
 | **Remote DB Username** | Database username on remote | `db_user` |
-| **Remote DB Password** | Database password on remote | `SecurePass123` |
+| **Remote DB Password** | Database password on remote (NOT saved) | `SecurePass123` |
 | **Remote Database Name** | Database to sync FROM | `production_db` |
 | **Local Database Name** | Database to sync TO (will be created) | `local_copy_db` |
 | **Chunk Size** | Rows per batch (default: 1000) | `1000` |
+
+**Note**: All fields except database passwords are saved in cookies for convenience. Use the "Clear Form" button to delete all saved data.
 
 ## Adding to Navigation Menu (Optional)
 
@@ -114,14 +116,15 @@ $menuItems = [
 
 ## Troubleshooting
 
-### ❌ "Unauthorized: IP address not allowed"
+### ❌ "Unauthorized: IP address 'x.x.x.x' not allowed"
 
 **Problem**: Your local IP is not whitelisted on remote server
 
 **Solution**:
-1. Find your local server's IP address
-2. Add it to `login/ipAllowed.txt` on the REMOTE server
-3. Try again
+1. The error message shows your IP address (e.g., '123.45.67.89')
+2. Add this exact IP to `login/ipAllowed.txt` on the REMOTE server
+3. If behind a proxy, you may need to add the proxy IP instead
+4. Try again
 
 ### ❌ "Unauthorized: Invalid API key"
 

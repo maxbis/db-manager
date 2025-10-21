@@ -10,6 +10,10 @@ database_syncing/sync_config.php
 database_syncing/sync_remote_api.php
 sync_audit.log
 
+# Database Sync - sensitive configuration
+sync_db/config.php
+sync_db/sync_log.txt
+
 # IP whitelist (may contain sensitive IPs)
 # Uncomment if you don't want to track this:
 # ipAllowed.txt

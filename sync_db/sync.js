@@ -43,7 +43,8 @@ function saveFormToCookies() {
     const inputs = form.querySelectorAll('input, select');
     
     inputs.forEach(input => {
-        if (input.type !== 'password') {  // Don't save passwords and API keys
+        // Save API key, but not database passwords
+        if (input.type !== 'password' || input.name === 'apiKey') {
             setCookie(input.name, input.value);
         }
     });
@@ -58,7 +59,8 @@ function loadFormFromCookies() {
     
     inputs.forEach(input => {
         const savedValue = getCookie(input.name);
-        if (savedValue && input.type !== 'password') {
+        // Load API key from cookie, but not database passwords
+        if (savedValue && (input.type !== 'password' || input.name === 'apiKey')) {
             input.value = savedValue;
         }
     });
@@ -139,25 +141,47 @@ async function apiRequest(url, apiKey, action, params = {}) {
         formData.append(key, value);
     }
     
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'X-API-Key': apiKey
-        },
-        body: formData
-    });
-    
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-API-Key': apiKey
+            },
+            body: formData
+        });
+        
+        // Try to parse JSON response
+        let data;
+        try {
+            data = await response.json();
+        } catch (jsonError) {
+            throw new Error(`Invalid JSON response (HTTP ${response.status}): ${response.statusText}`);
+        }
+        
+        // Check if request was successful
+        if (!response.ok) {
+            const errorMsg = data.message || `HTTP error ${response.status}: ${response.statusText}`;
+            const timestamp = data.timestamp || new Date().toISOString();
+            throw new Error(`[${timestamp}] ${errorMsg}`);
+        }
+        
+        // Check API response success flag
+        if (!data.success) {
+            const errorMsg = data.message || 'API request failed';
+            const timestamp = data.timestamp || new Date().toISOString();
+            throw new Error(`[${timestamp}] ${errorMsg}`);
+        }
+        
+        return data.data;
+        
+    } catch (error) {
+        // If it's a network error or fetch error, provide more details
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+            throw new Error(`Network error: Cannot connect to ${url}. Please check the URL and network connection.`);
+        }
+        // Re-throw the error with preserved message
+        throw error;
     }
-    
-    const data = await response.json();
-    
-    if (!data.success) {
-        throw new Error(data.message || 'API request failed');
-    }
-    
-    return data.data;
 }
 
 /**
@@ -186,6 +210,57 @@ async function executeLocalSQL(sql, dbName = null) {
 }
 
 /**
+ * Show error in GUI
+ */
+function showError(title, message) {
+    // Show in log
+    addLog(`❌ ${title}`, 'error');
+    addLog(`   ${message}`, 'error');
+    
+    // Show error alert box
+    const errorAlert = document.getElementById('errorAlert');
+    const errorTitle = document.getElementById('errorTitle');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    errorTitle.textContent = title;
+    
+    // Enhance IP address display in message
+    let displayMessage = message;
+    if (message.includes('Unauthorized: IP address')) {
+        const ipMatch = message.match(/IP address '([^']+)'/);
+        if (ipMatch) {
+            const deniedIP = ipMatch[1];
+            displayMessage = message.replace(
+                /IP address '[^']+'/, 
+                `IP address '${deniedIP}' (your IP)`
+            );
+        }
+    }
+    
+    errorMessage.textContent = displayMessage;
+    errorAlert.style.display = 'flex';
+    
+    // Scroll to error
+    errorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    // Show alert dialog too
+    alert(`❌ ${title}\n\n${message}`);
+    
+    // Update progress card
+    const progressCard = document.getElementById('progressCard');
+    progressCard.classList.add('active');
+    updateProgress(0, 'Failed');
+}
+
+/**
+ * Hide error alert
+ */
+function hideError() {
+    const errorAlert = document.getElementById('errorAlert');
+    errorAlert.style.display = 'none';
+}
+
+/**
  * Test connection to remote server
  */
 async function testConnection() {
@@ -196,6 +271,16 @@ async function testConnection() {
     btn.disabled = true;
     btn.innerHTML = '<span>⏳</span><span>Testing...</span>';
     
+    // Hide any previous error
+    hideError();
+    
+    // Show progress card and clear logs
+    const progressCard = document.getElementById('progressCard');
+    progressCard.classList.add('active');
+    document.getElementById('logContainer').innerHTML = '';
+    
+    addLog('🔌 Testing connection to remote server...', 'info');
+    
     try {
         const params = {
             db_host: formData.get('remoteDbHost'),
@@ -204,6 +289,8 @@ async function testConnection() {
             db_name: formData.get('remoteDbName')
         };
         
+        addLog(`📡 Connecting to ${formData.get('remoteUrl')}...`, 'info');
+        
         const data = await apiRequest(
             formData.get('remoteUrl'),
             formData.get('apiKey'),
@@ -211,10 +298,13 @@ async function testConnection() {
             params
         );
         
+        addLog(`✅ Connection successful!`, 'success');
+        addLog(`   Found ${data.tables.length} tables in database "${formData.get('remoteDbName')}"`, 'success');
+        
         alert(`✅ Connection successful!\n\nFound ${data.tables.length} tables in database "${formData.get('remoteDbName')}"`);
         
     } catch (error) {
-        alert(`❌ Connection failed!\n\n${error.message}`);
+        showError('Connection Failed', error.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<span>🔌</span><span>Test Connection</span>';
@@ -242,6 +332,9 @@ async function startSync() {
         localDbName: formData.get('localDbName'),
         chunkSize: parseInt(formData.get('chunkSize'))
     };
+    
+    // Hide any previous error
+    hideError();
     
     // Show progress card
     const progressCard = document.getElementById('progressCard');
@@ -440,9 +533,29 @@ async function startSync() {
         }, 500);
         
     } catch (error) {
-        addLog(`❌ ERROR: ${error.message}`, 'error');
-        updateProgress(0, 'Sync failed');
-        alert(`❌ Sync failed!\n\n${error.message}`);
+        // Show detailed error in GUI
+        addLog(`❌ SYNC FAILED`, 'error');
+        addLog(`   ${error.message}`, 'error');
+        updateProgress(0, 'Sync failed - See error details above');
+        
+        // Show error alert with more details
+        let errorDetails = error.message;
+        
+        // Add helpful troubleshooting hints based on error type
+        if (errorDetails.includes('Unauthorized: IP address')) {
+            // Extract IP from error message if present
+            const ipMatch = errorDetails.match(/IP address '([^']+)'/);
+            const deniedIP = ipMatch ? ipMatch[1] : 'your IP';
+            errorDetails += `\n\n💡 Troubleshooting:\n- Add ${deniedIP} to ipAllowed.txt on the remote server\n- Or access from localhost on remote server\n- Check if you're behind a proxy (forwarded IP may differ)`;
+        } else if (errorDetails.includes('Unauthorized: Invalid API key')) {
+            errorDetails += '\n\n💡 Troubleshooting:\n- Check that API keys match on both servers\n- Verify the API key in config.php';
+        } else if (errorDetails.includes('Network error')) {
+            errorDetails += '\n\n💡 Troubleshooting:\n- Check the remote URL is correct\n- Verify the remote server is accessible\n- Check for firewall/CORS issues';
+        } else if (errorDetails.includes('Connection failed')) {
+            errorDetails += '\n\n💡 Troubleshooting:\n- Verify database credentials\n- Check that database exists\n- Ensure database user has proper permissions';
+        }
+        
+        alert(`❌ Sync Failed!\n\n${errorDetails}`);
     } finally {
         // Re-enable form
         syncBtn.disabled = false;

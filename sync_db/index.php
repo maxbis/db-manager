@@ -288,6 +288,16 @@ $pageConfig = [
             </div>
         </div>
 
+        <!-- Error Alert (Hidden by default) -->
+        <div class="alert alert-error" id="errorAlert" style="display: none;">
+            <span style="font-size: 20px;">❌</span>
+            <div style="flex: 1;">
+                <strong id="errorTitle">Error</strong><br>
+                <span id="errorMessage">An error occurred</span>
+            </div>
+            <button onclick="hideError()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--color-danger); padding: 0; margin-left: 10px;" title="Dismiss">✖</button>
+        </div>
+
         <!-- Configuration Card -->
         <div class="sync-card">
             <h2>🔧 Sync Configuration</h2>
@@ -304,7 +314,7 @@ $pageConfig = [
                     <div class="form-group">
                         <label for="apiKey">API Key</label>
                         <input type="password" id="apiKey" name="apiKey" placeholder="Enter API key" required>
-                        <small>The secure API key configured in config.php</small>
+                        <small>The secure API key configured in config.php (saved in cookie)</small>
                     </div>
 
                     <div class="form-group">
@@ -358,6 +368,10 @@ $pageConfig = [
                         <span>🗑️</span>
                         <span>Clear Form</span>
                     </button>
+                    <a href="check_ip.php" class="btn btn-secondary" style="text-decoration: none;">
+                        <span>🌐</span>
+                        <span>Check My IP</span>
+                    </a>
                 </div>
             </form>
         </div>
