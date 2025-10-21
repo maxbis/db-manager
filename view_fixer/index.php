@@ -231,164 +231,7 @@ function fixAllViewDefiners($conn, $database) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>View Definer Fixer - Database CRUD Manager</title>
     <link rel="stylesheet" href="../styles/common.css">
-    <style>
-        /* Page-specific styles for view_fixer.php */
-
-        .header p {
-            color: var(--color-text-secondary);
-            font-size: 14px;
-        }
-
-        .back-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--color-primary);
-            text-decoration: none;
-            font-weight: 500;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
-        }
-
-        .back-link:hover {
-            color: var(--color-primary-light);
-            transform: translateX(-2px);
-        }
-
-        .info-box {
-            background: var(--color-warning-pale);
-            border: 2px solid var(--color-warning-light);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-
-        .info-box h3 {
-            color: var(--color-warning);
-            margin-bottom: 10px;
-            font-size: 18px;
-        }
-
-        .info-box p {
-            color: var(--color-text-secondary);
-            line-height: 1.6;
-            margin-bottom: 8px;
-        }
-
-        .info-box ul {
-            margin-left: 20px;
-            margin-top: 10px;
-        }
-
-        .info-box li {
-            color: var(--color-text-secondary);
-            margin-bottom: 5px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .stat-card {
-            background: var(--color-bg-lighter);
-            border: 1px solid var(--color-border-light);
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-        }
-
-        .stat-card h3 {
-            color: var(--color-primary);
-            font-size: 32px;
-            margin-bottom: 5px;
-        }
-
-        .stat-card p {
-            color: var(--color-text-secondary);
-            font-size: 14px;
-        }
-
-        .stat-card.warning h3 {
-            color: var(--color-danger);
-        }
-
-        .action-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: var(--color-bg-light);
-            border-radius: 8px;
-        }
-
-
-        .table-wrapper {
-            overflow-x: auto;
-            border: 2px solid var(--color-border-light);
-            border-radius: 8px;
-            background: var(--color-bg-white);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 800px;
-        }
-
-        thead {
-            background: linear-gradient(135deg, var(--color-primary-lightest) 0%, var(--color-primary-pale) 100%);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        th {
-            padding: 15px 12px;
-            text-align: left;
-            font-weight: 600;
-            color: var(--color-sapphire-navy);
-            border-bottom: 2px solid var(--color-primary-light);
-            white-space: nowrap;
-        }
-
-        tbody tr {
-            border-bottom: 1px solid var(--color-border-lighter);
-            transition: all 0.2s ease;
-        }
-
-        tbody tr:hover {
-            background: var(--color-bg-hover);
-        }
-
-        td {
-            padding: 12px;
-            color: var(--color-text-secondary);
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .status-ok {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .status-error {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-
-    </style>
+    <link rel="stylesheet" href="view_fixer.css">
 </head>
 <body>
     <?php
@@ -401,291 +244,75 @@ function fixAllViewDefiners($conn, $database) {
     include '../templates/header.php';
     ?>
 
-        <div style="margin-bottom: 20px;">
-            <a href="../db_manager/" style="display: inline-flex; align-items: center; gap: 8px; color: var(--color-primary); text-decoration: none; font-weight: 500; transition: all 0.3s ease;">
-                ← Back to Database Manager
-            </a>
-        </div>
+    <div style="margin-bottom: 20px;">
+        <a href="../db_manager/" style="display: inline-flex; align-items: center; gap: 8px; color: var(--color-primary); text-decoration: none; font-weight: 500; transition: all 0.3s ease;">
+            ← Back to Database Manager
+        </a>
+    </div>
 
-        <div class="info-box">
-            <h3>⚠️ What This Tool Does</h3>
-            <p>This tool fixes MySQL view definer errors that occur when:</p>
-            <ul>
-                <li>Views were created by a MySQL user that no longer exists</li>
-                <li>Database was imported/migrated from another server</li>
-                <li>You see errors like: "The user specified as a definer does not exist"</li>
-            </ul>
-            <p><strong>How it works:</strong> The tool recreates views with your current MySQL user as the definer, preserving the original SELECT statement.</p>
-        </div>
+    <div class="info-box">
+        <h3>⚠️ What This Tool Does</h3>
+        <p>This tool fixes MySQL view definer errors that occur when:</p>
+        <ul>
+            <li>Views were created by a MySQL user that no longer exists</li>
+            <li>Database was imported/migrated from another server</li>
+            <li>You see errors like: "The user specified as a definer does not exist"</li>
+        </ul>
+        <p><strong>How it works:</strong> The tool recreates views with your current MySQL user as the definer, preserving the original SELECT statement.</p>
+    </div>
 
-        <div id="statsGrid" class="stats-grid">
-            <!-- Stats will be populated here -->
-        </div>
+    <div id="statsGrid" class="stats-grid">
+        <!-- Stats will be populated here -->
+    </div>
 
-        <div class="action-bar">
-            <div>
-                <strong>Current MySQL User:</strong> <span id="currentUser" style="color: var(--color-primary);">Loading...</span>
-            </div>
-            <div style="display: flex; gap: 10px;">
-                <button class="btn-primary" onclick="loadViews()">🔄 Refresh</button>
-                <button class="btn-warning" id="fixAllBtn" onclick="fixAllViews()" disabled>🔧 Fix All Problematic Views</button>
-            </div>
+    <div class="action-bar">
+        <div>
+            <strong>Current MySQL User:</strong> <span id="currentUser" style="color: var(--color-primary);">Loading...</span>
         </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-primary" onclick="loadViews()">🔄 Refresh</button>
+            <button class="btn-warning" id="fixAllBtn" onclick="fixAllViews()" disabled>🔧 Fix All Problematic Views</button>
+        </div>
+    </div>
 
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
-            <p>Loading views...</p>
-        </div>
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Loading views...</p>
+    </div>
 
-        <div id="viewsTable" style="display: none;">
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Database</th>
-                            <th>View Name</th>
-                            <th>Current Definer</th>
-                            <th>Status</th>
-                            <th>Security Type</th>
-                            <th>Updatable</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="viewsBody">
-                        <!-- Views will be populated here -->
-                    </tbody>
-                </table>
-            </div>
+    <div id="viewsTable" style="display: none;">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Database</th>
+                        <th>View Name</th>
+                        <th>Current Definer</th>
+                        <th>Status</th>
+                        <th>Security Type</th>
+                        <th>Updatable</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="viewsBody">
+                    <!-- Views will be populated here -->
+                </tbody>
+            </table>
         </div>
+    </div>
 
-        <div id="emptyState" class="empty-state" style="display: none;">
-            <div class="empty-state-icon">✅</div>
-            <h3>No Views Found</h3>
-            <p>No database views found in your databases, or all views are working correctly.</p>
-        </div>
+    <div id="emptyState" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">✅</div>
+        <h3>No Views Found</h3>
+        <p>No database views found in your databases, or all views are working correctly.</p>
     </div>
 
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        let allViews = [];
-        let currentUser = '';
-
-        // Load views on page load
-        $(document).ready(function() {
-            loadViews();
-        });
-
-        // Load all views
-        function loadViews() {
-            $('#loading').show();
-            $('#viewsTable').hide();
-            $('#emptyState').hide();
-
-            $.ajax({
-                url: '',
-                method: 'POST',
-                data: { action: 'getViews' },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        allViews = response.views;
-                        currentUser = response.currentUser;
-                        $('#currentUser').text(currentUser);
-                        displayViews();
-                        updateStats();
-                    }
-                    $('#loading').hide();
-                },
-                error: function(xhr) {
-                    showToast('Error loading views: ' + (xhr.responseJSON?.error || xhr.responseText), 'error');
-                    $('#loading').hide();
-                }
-            });
-        }
-
-        // Display views in table
-        function displayViews() {
-            const tbody = $('#viewsBody');
-            tbody.empty();
-
-            if (allViews.length === 0) {
-                $('#emptyState').show();
-                $('#fixAllBtn').prop('disabled', true);
-                return;
-            }
-
-            $('#viewsTable').show();
-
-            allViews.forEach(function(view) {
-                const statusBadge = view.definerExists 
-                    ? '<span class="status-badge status-ok">✓ OK</span>'
-                    : '<span class="status-badge status-error">✗ Definer Missing</span>';
-
-                const actionBtn = !view.definerExists
-                    ? `<button class="btn-success" style="padding: 6px 12px; font-size: 12px;" onclick="fixView('${view.database}', '${view.name}')">🔧 Fix</button>`
-                    : '<span style="color: var(--color-text-muted);">No action needed</span>';
-
-                const row = `
-                    <tr>
-                        <td><strong>${view.database}</strong></td>
-                        <td>👁️ ${view.name}</td>
-                        <td><code style="background: var(--color-bg-lighter); padding: 2px 6px; border-radius: 4px;">${view.definer}</code></td>
-                        <td>${statusBadge}</td>
-                        <td>${view.securityType}</td>
-                        <td>${view.isUpdatable}</td>
-                        <td>${actionBtn}</td>
-                    </tr>
-                `;
-                tbody.append(row);
-            });
-
-            // Enable fix all button if there are problematic views
-            const problematicViews = allViews.filter(v => !v.definerExists);
-            $('#fixAllBtn').prop('disabled', problematicViews.length === 0);
-        }
-
-        // Update statistics
-        function updateStats() {
-            const totalViews = allViews.length;
-            const problematicViews = allViews.filter(v => !v.definerExists).length;
-            const okViews = totalViews - problematicViews;
-            const databases = [...new Set(allViews.map(v => v.database))].length;
-
-            const html = `
-                <div class="stat-card">
-                    <h3>${totalViews}</h3>
-                    <p>Total Views</p>
-                </div>
-                <div class="stat-card">
-                    <h3>${okViews}</h3>
-                    <p>Working Views</p>
-                </div>
-                <div class="stat-card warning">
-                    <h3>${problematicViews}</h3>
-                    <p>Problematic Views</p>
-                </div>
-                <div class="stat-card">
-                    <h3>${databases}</h3>
-                    <p>Databases</p>
-                </div>
-            `;
-
-            $('#statsGrid').html(html);
-        }
-
-        // Fix a single view
-        function fixView(database, viewName) {
-            if (!confirm(`Fix view "${viewName}" in database "${database}"?\n\nThis will recreate the view with your current user (${currentUser}) as the definer.`)) {
-                return;
-            }
-
-            const btn = event.target;
-            btn.disabled = true;
-            btn.textContent = '🔄 Fixing...';
-
-            $.ajax({
-                url: '',
-                method: 'POST',
-                data: {
-                    action: 'fixView',
-                    database: database,
-                    viewName: viewName
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        showToast(response.message, 'success');
-                        loadViews(); // Reload to show updated status
-                    }
-                },
-                error: function(xhr) {
-                    showToast('Error fixing view: ' + (xhr.responseJSON?.error || xhr.responseText), 'error');
-                    btn.disabled = false;
-                    btn.textContent = '🔧 Fix';
-                }
-            });
-        }
-
-        // Fix all problematic views
-        function fixAllViews() {
-            const problematicViews = allViews.filter(v => !v.definerExists);
-            
-            if (problematicViews.length === 0) {
-                showToast('No problematic views to fix!', 'warning');
-                return;
-            }
-
-            const databases = [...new Set(problematicViews.map(v => v.database))];
-            
-            if (!confirm(`Fix ${problematicViews.length} problematic view(s) across ${databases.length} database(s)?\n\nDatabases: ${databases.join(', ')}\n\nAll views will be recreated with your current user (${currentUser}) as the definer.`)) {
-                return;
-            }
-
-            const btn = $('#fixAllBtn');
-            btn.prop('disabled', true).text('🔄 Fixing All...');
-
-            // Fix views database by database
-            let fixed = 0;
-            let failed = 0;
-
-            const fixNextDatabase = (index) => {
-                if (index >= databases.length) {
-                    // All done
-                    showToast(`Fixed ${fixed} view(s)` + (failed > 0 ? `, ${failed} failed` : ''), fixed > 0 ? 'success' : 'warning');
-                    loadViews(); // Reload to show updated status
-                    return;
-                }
-
-                const database = databases[index];
-                
-                $.ajax({
-                    url: '',
-                    method: 'POST',
-                    data: {
-                        action: 'fixAllViews',
-                        database: database
-                    },
-                    dataType: 'json',
-                    success: function(response) {
-                        if (response.success) {
-                            fixed += response.fixed;
-                            failed += response.failed.length;
-                            
-                            if (response.failed.length > 0) {
-                                console.error('Failed views in ' + database + ':', response.failed);
-                            }
-                        }
-                        fixNextDatabase(index + 1);
-                    },
-                    error: function(xhr) {
-                        failed += problematicViews.filter(v => v.database === database).length;
-                        console.error('Error fixing database ' + database + ':', xhr.responseJSON?.error);
-                        fixNextDatabase(index + 1);
-                    }
-                });
-            };
-
-            fixNextDatabase(0);
-        }
-
-        // Show toast notification
-        function showToast(message, type = 'success') {
-            const toast = $('#toast');
-            toast.text(message);
-            toast.removeClass('success error warning');
-            toast.addClass(type);
-            toast.addClass('active');
-
-            setTimeout(function() {
-                toast.removeClass('active');
-            }, 4000);
-        }
-    </script>
+    <script src="view_fixer.js"></script>
 
     <?php include '../templates/footer.php'; ?>
 </body>
 </html>
-

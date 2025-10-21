@@ -47,7 +47,7 @@ $menuItems = [
     ],
     [
         'id' => 'query',
-        'url' => '../query',
+        'url' => '../query_builder',
         'icon' => '⚡',
         'name' => 'SQL Query Builder'
     ]

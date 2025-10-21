@@ -1009,8 +1009,16 @@ function createTable($conn, $database, $name, $columns, $engine) {
     // Switch to the specified database
     $conn->query("USE `$database`");
     
-    // Parse columns (one per line)
-    $columnLines = array_filter(array_map('trim', explode("\n", $columns)));
+    // Check if table already exists
+    $checkResult = $conn->query("SHOW TABLES LIKE '$name'");
+    if ($checkResult && $checkResult->num_rows > 0) {
+        throw new Exception("Table '$name' already exists in database '$database'");
+    }
+    
+    // Parse columns (separated by comma or newline)
+    // Support both comma-separated (new format) and newline-separated (legacy)
+    $separator = strpos($columns, ',') !== false ? ',' : "\n";
+    $columnLines = array_filter(array_map('trim', explode($separator, $columns)));
     $columnDefinitions = [];
     
     foreach ($columnLines as $line) {

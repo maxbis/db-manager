@@ -155,6 +155,19 @@ $(document).ready(function () {
     });
 
     // Database dropdown menu item handlers
+    $(document).on('click', '.db-create-table-btn', function(e){
+        e.stopPropagation();
+        const dbName = $(this).data('database');
+        // Select the database first
+        selectDatabase(dbName);
+        // Then open the create table modal
+        setTimeout(function() {
+            openModal('createTableModal');
+        }, 100);
+        // Close the dropdown
+        $('.db-actions-dropdown .dropdown-menu').removeClass('show');
+    });
+
     $(document).on('click', '.db-export-btn', function(e){
         e.stopPropagation();
         const dbName = $(this).data('database');
@@ -178,12 +191,19 @@ $(document).ready(function () {
     $('#confirmCreateTableBtn').click(function () {
         // Build columns DDL from builder rows
         const lines = [];
+        const primaryKeys = [];
+        const indexes = [];
+        const uniqueKeys = [];
+        
         $('#columnsBuilder .column-row').each(function(){
             const name = ($(this).find('.col-name').val() || '').trim().toLowerCase();
             const type = $(this).find('.col-type').val();
             const length = $(this).find('.col-length').val().trim();
             const allowNull = $(this).find('.col-null').is(':checked');
             const autoInc = $(this).find('.col-ai').is(':checked');
+            const isPrimary = $(this).find('.col-primary').is(':checked');
+            const isIndex = $(this).find('.col-index').is(':checked');
+            const isUnique = $(this).find('.col-unique').is(':checked');
             const defaultMode = $(this).find('.col-default-mode').val();
             const defaultVal = $(this).find('.col-default').val();
 
@@ -204,12 +224,36 @@ $(document).ready(function () {
             if (autoInc) ddl += ' AUTO_INCREMENT';
 
             lines.push(ddl);
+            
+            // Collect key constraints
+            if (isPrimary) primaryKeys.push(name);
+            if (isIndex) indexes.push(name);
+            if (isUnique) uniqueKeys.push(name);
         });
 
-        // Fallback: if no rows, keep existing textarea value (manual entry)
-        if (lines.length > 0) {
-            $('#newTableColumns').val(lines.join('\n'));
+        // Validate that at least one column was defined
+        if (lines.length === 0) {
+            showToast('Please define at least one column with a name', 'warning');
+            return;
         }
+
+        // Add PRIMARY KEY constraint
+        if (primaryKeys.length > 0) {
+            lines.push('PRIMARY KEY (' + primaryKeys.join(', ') + ')');
+        }
+
+        // Add UNIQUE constraints
+        uniqueKeys.forEach(function(colName) {
+            lines.push('UNIQUE KEY `idx_unique_' + colName + '` (' + colName + ')');
+        });
+
+        // Add INDEX constraints
+        indexes.forEach(function(colName) {
+            lines.push('KEY `idx_' + colName + '` (' + colName + ')');
+        });
+
+        // Set the textarea value with the built columns
+        $('#newTableColumns').val(lines.join(',\n'));
 
         createTable();
     });
@@ -609,6 +653,7 @@ function displayDatabases() {
                         <button type="button" class="dropdown-toggle">⚙️ Actions</button>
                         <div class="dropdown-menu" role="menu" aria-label="Actions for ${db.name}">
                             <ul>
+                                <li><button class="menu-item db-create-table-btn" data-database="${db.name}">➕ Create Table</button></li>
                                 <li><button class="menu-item db-export-btn" data-database="${db.name}">📤 Export</button></li>
                                 <li><button class="menu-item db-delete-btn" data-database="${db.name}">🗑️ Delete</button></li>
                             </ul>
@@ -771,6 +816,17 @@ function addColumnRow() {
                     <input type="checkbox" class="col-ai"> AI
                 </label>
             </div>
+            <div class="row-line" style="margin-top:6px;">
+                <label style="display:flex; align-items:center; gap:6px;">
+                    <input type="checkbox" class="col-primary"> 🔑 PRIMARY KEY
+                </label>
+                <label style="display:flex; align-items:center; gap:6px;">
+                    <input type="checkbox" class="col-index"> 📇 INDEX
+                </label>
+                <label style="display:flex; align-items:center; gap:6px;">
+                    <input type="checkbox" class="col-unique"> ✨ UNIQUE
+                </label>
+            </div>
         </div>
     `);
 
@@ -783,6 +839,20 @@ function addColumnRow() {
     // Force lowercase column names as user types
     row.find('.col-name').on('input', function(){
         this.value = this.value.toLowerCase();
+    });
+
+    // When PRIMARY KEY is checked, uncheck NULL (PRIMARY KEY implies NOT NULL)
+    row.find('.col-primary').on('change', function(){
+        if ($(this).is(':checked')) {
+            row.find('.col-null').prop('checked', false);
+        }
+    });
+
+    // When NULL is checked, uncheck PRIMARY KEY (they're mutually exclusive)
+    row.find('.col-null').on('change', function(){
+        if ($(this).is(':checked')) {
+            row.find('.col-primary').prop('checked', false);
+        }
     });
 
     row.find('.remove-col').on('click', function(){ row.remove(); });
@@ -899,7 +969,7 @@ function viewTable(tableName, databaseName = null) {
     const dbName = databaseName || currentDatabase;
     // Update the database badge to show database.table before navigating
     updateDatabaseBadge(dbName, tableName);
-    window.location.href = `../table_structure.php?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
+    window.location.href = `../table_structure/?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
 }
 
 // Delete table (consolidated function)
@@ -1087,8 +1157,15 @@ function createTable() {
             }
         },
         error: function (xhr) {
-            const response = JSON.parse(xhr.responseText);
-            showToast('Error: ' + (response.error || 'Unknown error'), 'error');
+            let errorMessage = 'Unknown error';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                errorMessage = response.error || 'Unknown error';
+            } catch (e) {
+                // If JSON parsing fails, use the raw response text
+                errorMessage = xhr.responseText || 'Unknown error';
+            }
+            showToast('Error: ' + errorMessage, 'error');
         }
     });
 }
@@ -1293,6 +1370,9 @@ function closeModal(modalId) {
     } else if (modalId === 'createTableModal') {
         $('#newTableName').val('');
         $('#newTableColumns').val('');
+        // Clear and reset column builder
+        $('#columnsBuilder .column-rows').empty();
+        addColumnRow(); // Add one fresh empty row
     } else if (modalId === 'exportDatabaseModal') {
         $('#exportDatabaseName').val('');
         $('#exportFileName').val('');
