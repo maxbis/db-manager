@@ -984,6 +984,14 @@ function deleteDatabase($conn, $name) {
     $sql = "DROP DATABASE `$name`";
     
     if ($conn->query($sql)) {
+        // Clear session variable if the deleted database was the currently selected one
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (isset($_SESSION['auto_selected_database']) && $_SESSION['auto_selected_database'] === $name) {
+            unset($_SESSION['auto_selected_database']);
+        }
+        
         echo json_encode([
             'success' => true,
             'message' => "Database '$name' deleted successfully"

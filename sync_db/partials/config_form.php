@@ -1,58 +1,66 @@
 <div class="sync-card">
     <h2>🔧 Sync Configuration</h2>
     <form id="syncForm">
-        <div class="form-grid">
-            <!-- Remote Server Settings -->
-            <div class="form-group">
-                <label for="remoteUrl">Remote Server URL</label>
-                <input type="text" id="remoteUrl" name="remoteUrl" placeholder="https://example.com/sync_db/api.php" required>
-                <small>Full URL to the remote sync API endpoint</small>
-            </div>
+        <!-- Remote Server Settings Group -->
+        <div class="form-section">
+            <h3 class="form-section-title">📡 Remote Server Settings</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="remoteUrl">Remote Server URL</label>
+                    <input type="text" id="remoteUrl" name="remoteUrl" placeholder="https://example.com/sync_db/api.php" required>
+                    <small>Full URL to the remote sync API endpoint</small>
+                </div>
 
-            <div class="form-group">
-                <label for="apiKey">API Key</label>
-                <input type="password" id="apiKey" name="apiKey" placeholder="Enter API key" required>
-                <small>The secure API key configured in config.php (saved in cookie)</small>
-            </div>
+                <div class="form-group">
+                    <label for="apiKey">API Key</label>
+                    <input type="password" id="apiKey" name="apiKey" placeholder="Enter API key" required>
+                    <small>The secure API key configured in config.php (saved in cookie)</small>
+                </div>
 
-            <div class="form-group">
-                <label for="remoteDbHost">Remote DB Host</label>
-                <input type="text" id="remoteDbHost" name="remoteDbHost" value="localhost" required>
-                <small>Usually "localhost" on remote server</small>
-            </div>
+                <div class="form-group">
+                    <label for="remoteDbHost">Remote DB Host</label>
+                    <input type="text" id="remoteDbHost" name="remoteDbHost" value="localhost" required>
+                    <small>Usually "localhost" on remote server</small>
+                </div>
 
-            <div class="form-group">
-                <label for="remoteDbUser">Remote DB Username</label>
-                <input type="text" id="remoteDbUser" name="remoteDbUser" placeholder="database_user" required>
-                <small>Database username on remote server</small>
-            </div>
+                <div class="form-group">
+                    <label for="remoteDbUser">Remote DB Username</label>
+                    <input type="text" id="remoteDbUser" name="remoteDbUser" placeholder="database_user" required>
+                    <small>Database username on remote server</small>
+                </div>
 
-            <div class="form-group">
-                <label for="remoteDbPass">Remote DB Password</label>
-                <input type="password" id="remoteDbPass" name="remoteDbPass" placeholder="database_password" required>
-                <small>Database password on remote server</small>
-            </div>
+                <div class="form-group">
+                    <label for="remoteDbPass">Remote DB Password</label>
+                    <input type="password" id="remoteDbPass" name="remoteDbPass" placeholder="database_password" required>
+                    <small>Database password on remote server</small>
+                </div>
 
-            <div class="form-group">
-                <label for="remoteDbName">Remote Database Name</label>
-                <input type="text" id="remoteDbName" name="remoteDbName" placeholder="remote_database" required>
-                <small>Name of database on remote server</small>
+                <div class="form-group">
+                    <label for="remoteDbName">Remote Database Name</label>
+                    <input type="text" id="remoteDbName" name="remoteDbName" placeholder="remote_database" required>
+                    <small>Name of database on remote server</small>
+                </div>
             </div>
+        </div>
 
-            <!-- Local Database Settings -->
-            <div class="form-group">
-                <label for="localDbName">
-                    Local Database Name
-                    <span id="localDbLock" class="local-lock">🔒</span>
-                </label>
-                <input type="text" id="localDbName" name="localDbName" placeholder="Specify remote DB first" readonly class="local-readonly" required>
-                <small id="localDbHelp">Auto-synced from remote database name (editable after setting remote)</small>
-            </div>
+        <!-- Local Database Settings Group -->
+        <div class="form-section">
+            <h3 class="form-section-title">💾 Local Database Settings</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="localDbName">
+                        Local Database Name
+                        <span id="localDbLock" class="local-lock">🔒</span>
+                    </label>
+                    <input type="text" id="localDbName" name="localDbName" placeholder="Specify remote DB first" readonly class="local-readonly" required>
+                    <small id="localDbHelp">Auto-synced from remote database name (editable after setting remote)</small>
+                </div>
 
-            <div class="form-group">
-                <label for="chunkSize">Chunk Size (rows per batch)</label>
-                <input type="number" id="chunkSize" name="chunkSize" value="1000" min="100" max="10000" required>
-                <small>Number of rows to transfer per request</small>
+                <div class="form-group">
+                    <label for="chunkSize">Chunk Size (rows per batch)</label>
+                    <input type="number" id="chunkSize" name="chunkSize" value="1000" min="100" max="10000" required>
+                    <small>Number of rows to transfer per request</small>
+                </div>
             </div>
         </div>
 
