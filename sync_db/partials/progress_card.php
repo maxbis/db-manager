@@ -2,7 +2,9 @@
     <h2>📊 Sync Progress</h2>
 
     <div class="progress-bar">
-        <div class="progress-fill" id="progressFill">0%</div>
+        <div class="progress-fill" id="progressFill">
+            <span class="progress-percentage" id="progressPercentage">0%</span>
+        </div>
     </div>
 
     <div class="progress-text" id="progressText">Initializing...</div>

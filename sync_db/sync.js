@@ -152,10 +152,11 @@ function addLog(message, type = 'info') {
  */
 function updateProgress(percent, text) {
     const progressFill = document.getElementById('progressFill');
+    const progressPercentage = document.getElementById('progressPercentage');
     const progressText = document.getElementById('progressText');
     
     progressFill.style.width = percent + '%';
-    progressFill.textContent = Math.round(percent) + '%';
+    progressPercentage.textContent = Math.round(percent) + '%';
     progressText.textContent = text;
 }
 

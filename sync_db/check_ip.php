@@ -184,7 +184,7 @@ $pageConfig = [
                 <p style="margin: 15px 0;">Falling back to local IP:</p>
                 <div class="ip-display" id="ipAddress"><?php echo htmlspecialchars($myLocalIP); ?></div>
             <?php elseif ($isLocalhost && $myPublicIP): ?>
-                <div style="background: var(--color-warning-pale); padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid var(--color-warning);">
+                <div style="background: var(--color-warning-pale); padding: 15px; border-radius: 8px; margin-top: 20px; margin-bottom: 20px; border-left: 4px solid var(--color-warning);">
                     <strong>⚠️ Note:</strong> You're accessing from localhost. The remote server will see your <strong>public IP</strong>, not localhost.
                 </div>
                 
@@ -228,15 +228,13 @@ $pageConfig = [
                 <h3>📝 How to Use This IP</h3>
                 <ol>
                     <li>Copy the IP address above (<?php echo htmlspecialchars($displayIP); ?>)</li>
-                    <li>Log in to your <strong>remote server</strong> (e.g., wijs.ovh)</li>
-                    <li>Open <code>login/ipAllowed.txt</code></li>
-                    <li>Add this IP on a new line</li>
+                    <li>Log in to your <strong>remote server</strong></li>
+                    <li>Open <code>ipAllowed.txt</code></li>
+                    <li>Add this IP (or x.x.x.x/24) on a new line</li>
                     <li>Save the file</li>
                     <li>Return to the <a href="index.php">sync page</a> and try again</li>
-                </ol>
-                
-                <p><strong>Important:</strong> Always use your <strong>public IP address</strong> for the whitelist, not localhost (127.0.0.1 or ::1).</p>
-            </div>
+                </ol>    
+             </div>
             
             <div style="margin-top: 20px;">
                 <a href="index.php" class="back-link">← Back to Sync Page</a>
