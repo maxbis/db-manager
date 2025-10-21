@@ -649,6 +649,7 @@ require_once 'login/auth_check.php';
                                     <li><button id="exportDatabaseBtn" class="menu-item" disabled>📤 Export DB</button></li>
                                     <li><button id="importDatabaseBtn" class="menu-item">📥 Import DB</button></li>
                                     <li><button id="exportAllDatabasesBtn" class="menu-item">📦 Export All</button></li>
+                                    <li><a href="sync_db/" class="menu-item" style="display: block; text-decoration: none; color: inherit;">🔄 Sync Database</a></li>
                                     <li><a href="view_fixer.php" class="menu-item" style="display: block; text-decoration: none; color: inherit;">🔧 Fix View Definers</a></li>
                                 </ul>
                             </div>

@@ -29,7 +29,7 @@ $pageConfig = array_merge([
 $menuItems = [
     [
         'id' => 'database_manager',
-        'url' => 'database_manager.php',
+        'url' => '../db_manager/database_manager.php',
         'icon' => '🗄️',
         'name' => 'Database Manager'
     ],
