@@ -1263,9 +1263,10 @@ require_once 'login/auth_check.php';
                 $('.database-name').each(function() {
                     const $this = $(this);
                     const $badge = $this.find('.badge-current');
-                    if ($this.text().includes(databaseName) && !$badge.length) {
+                    const itemDbName = $this.closest('.database-item').data('database');
+                    if (itemDbName === databaseName && !$badge.length) {
                         $this.append('<span class="badge-current" title="Currently selected">Current</span>');
-                    } else if (!$this.text().includes(databaseName) && $badge.length) {
+                    } else if (itemDbName !== databaseName && $badge.length) {
                         $badge.remove();
                     }
                 });
@@ -1649,9 +1650,10 @@ require_once 'login/auth_check.php';
             $('.database-name').each(function() {
                 const $this = $(this);
                 const $badge = $this.find('.badge-current');
-                if ($this.text().includes(databaseName) && !$badge.length) {
+                const itemDbName = $this.closest('.database-item').data('database');
+                if (itemDbName === databaseName && !$badge.length) {
                     $this.append('<span class="badge-current" title="Currently selected">Current</span>');
-                } else if (!$this.text().includes(databaseName) && $badge.length) {
+                } else if (itemDbName !== databaseName && $badge.length) {
                     $badge.remove();
                 }
             });
