@@ -69,11 +69,11 @@ require_once '../login/auth_check.php';
 
             <div class="saved-queries-panel">
                 <h3>
-                    <span>💾 Saved Queries</span>
+                    <span>Saved Queries</span>
                     <div style="display: flex; gap: 5px;">
-                        <button class="btn-save-query" id="exportQueriesBtn" title="Export queries" style="padding: 4px 8px; font-size: 11px;">⬇️</button>
-                        <button class="btn-save-query" id="importQueriesBtn" title="Import queries" style="padding: 4px 8px; font-size: 11px;">⬆️</button>
-                        <button class="btn-save-query" id="saveQueryBtn2" title="Save current query">+</button>
+                        <button class="btn-clear" id="importQueriesBtn" title="Import queries from file"     style="padding: 4px 8px; font-size: 11px;max-height:32px;">📥</button>
+                        <button class="btn-clear" id="exportQueriesBtn" title="Export all saved queries"     style="padding: 4px 8px; font-size: 11px;max-height:32px;">📤</button>
+                        <button class="btn-save-query" id="saveQueryBtn2" title="Save current query to list" style="padding: 4px 8px; font-size: 11px;max-height:32px;">💾</button>
                     </div>
                 </h3>
                 <ul class="saved-query-list" id="savedQueryList">
@@ -82,6 +82,23 @@ require_once '../login/auth_check.php';
             </div>
             <input type="file" id="importFileInput" accept=".json" style="display: none;">
         </div>
+
+            <!-- Error Panel -->
+            <div class="error-panel" id="errorPanel" style="display: none;">
+                <div class="error-panel-header">
+                    <h4>⚠️ Recent Errors</h4>
+                    <div class="error-panel-actions">
+                        <button type="button" class="btn-copy-all-errors" id="copyAllErrorsBtn" title="Copy all errors">📋 Copy All</button>
+                        <button type="button" class="btn-clear-errors" id="clearErrorsBtn" title="Clear all errors">🗑️ Clear</button>
+                        <button type="button" class="btn-toggle-errors" id="toggleErrorsBtn" title="Toggle panel">▼</button>
+                    </div>
+                </div>
+                <div class="error-panel-content" id="errorPanelContent">
+                    <ul class="error-list" id="errorList">
+                        <!-- Errors will be populated here -->
+                    </ul>
+                </div>
+            </div>
 
         <div class="results-section" id="resultsSection" style="display: none;">
             <div class="results-header">
@@ -104,7 +121,12 @@ require_once '../login/auth_check.php';
     </div>
 
     <!-- Toast Notification -->
-    <div class="toast" id="toast"></div>
+    <div class="toast" id="toast">
+        <div class="toast-content">
+            <div class="toast-message" id="toastMessage"></div>
+            <button class="toast-close-btn" id="toastCloseBtn" title="Close">×</button>
+        </div>
+    </div>
 
     <!-- Include Modals -->
     <?php include 'modals.php'; ?>

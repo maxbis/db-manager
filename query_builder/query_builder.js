@@ -226,6 +226,32 @@ $(document).ready(function() {
             closeSaveModal();
         }
     });
+
+    // Error panel event handlers (using event delegation)
+    $(document).on('click', '#copyAllErrorsBtn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        copyAllErrors();
+    });
+
+    $(document).on('click', '#clearErrorsBtn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearAllErrors();
+    });
+
+    $(document).on('click', '#toggleErrorsBtn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleErrorPanel();
+    });
+
+    // Error panel header click to toggle
+    $(document).on('click', '.error-panel-header', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleErrorPanel();
+    });
 });
 
 // Load all tables
@@ -539,14 +565,87 @@ function showEmptyState() {
 // Show toast notification
 function showToast(message, type = 'success') {
     const toast = $('#toast');
-    toast.text(message);
+    const toastMessage = $('#toastMessage');
+    const toastCloseBtn = $('#toastCloseBtn');
+    
+    // Set message content
+    toastMessage.text(message);
+    
+    // Remove previous classes
     toast.removeClass('success error warning');
     toast.addClass(type);
     toast.addClass('active');
     
-    setTimeout(function() {
-        toast.removeClass('active');
-    }, 4000);
+    // Add error to persistent error panel for error messages
+    if (type === 'error') {
+        addErrorToPanel(message);
+    }
+    
+    // Set up close button functionality
+    toastCloseBtn.off('click').on('click', function() {
+        closeToast();
+    });
+    
+    // Set duration back to 4 seconds for all messages
+    const duration = 4000;
+    
+    // Clear any existing timeout
+    if (window.toastTimeout) {
+        clearTimeout(window.toastTimeout);
+    }
+    
+    // Set new timeout
+    window.toastTimeout = setTimeout(function() {
+        closeToast();
+    }, duration);
+}
+
+// Close toast notification
+function closeToast() {
+    const toast = $('#toast');
+    toast.removeClass('active');
+    
+    // Clear timeout if it exists
+    if (window.toastTimeout) {
+        clearTimeout(window.toastTimeout);
+        window.toastTimeout = null;
+    }
+}
+
+// Copy text to clipboard (used by error panel)
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        // Use modern clipboard API
+        navigator.clipboard.writeText(text).then(function() {
+            // Success handled by calling function
+        }).catch(function() {
+            fallbackCopyTextToClipboard(text);
+        });
+    } else {
+        // Fallback for older browsers
+        fallbackCopyTextToClipboard(text);
+    }
+}
+
+// Fallback copy method for older browsers
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        // Success/failure handled by calling function
+    } catch (err) {
+        // Error handled by calling function
+    }
+    
+    document.body.removeChild(textArea);
 }
 
 // Escape HTML
@@ -904,4 +1003,132 @@ $('.nav-link').click(function(e) {
         window.location.href = href;
     }, 200);
 });
+
+// Error Panel Management
+let errorHistory = [];
+
+// Add error to panel
+function addErrorToPanel(message) {
+    const timestamp = new Date();
+    const errorId = Date.now() + Math.random();
+    
+    const error = {
+        id: errorId,
+        message: message,
+        timestamp: timestamp
+    };
+    
+    // Add to beginning of array (most recent first)
+    errorHistory.unshift(error);
+    
+    // Limit to 10 errors max
+    if (errorHistory.length > 10) {
+        errorHistory = errorHistory.slice(0, 10);
+    }
+    
+    // Update display
+    updateErrorPanelDisplay();
+    
+    // Show panel if it was hidden
+    $('#errorPanel').show();
+}
+
+// Update error panel display
+function updateErrorPanelDisplay() {
+    const errorList = $('#errorList');
+    errorList.empty();
+    
+    if (errorHistory.length === 0) {
+        errorList.append('<li style="text-align: center; padding: 20px; color: var(--color-text-muted); font-size: 13px;">No errors yet</li>');
+        $('#errorPanel').hide();
+        return;
+    }
+    
+    errorHistory.forEach(function(error) {
+        const timeString = error.timestamp.toLocaleTimeString();
+        const errorItem = $(`
+            <li class="error-item" data-error-id="${error.id}">
+                <div class="error-item-content">
+                    <div class="error-message">${escapeHtml(error.message)}</div>
+                    <div class="error-meta">
+                        <div class="error-timestamp">${timeString}</div>
+                        <div class="error-actions">
+                            <button class="error-copy-btn" onclick="copyError('${error.id}'); event.stopPropagation();">📋</button>
+                            <button class="error-remove-btn" onclick="removeError('${error.id}'); event.stopPropagation();">×</button>
+                        </div>
+                    </div>
+                </div>
+            </li>
+        `);
+        errorList.append(errorItem);
+    });
+}
+
+// Copy individual error
+function copyError(errorId) {
+    const error = errorHistory.find(e => e.id == errorId);
+    if (error) {
+        copyToClipboard(error.message);
+        
+        // Show visual feedback
+        const copyBtn = $(`.error-item[data-error-id="${errorId}"] .error-copy-btn`);
+        const originalText = copyBtn.text();
+        copyBtn.addClass('copied').text('✓');
+        
+        setTimeout(function() {
+            copyBtn.removeClass('copied').text(originalText);
+        }, 2000);
+    }
+}
+
+// Remove individual error
+function removeError(errorId) {
+    errorHistory = errorHistory.filter(e => e.id != errorId);
+    updateErrorPanelDisplay();
+}
+
+// Copy all errors
+function copyAllErrors() {
+    if (errorHistory.length === 0) {
+        showToast('No errors to copy', 'warning');
+        return;
+    }
+    
+    const allErrors = errorHistory.map(error => {
+        const timeString = error.timestamp.toLocaleTimeString();
+        return `[${timeString}] ${error.message}`;
+    }).join('\n\n');
+    
+    copyToClipboard(allErrors);
+    
+    // Show visual feedback
+    const copyBtn = $('#copyAllErrorsBtn');
+    const originalText = copyBtn.text();
+    copyBtn.text('✓ Copied!');
+    
+    setTimeout(function() {
+        copyBtn.text(originalText);
+    }, 2000);
+}
+
+// Clear all errors
+function clearAllErrors() {
+    errorHistory = [];
+    updateErrorPanelDisplay();
+    showToast('All errors cleared', 'success');
+}
+
+// Toggle error panel
+function toggleErrorPanel() {
+    const content = $('#errorPanelContent');
+    const toggleBtn = $('#toggleErrorsBtn');
+    
+    if (content.hasClass('collapsed')) {
+        content.removeClass('collapsed');
+        toggleBtn.removeClass('collapsed').text('▼');
+    } else {
+        content.addClass('collapsed');
+        toggleBtn.addClass('collapsed').text('▶');
+    }
+}
 
