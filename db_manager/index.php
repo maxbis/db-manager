@@ -99,21 +99,7 @@ require_once '../login/auth_check.php';
             </div>
         </div>
 
-        <!-- Table List -->
-        <div class="table-list" id="tableListSection" style="display: none;margin-top:10px;">
-            <div class="table-list-header">
-                <h3>📋 Tables in <span id="currentDatabaseName"></span></h3>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button id="refreshTablesBtn" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;">🔄
-                        Refresh</button>
-                    <button id="createTableBtn" class="btn-success" disabled
-                        style="padding: 6px 12px; font-size: 12px;">➕ Create Table</button>
-                </div>
-            </div>
-            <div id="tableList">
-                <!-- Table list will be populated here -->
-            </div>
-        </div>
+        
     </div>
 
     <div class="empty-state" id="emptyState">

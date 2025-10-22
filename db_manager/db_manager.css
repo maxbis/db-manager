@@ -357,17 +357,14 @@
 }
 
 /* Table size indicator: make bars ~4x wider than database bars (fixed width) */
-.table-item .database-size-section,
 .database-table-item .database-size-section {
     flex: 0 0 580px; /* section width to comfortably contain a 560px bar + text */
 }
 
-.table-item .database-size-info,
 .database-table-item .database-size-info {
     width: auto; /* prevent shrinking to 100% of section when bar has fixed width */
 }
 
-.table-item .database-size-bar,
 .database-table-item .database-size-bar {
     width: 200px; /* ~4x the original 140px */
     max-width: none;
@@ -423,83 +420,7 @@
     visibility: visible;
 }
 
-.table-list {
-    background: var(--color-bg-white);
-    border: 2px solid var(--color-border-light);
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.table-list-header {
-    background: linear-gradient(135deg, var(--color-primary-lightest) 0%, var(--color-primary-pale) 100%);
-    padding: 15px 20px;
-    border-bottom: 2px solid var(--color-primary-light);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.table-list-header h3 {
-    color: var(--color-primary);
-    font-size: 18px;
-    margin: 0;
-}
-
-.table-item {
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--color-border-lighter);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: all 0.2s ease;
-}
-
-.table-item:hover {
-    background: var(--color-bg-hover);
-}
-
-.table-item:last-child {
-    border-bottom: none;
-}
-
-.table-item.selected {
-    background: var(--color-bg-active);
-    border-left: 4px solid var(--color-primary-light);
-}
-
-.table-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.table-icon {
-    font-size: 16px;
-    color: var(--color-primary);
-}
-
-.table-details h4 {
-    color: var(--color-text-primary);
-    font-size: 14px;
-    margin-bottom: 2px;
-}
-
-.table-details p {
-    color: var(--color-text-tertiary);
-    font-size: 11px;
-    margin: 0;
-}
-
-.table-actions {
-    display: flex;
-    gap: 6px;
-}
-
-.table-actions button {
-    padding: 4px 8px;
-    font-size: 11px;
-    min-width: auto;
-}
+/* Purged bottom table list styles: .table-list, .table-item, etc. */
 
 /* Disabled delete button (for views) */
 .table-actions button:disabled,

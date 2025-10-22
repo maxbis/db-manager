@@ -6,8 +6,6 @@
 // Global state
 let currentDatabase = '';
 let databases = [];
-let tables = [];
-let selectedTable = '';
 let dbSearchQuery = '';
 let dbSortMode = 'name_asc';
 
@@ -40,15 +38,10 @@ $(document).ready(function () {
         loadDatabases();
     });
 
-    $('#refreshTablesBtn').click(function () {
-        if (currentDatabase) {
-            loadTables();
-        }
-    });
+    // Removed legacy refreshTablesBtn handler (bottom table list removed)
 
     $('#databaseSelect').change(function () {
         currentDatabase = $(this).val();
-        selectedTable = ''; // Reset table selection when database changes
         
         // Close any expanded databases when selecting from dropdown
         closeAllExpandedDatabases();
@@ -77,12 +70,10 @@ $(document).ready(function () {
                 }
             });
 
-            loadTables();
             updateButtonStates();
             // Immediately refresh stats so "Current DB" shows the new selection
             updateStats();
         } else {
-            hideTableList();
             updateButtonStates();
             updateStats();
         }
@@ -92,9 +83,7 @@ $(document).ready(function () {
         openModal('createDatabaseModal');
     });
 
-    $('#createTableBtn').click(function () {
-        openModal('createTableModal');
-    });
+    // Removed legacy createTableBtn handler (bottom table list removed)
 
     // Create Table from menu item (same action)
     $('#createTableMenuItem').click(function(){
@@ -403,7 +392,6 @@ function loadDatabases() {
                     });
                     console.log('Badges updated:', badgesUpdated);
                     
-                    loadTables();
                     updateButtonStates();
                 } else {
                     console.log('No currentDatabase set, skipping state restoration');
@@ -423,7 +411,7 @@ function loadDatabases() {
     });
 }
 
-// Load tables for current database
+// Load tables for current database (kept for internal state; no bottom list UI)
 function loadTables() {
     if (!currentDatabase) return;
 
@@ -434,9 +422,8 @@ function loadTables() {
         success: function (response) {
             if (response.success) {
                 tables = response.tables;
-                displayTables();
-                $('#tableListSection').show();
-                $('#currentDatabaseName').text(currentDatabase);
+                // No longer updating #tableListSection or #currentDatabaseName
+                // Bottom table list has been removed; tables are shown per-database subsection
             }
         },
         error: function (xhr) {
@@ -730,78 +717,7 @@ function getFilteredAndSortedDatabases(){
     return result;
 }
 
-// Display tables list
-function displayTables() {
-    const tableList = $('#tableList');
-    tableList.empty();
-
-    if (tables.length === 0) {
-        tableList.append(`
-            <div class="empty-state" style="padding: 40px 20px;">
-                <div class="empty-state-icon">📋</div>
-                <h3>No Tables Found</h3>
-                <p>Create your first table to get started.</p>
-            </div>
-        `);
-        selectedTable = '';
-        updateButtonStates();
-        return;
-    }
-
-    const maxSize = Math.max(1, ...tables.map(t => (typeof t === 'object' ? (t.size || 0) : 0)));
-    tables.forEach(function (table) {
-        // Handle both old format (string) and new format (object)
-        const tableName = typeof table === 'string' ? table : table.name;
-        const tableType = typeof table === 'object' ? table.type : 'BASE TABLE';
-        const tableSize = typeof table === 'object' ? (table.size || 0) : 0;
-        const isView = tableType === 'VIEW';
-        const isSelected = tableName === selectedTable;
-
-        const tableIcon = isView ? '👁️' : '📋';
-        const typeLabel = isView ? 'View' : 'Table';
-        const sizePercent = Math.max(4, Math.round((tableSize / maxSize) * 100));
-        const displaySize = formatBytes(tableSize || 0);
-
-        const tableItem = $(`
-            <div class="table-item ${isSelected ? 'selected' : ''}" data-table="${tableName}" style="cursor: pointer;">
-                <div class="table-info">
-                    <span class="table-icon">${tableIcon}</span>
-                    <div class="table-details">
-                        <h4>${tableName}${isView ? ' <span style=\"font-size: 11px; color: var(--color-warning);\">(view)</span>' : ''}</h4>
-                        <p>${typeLabel} in ${currentDatabase}</p>
-                    </div>
-                </div>
-                <div class="database-size-section">
-                    <div class="database-size-info">
-                        <div class="database-size-bar" data-tooltip="Size: ${displaySize}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${sizePercent}" aria-label="Table size of ${tableName}">
-                            <div class="database-size-fill" style="width: ${sizePercent}%;"></div>
-                        </div>
-                        <span class="database-size-text">${displaySize}</span>
-                    </div>
-                </div>
-                <div class="table-actions" style="display: flex; gap: 6px;">
-                    <button class="btn-success" onclick="event.stopPropagation(); viewTable('${tableName}')" style="padding: 4px 8px; font-size: 11px;">View</button>
-                    ${isView
-                        ? `<button class=\"btn-danger\" disabled aria-disabled=\"true\" title=\"Cannot delete a view\" style=\"padding: 4px 8px; font-size: 11px;\">Delete</button>`
-                        : `<button class=\"btn-danger\" onclick=\"event.stopPropagation(); deleteTable('${tableName}')\" style=\"padding: 4px 8px; font-size: 11px;\" title=\"Delete table\">Delete</button>`}
-                </div>
-            </div>
-        `);
-
-        // Add click handler to view the table
-        tableItem.click(function (e) {
-            // Don't trigger if clicking on buttons
-            if ($(e.target).is('button') || $(e.target).closest('button').length) {
-                return;
-            }
-
-            e.stopPropagation(); // Prevent event bubbling
-            viewTable(tableName);
-        });
-
-        tableList.append(tableItem);
-    });
-}
+// displayTables removed with bottom table list; tables are shown per database subsection
 
 // Add a column row to the builder
 function addColumnRow() {
@@ -930,20 +846,13 @@ function updateStats() {
 // Update button states based on current selection
 function updateButtonStates() {
     const hasDatabase = !!currentDatabase;
-    const hasTables = tables.length > 0;
-    const hasSelectedTable = !!selectedTable;
+    // Legacy bottom table list removed; keep only database-level controls
 
-    $('#createTableBtn').prop('disabled', !hasDatabase);
     $('#createTableMenuItem').prop('disabled', !hasDatabase);
 
     $('#exportDatabaseBtn').prop('disabled', !hasDatabase);
 
     $('#importDatabaseBtn').prop('disabled', false); // Can always import
-}
-
-// Hide table list
-function hideTableList() {
-    $('#tableListSection').hide();
 }
 
 // Select database
