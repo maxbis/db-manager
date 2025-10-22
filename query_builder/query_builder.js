@@ -78,6 +78,14 @@ $(document).ready(function() {
     const urlParams = new URLSearchParams(window.location.search);
     const sqlParam = urlParams.get('sql');
     
+    // Load SQL from URL parameter immediately if present
+    if (sqlParam) {
+        $('#queryInput').val(decodeURIComponent(sqlParam));
+        $('#queryInput').data('sql-loaded', true);
+        // Show a notification
+        showToast('SQL query loaded from table structure editor', 'success');
+    }
+    
     $('#tableSelect').change(function() {
         const previousTable = currentTable;
         currentTable = $(this).val();
@@ -94,8 +102,8 @@ $(document).ready(function() {
                 // Show a notification
                 showToast('SQL query loaded from table structure editor', 'success');
             } 
-            // Check if we have a saved query for this table
-            else {
+            // Check if we have a saved query for this table (only if no SQL was loaded from URL)
+            else if (!$('#queryInput').data('sql-loaded')) {
                 const savedQueryState = localStorage.getItem('currentQuery');
                 if (savedQueryState) {
                     try {
@@ -117,7 +125,9 @@ $(document).ready(function() {
             
             loadSavedQueries(currentTable);
         } else {
-            showEmptyState();
+            // Clear the query input when no table is selected, but keep the interface visible
+            $('#queryInput').val('');
+            $('#resultsSection').hide();
         }
     });
 
@@ -243,6 +253,10 @@ function loadTables() {
                 // Populate tables container
                 populateTablesContainer(response.tables);
                 
+                // Show the query interface immediately since we have tables
+                $('#queryInterface').show();
+                $('#emptyState').hide();
+                
                 // Check for table parameter in URL and select it
                 const urlParams = new URLSearchParams(window.location.search);
                 const tableParam = urlParams.get('table');
@@ -258,6 +272,8 @@ function loadTables() {
         error: function(xhr) {
             showToast('Error loading tables: ' + xhr.responseText, 'error');
             $('#loading').removeClass('active');
+            // Show empty state only when there's an error loading tables
+            showEmptyState();
         }
     });
 }
@@ -277,8 +293,7 @@ function loadTableInfo() {
                 // Highlight the selected table in the collapsible structure
                 highlightSelectedTable(currentTable);
                 
-                $('#queryInterface').show();
-                $('#emptyState').hide();
+                // Query interface is already shown, no need to show/hide it
                 
                 // Show info if it's a view
                 if (tableInfo.isView) {
@@ -407,8 +422,17 @@ function insertFieldName(fieldName) {
     const before = text.substring(0, start);
     const after = text.substring(end, text.length);
     
-    textarea.value = before + fieldName + after;
-    textarea.selectionStart = textarea.selectionEnd = start + fieldName.length;
+    // Check if this is a table name click and query is empty
+    const isTableName = $(`.table-name[data-table="${fieldName}"]`).length > 0;
+    const isQueryEmpty = text.trim() === '';
+    
+    let textToInsert = fieldName;
+    if (isTableName && isQueryEmpty) {
+        textToInsert = `SELECT * FROM ${fieldName}`;
+    }
+    
+    textarea.value = before + textToInsert + after;
+    textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length;
     textarea.focus();
 }
 
@@ -505,7 +529,7 @@ function displayResults(response) {
     resultsSection.show();
 }
 
-// Show empty state
+// Show empty state (only when no tables are available)
 function showEmptyState() {
     $('#queryInterface').hide();
     $('#emptyState').show();

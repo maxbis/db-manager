@@ -21,14 +21,7 @@ require_once '../login/auth_check.php';
         'id' => 'query',
         'title' => 'SQL Query Builder',
         'icon' => '⚡',
-        'controls_html' => '
-            <div class="control-group">
-                <label for="tableSelect">Select Table:</label>
-                <select id="tableSelect">
-                    <option value="">-- Choose a table --</option>
-                </select>
-            </div>
-        '
+        'controls_html' => ''
     ];
     include '../templates/header.php';
     ?>
@@ -61,6 +54,7 @@ require_once '../login/auth_check.php';
                 <div class="query-input-wrapper">
                     <textarea 
                         id="queryInput" 
+                        rows="18"
                         class="query-input" 
                         placeholder="Enter your SQL query here...&#10;&#10;Example:&#10;SELECT * FROM your_table LIMIT 10"
                     ></textarea>
@@ -69,7 +63,7 @@ require_once '../login/auth_check.php';
                 <div class="query-actions">
                     <button class="btn-save-query" id="saveQueryBtn">💾 Save Query</button>
                     <button class="btn-clear" id="clearBtn">🗑️ Clear</button>
-                    <button class="btn-execute" id="executeBtn">▶ Execute Query</button>
+                    <button class="btn-execute" id="executeBtn">▶ Execute</button>
                 </div>
             </div>
 

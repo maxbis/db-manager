@@ -28,28 +28,28 @@ $pageConfig = array_merge([
 // Define menu items
 $menuItems = [
     [
-        'id' => 'database_manager',
+        'id' => 'database',
         'url' => '../db_manager',
         'icon' => '🗄️',
         'name' => 'Database Manager'
-    ],
-    [
-        'id' => 'index',
-        'url' => '../data_manager',
-        'icon' => '📊',
-        'name' => 'Data Manager'
-    ],
-    [
-        'id' => 'table_structure',
-        'url' => '../table_structure',
-        'icon' => '🔍',
-        'name' => 'Table Structure'
     ],
     [
         'id' => 'query',
         'url' => '../query_builder',
         'icon' => '⚡',
         'name' => 'SQL Query Builder'
+    ],
+    [
+        'id' => 'data',
+        'url' => '../data_manager',
+        'icon' => '📊',
+        'name' => 'Data Manager'
+    ],
+    [
+        'id' => 'table',
+        'url' => '../table_structure',
+        'icon' => '🔍',
+        'name' => 'Table Structure'
     ]
 ];
 
