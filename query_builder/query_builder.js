@@ -126,10 +126,26 @@ $(document).ready(function() {
     });
 
     $('#clearBtn').click(function() {
-        $('#queryInput').val('');
-        $('#resultsSection').hide();
-        // Clear saved query state when explicitly clearing
-        localStorage.removeItem('currentQuery');
+        Dialog.confirm({
+            title: 'Clear Query',
+            message: 'Are you sure you want to clear the current query? This will reset to the default query.',
+            confirmText: 'Clear',
+            cancelText: 'Cancel',
+            confirmClass: 'btn-warning',
+            cancelClass: 'btn-secondary',
+            icon: '🗑️',
+            onConfirm: function() {
+                // Set default query if a table is selected
+                if (currentTable) {
+                    $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
+                } else {
+                    $('#queryInput').val('');
+                }
+                $('#resultsSection').hide();
+                // Clear saved query state when explicitly clearing
+                localStorage.removeItem('currentQuery');
+            }
+        });
     });
 
     $('#saveQueryBtn, #saveQueryBtn2').click(function() {
@@ -585,9 +601,18 @@ function loadQuery(queryId) {
 
 // Delete saved query with confirmation
 function deleteSavedQueryConfirm(queryId, queryName) {
-    if (confirm(`Are you sure you want to delete the query "${queryName}"?`)) {
-        deleteSavedQuery(queryId);
-    }
+    Dialog.confirm({
+        title: 'Delete Saved Query',
+        message: `Are you sure you want to delete the query "${queryName}"?`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        confirmClass: 'btn-danger',
+        cancelClass: 'btn-secondary',
+        icon: '🗑️',
+        onConfirm: function() {
+            deleteSavedQuery(queryId);
+        }
+    });
 }
 
 // Delete a saved query from LocalStorage

@@ -176,11 +176,13 @@
 }
 
 .btn-save-query {
-    padding: 6px 12px;
+    padding: 12px 20px;
     font-size: 12px;
+    max-width: 140px;
     background: linear-gradient(135deg, var(--color-success-lighter) 0%, var(--color-success-lightest) 100%);
     color: var(--color-success);
-    border: 1px solid var(--color-success-light);
+    border: 2px solid var(--color-success-light);
+    flex: 1;
 }
 
 .btn-save-query:hover {
@@ -228,8 +230,10 @@
     background: linear-gradient(135deg, var(--color-primary-light) 0%, var(--color-primary-lighter) 100%);
     color: var(--color-bg-white);
     border: 2px solid var(--color-primary);
-    font-size: 15px;
-    padding: 12px 30px;
+    font-size: 12px;
+    max-width: 140px;
+    padding: 12px 20px;
+    flex: 1;
 }
 
 .btn-execute:hover {
@@ -240,6 +244,10 @@
     background: linear-gradient(135deg, var(--color-gray-300) 0%, var(--color-gray-200) 100%);
     color: var(--color-text-secondary);
     border: 2px solid var(--color-border-gray);
+    font-size: 12px;
+    max-width: 140px;
+    padding: 12px 20px;
+    flex: 1;
 }
 
 .btn-clear:hover {

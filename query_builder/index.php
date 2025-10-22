@@ -13,6 +13,7 @@ require_once '../login/auth_check.php';
     <title>SQL Query Builder - Database CRUD Manager</title>
     <link rel="stylesheet" href="../styles/common.css">
     <link rel="stylesheet" href="query_builder.css">
+    <link rel="stylesheet" href="../dialog/dialog.css">
 </head>
 <body>
     <?php
@@ -71,9 +72,9 @@ require_once '../login/auth_check.php';
                 </div>
 
                 <div class="query-actions">
-                    <button class="btn-execute" id="executeBtn">▶ Execute Query</button>
-                    <button class="btn-clear" id="clearBtn">🗑️ Clear</button>
                     <button class="btn-save-query" id="saveQueryBtn">💾 Save Query</button>
+                    <button class="btn-clear" id="clearBtn">🗑️ Clear</button>
+                    <button class="btn-execute" id="executeBtn">▶ Execute Query</button>
                 </div>
             </div>
 
@@ -118,8 +119,12 @@ require_once '../login/auth_check.php';
 
     <!-- Include Modals -->
     <?php include 'modals.php'; ?>
+    
+    <!-- Include Dialog System -->
+    <?php include '../dialog/dialog.php'; ?>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../dialog/dialog.js"></script>
     <script src="query_builder.js"></script>
 
     <?php include '../templates/footer.php'; ?>
