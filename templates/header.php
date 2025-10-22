@@ -89,7 +89,7 @@ if (!empty($selectedTable) && !empty($currentDatabase)) {
                 <span style="font-size: 12px; color: var(--color-text-tertiary);">
                     👤 <?php echo htmlspecialchars($_SESSION['username']); ?>
                 </span>
-                <a href="login/logout.php" style="padding: 8px 12px; font-size: 12px; text-decoration: none; background: linear-gradient(135deg, var(--color-danger-lighter) 0%, var(--color-danger-lightest) 100%); color: var(--color-danger); border: 1px solid var(--color-danger-light); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                <a href="../login/logout.php" style="padding: 8px 12px; font-size: 12px; text-decoration: none; background: linear-gradient(135deg, var(--color-danger-lighter) 0%, var(--color-danger-lightest) 100%); color: var(--color-danger); border: 1px solid var(--color-danger-light); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
                     🚪 Logout
                 </a>
             </div>

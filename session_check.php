@@ -15,6 +15,18 @@ ini_set('session.cookie_secure', isset($_SERVER['HTTPS'])); // Secure if HTTPS
 ini_set('session.cookie_samesite', 'Strict');
 ini_set('session.use_strict_mode', 1);
 
+// Ensure session storage path is valid (fallback for missing/invalid tmp path)
+$currentSavePath = ini_get('session.save_path');
+if (!$currentSavePath || !is_dir($currentSavePath)) {
+    $fallbackPath = __DIR__ . '/tmp/sessions';
+    if (!is_dir($fallbackPath)) {
+        @mkdir($fallbackPath, 0777, true);
+    }
+    if (is_dir($fallbackPath) && is_writable($fallbackPath)) {
+        ini_set('session.save_path', $fallbackPath);
+    }
+}
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
