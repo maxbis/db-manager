@@ -180,6 +180,36 @@ $(document).ready(function() {
         insertFieldName(fieldName);
     });
 
+    // Click on table left part (triangle + icon) to toggle collapse/expand
+    $(document).on('click', '.table-left', function(e) {
+        e.stopPropagation();
+        const tableGroup = $(this).closest('.table-group');
+        const tableFields = tableGroup.find('.table-fields');
+        const toggle = $(this).find('.table-toggle');
+        const tableHeader = $(this).closest('.table-header');
+        
+        if (tableFields.hasClass('expanded')) {
+            // Collapse
+            tableFields.removeClass('expanded');
+            toggle.removeClass('expanded');
+            tableHeader.removeClass('active');
+        } else {
+            // Expand
+            const tableName = tableGroup.data('table');
+            loadTableFields(tableName, tableFields);
+            tableFields.addClass('expanded');
+            toggle.addClass('expanded');
+            tableHeader.addClass('active');
+        }
+    });
+
+    // Click on table name to copy table name to query
+    $(document).on('click', '.table-name', function(e) {
+        e.stopPropagation();
+        const tableName = $(this).data('table');
+        insertFieldName(tableName);
+    });
+
     // Close modal on outside click
     $(document).click(function(e) {
         if ($(e.target).is('#saveQueryModal')) {
@@ -200,6 +230,7 @@ function loadTables() {
                 select.empty();
                 select.append('<option value="">-- Choose a table --</option>');
                 
+                // Populate dropdown
                 response.tables.forEach(function(table) {
                     // Handle both old format (string) and new format (object)
                     const tableName = typeof table === 'string' ? table : table.name;
@@ -208,6 +239,9 @@ function loadTables() {
                     
                     select.append(`<option value="${tableName}" data-type="${tableType}">${label}</option>`);
                 });
+                
+                // Populate tables container
+                populateTablesContainer(response.tables);
                 
                 // Check for table parameter in URL and select it
                 const urlParams = new URLSearchParams(window.location.search);
@@ -239,7 +273,10 @@ function loadTableInfo() {
         success: function(response) {
             if (response.success) {
                 tableInfo = response;
-                displayFieldList();
+                
+                // Highlight the selected table in the collapsible structure
+                highlightSelectedTable(currentTable);
+                
                 $('#queryInterface').show();
                 $('#emptyState').hide();
                 
@@ -257,35 +294,108 @@ function loadTableInfo() {
     });
 }
 
-// Display field list in sidebar
-function displayFieldList() {
-    const fieldList = $('#fieldList');
-    fieldList.empty();
+// Highlight the selected table in the collapsible structure
+function highlightSelectedTable(tableName) {
+    // Remove previous highlights
+    $('.table-group').removeClass('selected');
     
-    if (!tableInfo || !tableInfo.columns) {
+    // Highlight the selected table
+    const selectedTable = $(`.table-group[data-table="${tableName}"]`);
+    if (selectedTable.length) {
+        selectedTable.addClass('selected');
+        
+        // Auto-expand the selected table if it's not already expanded
+        const tableFields = selectedTable.find('.table-fields');
+        if (!tableFields.hasClass('expanded')) {
+            const tableHeader = selectedTable.find('.table-header');
+            const toggle = selectedTable.find('.table-toggle');
+            
+            loadTableFields(tableName, tableFields);
+            tableFields.addClass('expanded');
+            toggle.addClass('expanded');
+            tableHeader.addClass('active');
+        }
+    }
+}
+
+// Populate tables container with all tables
+function populateTablesContainer(tables) {
+    const container = $('#tablesContainer');
+    container.empty();
+    
+    tables.forEach(function(table) {
+        const tableName = typeof table === 'string' ? table : table.name;
+        const tableType = typeof table === 'object' ? table.type : 'BASE TABLE';
+        const isView = tableType === 'VIEW';
+        const icon = isView ? '👁️' : '📋';
+        
+        const tableGroup = $(`
+            <div class="table-group" data-table="${tableName}">
+                <div class="table-header" data-table="${tableName}">
+                    <div class="table-left">
+                        <span class="table-toggle">▶</span>
+                        <span class="table-icon">${icon}</span>
+                    </div>
+                    <div class="table-name" data-table="${tableName}">
+                        <span>${tableName}</span>
+                        ${isView ? '<span style="font-size: 10px; color: var(--color-text-muted);">(view)</span>' : ''}
+                    </div>
+                </div>
+                <div class="table-fields">
+                    <ul class="field-list">
+                        <!-- Fields will be loaded when expanded -->
+                    </ul>
+                </div>
+            </div>
+        `);
+        
+        container.append(tableGroup);
+    });
+}
+
+// Load fields for a specific table
+function loadTableFields(tableName, tableFieldsContainer) {
+    const fieldList = tableFieldsContainer.find('.field-list');
+    
+    // Check if fields are already loaded
+    if (fieldList.find('.field-item').length > 0) {
         return;
     }
     
-    // Populate the dedicated clickable table name element
-    const tableName = currentTable || (tableInfo && (tableInfo.table || tableInfo.name || tableInfo.table_name)) || '';
-    const $tableItem = $('#tableItem');
-    if (tableName && $tableItem.length) {
-        $tableItem.attr('data-field', tableName);
-        $('#tableNameText').text(tableName);
-        $tableItem.show();
-    } else if ($tableItem.length) {
-        $tableItem.hide();
-    }
+    // Show loading indicator
+    fieldList.html('<li style="padding: 10px; text-align: center; color: var(--color-text-muted); font-size: 12px;">Loading fields...</li>');
     
-    tableInfo.columns.forEach(function(col) {
-        const fieldItem = $(`
-            <li class="field-item" data-field="${col.name}">
-                <strong>${col.name}</strong>
-                <span class="field-type">${col.type}</span>
-            </li>
-        `);
-        fieldList.append(fieldItem);
+    $.ajax({
+        url: '../api/?action=getTableInfo&table=' + encodeURIComponent(tableName),
+        method: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.success && response.columns) {
+                fieldList.empty();
+                
+                response.columns.forEach(function(col) {
+                    const fieldItem = $(`
+                        <li class="field-item" data-field="${col.name}">
+                            <strong>${col.name}</strong>
+                            <span class="field-type">${col.type}</span>
+                        </li>
+                    `);
+                    fieldList.append(fieldItem);
+                });
+            } else {
+                fieldList.html('<li style="padding: 10px; text-align: center; color: var(--color-danger); font-size: 12px;">Error loading fields</li>');
+            }
+        },
+        error: function() {
+            fieldList.html('<li style="padding: 10px; text-align: center; color: var(--color-danger); font-size: 12px;">Error loading fields</li>');
+        }
     });
+}
+
+// Display field list in sidebar (legacy function - kept for compatibility)
+function displayFieldList() {
+    // This function is now handled by the collapsible table structure
+    // Keep it for backward compatibility but it's no longer used
 }
 
 // Insert field name at cursor position

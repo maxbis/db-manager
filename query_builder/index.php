@@ -51,15 +51,10 @@ require_once '../login/auth_check.php';
 
         <div class="query-layout">
             <div class="fields-panel">
-                <h3>📋 Table Fields</h3>
-				<!-- Clickable table name above the fields list -->
-				<div class="field-item" id="tableItem" data-field="" style="display:none;color:rgb(103, 0, 0);">
-					<strong id="tableNameText"></strong>
-
-				</div>
-                <ul class="field-list" id="fieldList" style="margin-left: 10px;">
-                    <!-- Fields will be populated here -->
-                </ul>
+                <h3>📋 Database Tables</h3>
+                <div class="tables-container" id="tablesContainer">
+                    <!-- All tables will be populated here -->
+                </div>
             </div>
 
             <div class="query-panel">
