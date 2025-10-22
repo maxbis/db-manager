@@ -3,6 +3,9 @@
  * Handles SQL query building, execution, and saved query management
  */
 
+// Configuration
+const MAX_QUERY_RESULTS = 1000; // Must match QueryHandler::MAX_QUERY_RESULTS
+
 // Global state
 let currentTable = '';
 let tableInfo = null;
@@ -326,7 +329,7 @@ function displayResults(response) {
         const rowCount = data.length;
         const totalRows = response.totalRows || rowCount;
         
-        resultsInfo.text(`${rowCount} rows returned${totalRows > 100 ? ' (limited to first 100)' : ''}`);
+        resultsInfo.text(`${rowCount} rows returned${totalRows > MAX_QUERY_RESULTS ? ` (limited to first ${MAX_QUERY_RESULTS})` : ''}`);
         
         if (rowCount === 0) {
             resultsBody.append('<tr><td colspan="100" style="text-align: center; padding: 40px;">No results found</td></tr>');

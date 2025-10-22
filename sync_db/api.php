@@ -14,6 +14,14 @@
 // Prevent direct access without proper authentication
 header('Content-Type: application/json');
 
+// Ensure PHP notices/warnings don't corrupt JSON output
+@ini_set('display_errors', '0');
+@ini_set('html_errors', '0');
+// Start output buffering to capture any accidental output
+if (ob_get_level() === 0) {
+    ob_start();
+}
+
 // Allow cross-origin requests (adjust as needed for your setup)
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, GET, OPTIONS');
@@ -39,6 +47,19 @@ ini_set('memory_limit', SYNC_MEMORY_LIMIT);
  */
 function sendResponse($success, $data = null, $message = '', $httpCode = 200) {
     http_response_code($httpCode);
+    // Capture and clear any unexpected output generated earlier
+    $extraOutput = '';
+    if (ob_get_level() > 0) {
+        $extraOutput = ob_get_contents();
+        ob_clean();
+    }
+    if (!empty($extraOutput)) {
+        $extraOutput = trim(strip_tags($extraOutput));
+        if ($extraOutput !== '') {
+            $message = trim($message);
+            $message = $message !== '' ? ($message . ' | ' . $extraOutput) : $extraOutput;
+        }
+    }
     echo json_encode([
         'success' => $success,
         'data' => $data,
@@ -84,13 +105,20 @@ $dbUser = $_POST['db_user'] ?? '';
 $dbPass = $_POST['db_pass'] ?? '';
 $dbName = $_POST['db_name'] ?? '';
 
-if (empty($dbUser) || empty($dbName)) {
+// For list_databases action, we don't need a specific database name
+if ($action !== 'list_databases' && (empty($dbUser) || empty($dbName))) {
     sendResponse(false, null, 'Database credentials required', 400);
 }
 
 // Connect to database
 try {
-    $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+    // For list_databases, connect without specifying a database
+    if ($action === 'list_databases') {
+        $conn = new mysqli($dbHost, $dbUser, $dbPass);
+    } else {
+        $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbName);
+    }
+    
     if ($conn->connect_error) {
         throw new Exception("Connection failed: " . $conn->connect_error);
     }

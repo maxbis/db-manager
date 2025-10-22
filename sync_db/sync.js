@@ -194,12 +194,19 @@ async function apiRequest(url, apiKey, action, params = {}) {
             body: formData
         });
         
-        // Try to parse JSON response
+        // Read raw text first to preserve server errors and non-JSON output
+        const rawText = await response.text();
         let data;
         try {
-            data = await response.json();
+            data = JSON.parse(rawText);
         } catch (jsonError) {
-            throw new Error(`Invalid JSON response (HTTP ${response.status}): ${response.statusText}`);
+            // Try to extract useful message from HTML or text
+            const textSnippet = rawText
+                .replace(/<[^>]*>/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 400);
+            throw new Error(`Invalid JSON response (HTTP ${response.status}): ${textSnippet || response.statusText}`);
         }
         
         // Check if request was successful
@@ -231,7 +238,7 @@ async function apiRequest(url, apiKey, action, params = {}) {
 /**
  * Execute SQL query on local database
  */
-async function executeLocalSQL(sql, dbName = null) {
+async function executeLocalSQL(sql, dbName = null, options = {}) {
     // Validate SQL before sending
     if (!sql || sql === 'null' || sql === 'undefined') {
         throw new Error('Invalid SQL statement: SQL cannot be null or undefined');
@@ -243,13 +250,31 @@ async function executeLocalSQL(sql, dbName = null) {
     if (dbName) {
         formData.append('database', dbName);
     }
+    if (options.disableForeignKeys === true) {
+        formData.append('disable_fk', '1');
+    }
+    if (options.increasePacket === true) {
+        formData.append('increase_packet', '1');
+    }
     
     const response = await fetch('sync_handler.php', {
         method: 'POST',
         body: formData
     });
     
-    const data = await response.json();
+    // Read raw text to guard against HTML notices breaking JSON
+    const rawText = await response.text();
+    let data;
+    try {
+        data = JSON.parse(rawText);
+    } catch (jsonError) {
+        const textSnippet = rawText
+            .replace(/<[^>]*>/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 400);
+        throw new Error(`Invalid JSON from local handler: ${textSnippet || response.statusText}`);
+    }
     
     if (!data.success) {
         throw new Error(data.message || 'SQL execution failed');
@@ -293,7 +318,12 @@ function showError(title, message) {
     errorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     
     // Show alert dialog too
-    alert(`❌ ${title}\n\n${message}`);
+    Dialog.alert({
+        title: title,
+        message: message,
+        icon: '❌',
+        confirmClass: 'btn-danger'
+    });
     
     // Update progress card
     const progressCard = document.getElementById('progressCard');
@@ -307,6 +337,110 @@ function showError(title, message) {
 function hideError() {
     const errorAlert = document.getElementById('errorAlert');
     errorAlert.style.display = 'none';
+}
+
+/**
+ * Load available databases from remote server
+ */
+async function loadDatabases() {
+    const form = document.getElementById('syncForm');
+    const formData = new FormData(form);
+    
+    const btn = document.getElementById('loadDatabasesBtn');
+    const dbInput = document.getElementById('remoteDbName');
+    const container = document.querySelector('.database-select-container');
+    
+    // Check if we have required fields
+    const remoteUrl = formData.get('remoteUrl');
+    const apiKey = formData.get('apiKey');
+    const dbHost = formData.get('remoteDbHost');
+    const dbUser = formData.get('remoteDbUser');
+    const dbPass = formData.get('remoteDbPass');
+    
+    if (!remoteUrl || !apiKey || !dbHost || !dbUser || !dbPass) {
+        Dialog.alert({
+            title: 'Missing Information',
+            message: 'Please fill in Remote Server URL, API Key, DB Host, DB User, and DB Password before loading databases.',
+            icon: '⚠️',
+            confirmClass: 'btn-warning'
+        });
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span><span>Loading...</span>';
+    
+    // Hide any previous error
+    hideError();
+    
+    try {
+        const params = {
+            db_host: dbHost,
+            db_user: dbUser,
+            db_pass: dbPass,
+            // Provide a placeholder database for backward compatibility with older remote APIs
+            db_name: 'information_schema'
+        };
+        
+        const data = await apiRequest(remoteUrl, apiKey, 'list_databases', params);
+        
+        // Show database list directly (no modal) so it's clickable
+        showDatabaseList(data.databases, dbInput, container);
+        
+    } catch (error) {
+        showError('Failed to Load Databases', error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>📋</span><span>Load DBs</span>';
+    }
+}
+
+/**
+ * Show database selection dropdown
+ */
+function showDatabaseList(databases, input, container) {
+    // Remove existing dropdown
+    const existingList = container.querySelector('.database-list');
+    if (existingList) {
+        existingList.remove();
+    }
+    
+    // Create dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'database-list';
+    // Respect CSS absolute positioning; just make it visible
+    dropdown.style.display = 'block';
+    
+    if (databases.length === 0) {
+        dropdown.innerHTML = '<div class="database-loading">No databases found</div>';
+    } else {
+        databases.forEach(db => {
+            const item = document.createElement('div');
+            item.className = 'database-item';
+            item.textContent = db;
+            item.onclick = function() {
+                input.value = db;
+                dropdown.remove();
+                // Trigger change event to update local DB name
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            };
+            dropdown.appendChild(item);
+        });
+    }
+    
+    container.appendChild(dropdown);
+    
+    // Close dropdown when clicking outside
+    const closeDropdown = (e) => {
+        if (!container.contains(e.target)) {
+            dropdown.remove();
+            document.removeEventListener('click', closeDropdown);
+        }
+    };
+    
+    setTimeout(() => {
+        document.addEventListener('click', closeDropdown);
+    }, 100);
 }
 
 /**
@@ -350,7 +484,12 @@ async function testConnection() {
         addLog(`✅ Connection successful!`, 'success');
         addLog(`   Found ${data.tables.length} tables in database "${formData.get('remoteDbName')}"`, 'success');
         
-        alert(`✅ Connection successful!\n\nFound ${data.tables.length} tables in database "${formData.get('remoteDbName')}"`);
+        Dialog.alert({
+            title: 'Connection Successful',
+            message: `Found ${data.tables.length} tables in database "${formData.get('remoteDbName')}"`,
+            icon: '✅',
+            confirmClass: 'btn-success'
+        });
         
     } catch (error) {
         showError('Connection Failed', error.message);
@@ -408,9 +547,20 @@ async function startSync() {
         startTime: Date.now()
     };
     
+    let foreignKeysDisabled = false;
     try {
         addLog('🚀 Starting database sync...', 'info');
         updateProgress(0, 'Initializing...');
+        
+        // Disable foreign key checks to allow dropping/creating tables in any order
+        try {
+            addLog('🔧 Disabling foreign key checks...', 'info');
+            // Use per-request disable to ensure the session that executes mutations has FKs off
+            await executeLocalSQL('SET FOREIGN_KEY_CHECKS=0', config.localDbName, { disableForeignKeys: true });
+            foreignKeysDisabled = true;
+        } catch (fkErr) {
+            addLog('⚠️ Could not disable foreign key checks (continuing).', 'warning');
+        }
         
         // Step 1: Create local database if it doesn't exist
         addLog(`📦 Creating/checking local database: ${config.localDbName}`, 'info');
@@ -452,8 +602,8 @@ async function startSync() {
             }
             
             // Drop table if exists and recreate
-            await executeLocalSQL(`DROP TABLE IF EXISTS \`${table}\``, config.localDbName);
-            await executeLocalSQL(structureData.create_statement, config.localDbName);
+            await executeLocalSQL(`DROP TABLE IF EXISTS \`${table}\``, config.localDbName, { disableForeignKeys: true });
+            await executeLocalSQL(structureData.create_statement, config.localDbName, { disableForeignKeys: true });
             addLog(`  ✓ Created structure for ${table}`, 'success');
             
             // Get table data in chunks
@@ -475,17 +625,55 @@ async function startSync() {
                     
                     // Build INSERT statement
                     const columns = Object.keys(rows[0]);
-                    const values = rows.map(row => {
+                    // Build value tuples with safe escaping
+                    const valueTuples = rows.map(row => {
                         const vals = columns.map(col => {
                             const val = row[col];
                             if (val === null) return 'NULL';
-                            return "'" + String(val).replace(/'/g, "''") + "'";
+                            // Escape backslashes and single quotes
+                            const s = String(val)
+                                .replace(/\\/g, "\\\\")
+                                .replace(/'/g, "''");
+                            return "'" + s + "'";
                         });
                         return '(' + vals.join(', ') + ')';
                     });
-                    
-                    const insertSQL = `INSERT INTO \`${table}\` (\`${columns.join('`, `')}\`) VALUES ${values.join(', ')}`;
-                    await executeLocalSQL(insertSQL, config.localDbName);
+
+                    // Dynamically batch by SQL size to avoid max_allowed_packet
+                    const MAX_SQL_BYTES = 1024 * 1024; // ~1MB per statement
+                    const targetDb = config.localDbName;
+                    const prefix = `${targetDb ? `USE \`${targetDb}\`; ` : ''}INSERT INTO \`${table}\` (\`${columns.join('`, `')}\`) VALUES `;
+                    let batchParts = [];
+                    let currentLength = prefix.length;
+
+                    async function flushBatchIfNeeded(nextPartLength) {
+                        // Account for comma+space between tuples when concatenating
+                        const sep = batchParts.length > 0 ? 2 : 0;
+                        if (currentLength + sep + nextPartLength > MAX_SQL_BYTES && batchParts.length > 0) {
+                            const sql = prefix + batchParts.join(', ');
+                            await executeLocalSQL(sql, config.localDbName, { disableForeignKeys: true, increasePacket: true });
+                            batchParts = [];
+                            currentLength = prefix.length;
+                        }
+                    }
+
+                    for (let iVal = 0; iVal < valueTuples.length; iVal++) {
+                        const part = valueTuples[iVal];
+                        await flushBatchIfNeeded(part.length);
+                        // If a single tuple itself exceeds the limit, send alone
+                        if (part.length + prefix.length > MAX_SQL_BYTES && batchParts.length === 0) {
+                            await executeLocalSQL(prefix + part, config.localDbName, { disableForeignKeys: true, increasePacket: true });
+                            continue;
+                        }
+                        if (batchParts.length > 0) currentLength += 2; // ', '
+                        batchParts.push(part);
+                        currentLength += part.length;
+                    }
+
+                    if (batchParts.length > 0) {
+                        const sql = prefix + batchParts.join(', ');
+                        await executeLocalSQL(sql, config.localDbName, { disableForeignKeys: true, increasePacket: true });
+                    }
                     
                     tableRows += rows.length;
                     stats.rows += rows.length;
@@ -520,8 +708,8 @@ async function startSync() {
                 throw new Error(`Failed to retrieve valid CREATE VIEW statement for view: ${view}`);
             }
             
-            await executeLocalSQL(`DROP VIEW IF EXISTS \`${view}\``, config.localDbName);
-            await executeLocalSQL(viewStructure.create_statement, config.localDbName);
+            await executeLocalSQL(`DROP VIEW IF EXISTS \`${view}\``, config.localDbName, { disableForeignKeys: true });
+            await executeLocalSQL(viewStructure.create_statement, config.localDbName, { disableForeignKeys: true });
             addLog(`  ✓ Created view: ${view}`, 'success');
         }
         updateProgress(75, `Synced ${views.length} views`);
@@ -542,8 +730,8 @@ async function startSync() {
                 throw new Error(`Failed to retrieve valid CREATE PROCEDURE statement for procedure: ${procedure}`);
             }
             
-            await executeLocalSQL(`DROP PROCEDURE IF EXISTS \`${procedure}\``, config.localDbName);
-            await executeLocalSQL(procedureStructure.create_statement, config.localDbName);
+            await executeLocalSQL(`DROP PROCEDURE IF EXISTS \`${procedure}\``, config.localDbName, { disableForeignKeys: true });
+            await executeLocalSQL(procedureStructure.create_statement, config.localDbName, { disableForeignKeys: true });
             addLog(`  ✓ Created procedure: ${procedure}`, 'success');
         }
         updateProgress(85, `Synced ${procedures.length} procedures`);
@@ -564,8 +752,8 @@ async function startSync() {
                 throw new Error(`Failed to retrieve valid CREATE FUNCTION statement for function: ${func}`);
             }
             
-            await executeLocalSQL(`DROP FUNCTION IF EXISTS \`${func}\``, config.localDbName);
-            await executeLocalSQL(functionStructure.create_statement, config.localDbName);
+            await executeLocalSQL(`DROP FUNCTION IF EXISTS \`${func}\``, config.localDbName, { disableForeignKeys: true });
+            await executeLocalSQL(functionStructure.create_statement, config.localDbName, { disableForeignKeys: true });
             addLog(`  ✓ Created function: ${func}`, 'success');
         }
         updateProgress(95, `Synced ${functions.length} functions`);
@@ -578,8 +766,8 @@ async function startSync() {
         
         for (const trigger of triggers) {
             const createTrigger = `CREATE TRIGGER \`${trigger.Trigger}\` ${trigger.Timing} ${trigger.Event} ON \`${trigger.Table}\` FOR EACH ROW ${trigger.Statement}`;
-            await executeLocalSQL(`DROP TRIGGER IF EXISTS \`${trigger.Trigger}\``, config.localDbName);
-            await executeLocalSQL(createTrigger, config.localDbName);
+            await executeLocalSQL(`DROP TRIGGER IF EXISTS \`${trigger.Trigger}\``, config.localDbName, { disableForeignKeys: true });
+            await executeLocalSQL(createTrigger, config.localDbName, { disableForeignKeys: true });
             addLog(`  ✓ Created trigger: ${trigger.Trigger}`, 'success');
         }
         
@@ -595,7 +783,12 @@ async function startSync() {
         
         // Show success alert
         setTimeout(() => {
-            alert(`✅ Sync completed successfully!\n\nTables: ${stats.tables}\nRows: ${stats.rows.toLocaleString()}\nViews: ${stats.views}\nTime: ${Math.round((Date.now() - stats.startTime) / 1000)}s`);
+            Dialog.alert({
+                title: 'Sync Completed Successfully',
+                message: `Tables: ${stats.tables}<br>Rows: ${stats.rows.toLocaleString()}<br>Views: ${stats.views}<br>Procedures: ${stats.procedures}<br>Functions: ${stats.functions}<br>Triggers: ${stats.triggers}<br>Time: ${Math.round((Date.now() - stats.startTime) / 1000)}s`,
+                icon: '✅',
+                confirmClass: 'btn-success'
+            });
         }, 500);
         
     } catch (error) {
@@ -621,8 +814,25 @@ async function startSync() {
             errorDetails += '\n\n💡 Troubleshooting:\n- Verify database credentials\n- Check that database exists\n- Ensure database user has proper permissions';
         }
         
-        alert(`❌ Sync Failed!\n\n${errorDetails}`);
+        // Format error details with line breaks
+        const formattedError = errorDetails.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+        
+        Dialog.alert({
+            title: 'Sync Failed',
+            message: formattedError,
+            icon: '❌',
+            confirmClass: 'btn-danger'
+        });
     } finally {
+        // Always attempt to re-enable foreign key checks
+        if (foreignKeysDisabled) {
+            try {
+                addLog('🔧 Re-enabling foreign key checks...', 'info');
+                await executeLocalSQL('SET FOREIGN_KEY_CHECKS=1', document.getElementById('localDbName').value || null, { disableForeignKeys: true });
+            } catch (fkEnableErr) {
+                addLog('⚠️ Failed to re-enable foreign key checks. Please run: SET FOREIGN_KEY_CHECKS=1;', 'warning');
+            }
+        }
         // Re-enable form
         syncBtn.disabled = false;
         syncBtn.innerHTML = '<span>🔄</span><span>Start Sync</span>';
@@ -641,21 +851,45 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('syncForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        if (confirm('⚠️ WARNING: This will completely replace the local database.\n\nAre you sure you want to continue?')) {
-            startSync();
-        }
+        Dialog.confirm({
+            title: 'Confirm Database Sync',
+            message: 'This will completely replace the local database. Are you sure you want to continue?',
+            icon: '⚠️',
+            confirmText: 'Start Sync',
+            cancelText: 'Cancel',
+            confirmClass: 'btn-danger',
+            onConfirm: function() {
+                startSync();
+            }
+        });
     });
     
     // Test connection button
     document.getElementById('testConnectionBtn').addEventListener('click', testConnection);
     
+    // Load databases button
+    document.getElementById('loadDatabasesBtn').addEventListener('click', loadDatabases);
+    
     // Clear form button
     document.getElementById('clearFormBtn').addEventListener('click', function() {
-        if (confirm('Clear all saved form data?')) {
-            document.getElementById('syncForm').reset();
-            clearFormCookies();
-            alert('✅ Form cleared and cookies deleted');
-        }
+        Dialog.confirm({
+            title: 'Clear Form Data',
+            message: 'Clear all saved form data?',
+            icon: '🗑️',
+            confirmText: 'Clear',
+            cancelText: 'Cancel',
+            confirmClass: 'btn-danger',
+            onConfirm: function() {
+                document.getElementById('syncForm').reset();
+                clearFormCookies();
+                Dialog.alert({
+                    title: 'Success',
+                    message: 'Form cleared and cookies deleted',
+                    icon: '✅',
+                    confirmClass: 'btn-success'
+                });
+            }
+        });
     });
     
     // Auto-save form values on change

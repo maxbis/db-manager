@@ -13,7 +13,7 @@
 
                 <div class="form-group">
                     <label for="apiKey">API Key</label>
-                    <input type="password" id="apiKey" name="apiKey" placeholder="Enter API key" required>
+                    <input type="text" id="apiKey" name="apiKey" placeholder="Enter API key" required>
                     <small>The secure API key configured in config.php (saved in cookie)</small>
                 </div>
 
@@ -37,8 +37,14 @@
 
                 <div class="form-group">
                     <label for="remoteDbName">Remote Database Name</label>
-                    <input type="text" id="remoteDbName" name="remoteDbName" placeholder="remote_database" required>
-                    <small>Name of database on remote server</small>
+                    <div class="database-select-container">
+                        <input type="text" id="remoteDbName" name="remoteDbName" placeholder="remote_database" required>
+                        <button type="button" id="loadDatabasesBtn" class="btn btn-secondary btn-small" title="Load available databases">
+                            <span>📋</span>
+                            <span>Load DBs</span>
+                        </button>
+                    </div>
+                    <small>Name of database on remote server (click "Load DBs" to see available databases)</small>
                 </div>
             </div>
         </div>

@@ -82,6 +82,7 @@ $pageConfig = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageConfig['icon']; ?> <?php echo htmlspecialchars($pageConfig['title']); ?></title>
     <link rel="stylesheet" href="../styles/common.css">
+    <link rel="stylesheet" href="../dialog/dialog.css">
     <style>
         .ip-container {
             max-width: 700px;
@@ -244,6 +245,9 @@ $pageConfig = [
 
     <?php include __DIR__ . '/../templates/footer.php'; ?>
     
+    <?php include __DIR__ . '/../dialog/dialog.php'; ?>
+    
+    <script src="../dialog/dialog.js"></script>
     <script>
         function copyIP() {
             const ipText = document.getElementById('ipAddress').textContent;
@@ -258,7 +262,12 @@ $pageConfig = [
                     btn.style.background = 'linear-gradient(135deg, #06457F 0%, #04324D 100%)';
                 }, 2000);
             }).catch(function(err) {
-                alert('Failed to copy: ' + err);
+                Dialog.alert({
+                    title: 'Copy Failed',
+                    message: 'Failed to copy: ' + err,
+                    icon: '❌',
+                    confirmClass: 'btn-danger'
+                });
             });
         }
     </script>

@@ -25,6 +25,7 @@ $pageConfig = [
     <title><?php echo $pageConfig['icon']; ?> <?php echo htmlspecialchars($pageConfig['title']); ?></title>
     <link rel="stylesheet" href="../styles/common.css">
     <link rel="stylesheet" href="sync.css">
+    <link rel="stylesheet" href="../dialog/dialog.css">
 </head>
 <body>
     <?php include __DIR__ . '/../templates/header.php'; ?>
@@ -38,7 +39,10 @@ $pageConfig = [
     </div>
 
     <?php include __DIR__ . '/../templates/footer.php'; ?>
+    
+    <?php include __DIR__ . '/../dialog/dialog.php'; ?>
 
+    <script src="../dialog/dialog.js"></script>
     <script src="sync.js"></script>
 </body>
 </html>

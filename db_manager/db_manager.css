@@ -356,6 +356,23 @@
     min-width: 50px;
 }
 
+/* Table size indicator: make bars ~4x wider than database bars (fixed width) */
+.table-item .database-size-section,
+.database-table-item .database-size-section {
+    flex: 0 0 580px; /* section width to comfortably contain a 560px bar + text */
+}
+
+.table-item .database-size-info,
+.database-table-item .database-size-info {
+    width: auto; /* prevent shrinking to 100% of section when bar has fixed width */
+}
+
+.table-item .database-size-bar,
+.database-table-item .database-size-bar {
+    width: 200px; /* ~4x the original 140px */
+    max-width: none;
+}
+
 .database-item:hover {
     background: var(--color-bg-hover);
 }
@@ -482,6 +499,14 @@
     padding: 4px 8px;
     font-size: 11px;
     min-width: auto;
+}
+
+/* Disabled delete button (for views) */
+.table-actions button:disabled,
+.database-table-item .table-actions button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(60%);
 }
 
 .button-loading {
