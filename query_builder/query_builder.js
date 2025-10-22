@@ -250,6 +250,17 @@ function displayFieldList() {
         return;
     }
     
+    // Populate the dedicated clickable table name element
+    const tableName = currentTable || (tableInfo && (tableInfo.table || tableInfo.name || tableInfo.table_name)) || '';
+    const $tableItem = $('#tableItem');
+    if (tableName && $tableItem.length) {
+        $tableItem.attr('data-field', tableName);
+        $('#tableNameText').text(tableName);
+        $tableItem.show();
+    } else if ($tableItem.length) {
+        $tableItem.hide();
+    }
+    
     tableInfo.columns.forEach(function(col) {
         const fieldItem = $(`
             <li class="field-item" data-field="${col.name}">
