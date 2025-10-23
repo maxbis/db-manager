@@ -204,6 +204,19 @@ try {
             $handler->getCurrentDatabase();
             break;
             
+        case 'setCurrentTable':
+            require_once __DIR__ . '/handlers/DatabaseHandler.php';
+            $handler = new DatabaseHandler($conn);
+            $table = $_POST['table'] ?? '';
+            $handler->setCurrentTable($table);
+            break;
+            
+        case 'getCurrentTable':
+            require_once __DIR__ . '/handlers/DatabaseHandler.php';
+            $handler = new DatabaseHandler($conn);
+            $handler->getCurrentTable();
+            break;
+            
         // Export Operations
         case 'exportAllDatabases':
             require_once __DIR__ . '/handlers/ExportHandler.php';

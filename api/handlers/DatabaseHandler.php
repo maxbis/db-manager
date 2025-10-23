@@ -137,6 +137,36 @@ class DatabaseHandler {
             'database' => $currentDb
         ]);
     }
+    
+    /**
+     * Set the current table in session
+     */
+    public function setCurrentTable($table) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $_SESSION['current_table'] = $table;
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Current table updated'
+        ]);
+    }
+    
+    /**
+     * Get the current table from session
+     */
+    public function getCurrentTable() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $currentTable = $_SESSION['current_table'] ?? '';
+        
+        echo json_encode([
+            'success' => true,
+            'table' => $currentTable
+        ]);
+    }
 }
 ?>
 

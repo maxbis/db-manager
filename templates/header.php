@@ -53,8 +53,8 @@ $menuItems = [
     ]
 ];
 
-// Get selected table from URL if available
-$selectedTable = isset($_GET['table']) ? $_GET['table'] : '';
+// Get selected table from session (with URL parameter as fallback for backward compatibility)
+$selectedTable = $_SESSION['current_table'] ?? $_GET['table'] ?? '';
 
 // Get current database if available
 $currentDatabase = null;
@@ -116,10 +116,7 @@ if (!empty($selectedTable) && !empty($currentDatabase)) {
                 <?php 
                 $activeClass = ($pageConfig['id'] === $item['id']) ? 'active' : '';
                 $url = $item['url'];
-                // Add table parameter if available and not database_manager page
-                if ($selectedTable && $item['id'] !== 'database_manager') {
-                    $url .= '?table=' . urlencode($selectedTable);
-                }
+                // No need to add table parameters - using session-based storage
                 ?>
                 <a href="<?php echo htmlspecialchars($url); ?>" class="<?php echo $activeClass; ?> nav-link">
                     <span class="nav-icon"><?php echo $item['icon']; ?></span>

@@ -12,23 +12,36 @@ let tableInfo = null;
 
 // Initialize
 $(document).ready(function() {
+    // Load tables and saved queries immediately
     loadTables();
     loadSavedQueries();
+    
+    // Try to get current table from session (non-blocking)
+    $.ajax({
+        url: '../api/?action=getCurrentTable',
+        method: 'GET',
+        dataType: 'json',
+        timeout: 3000, // 3 second timeout
+        success: function(response) {
+            if (response.success && response.table) {
+                currentTable = response.table;
+                console.log('Restored current table from session:', currentTable);
+                // Update the UI to reflect the current table
+                updateDatabaseBadge();
+                highlightSelectedTable(currentTable);
+            } else {
+                console.log('No table in session to restore');
+            }
+        },
+        error: function(err) {
+            console.error('Error getting current table:', err);
+            // Silently fail - the page is already loaded and functional
+        }
+    });
     
     // Check if examples box should be hidden (user previously closed it)
     if (localStorage.getItem('hideExamples') === 'true') {
         $('#queryExamples').hide();
-    }
-    
-    // Update navigation links with current table
-    function updateNavLinks() {
-        const selectedTable = $('#tableSelect').val();
-        if (selectedTable) {
-            $('.nav-link').each(function() {
-                const baseUrl = $(this).attr('href').split('?')[0];
-                $(this).attr('href', baseUrl + '?table=' + encodeURIComponent(selectedTable));
-            });
-        }
     }
 
     // Update database badge in header
@@ -36,13 +49,12 @@ $(document).ready(function() {
         const databaseBadge = document.querySelector('.control-group span span');
         if (databaseBadge) {
             const databaseName = databaseBadge.textContent.replace('🗄️ ', '');
-            const tableName = $('#tableSelect').val();
             
             let displayText = '🗄️ ' + databaseName;
-            if (tableName) {
+            if (currentTable) {
                 // Extract just the database name (remove any existing table part)
                 const dbName = databaseName.split(' - ')[0];
-                displayText = '🗄️ ' + dbName + ' -  ' + tableName;
+                displayText = '🗄️ ' + dbName + ' -  ' + currentTable;
             }
             databaseBadge.textContent = displayText;
         }
@@ -51,7 +63,7 @@ $(document).ready(function() {
     // Save current query to localStorage before leaving the page
     function saveCurrentQuery() {
         const query = $('#queryInput').val();
-        const table = $('#tableSelect').val();
+        const table = currentTable; // Use the global currentTable variable
         if (query && table) {
             const queryState = {
                 query: query,
@@ -86,11 +98,27 @@ $(document).ready(function() {
         showToast('SQL query loaded from table structure editor', 'success');
     }
     
-    $('#tableSelect').change(function() {
+    // Function to handle table selection (called when table is clicked)
+    function selectTable(tableName) {
         const previousTable = currentTable;
-        currentTable = $(this).val();
-        updateNavLinks();
-        updateDatabaseBadge();
+        currentTable = tableName;
+        
+        // Update session cache
+        $.ajax({
+            url: '../api/',
+            method: 'POST',
+            data: {
+                action: 'setCurrentTable',
+                table: currentTable
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    updateDatabaseBadge();
+                    highlightSelectedTable(tableName);
+                }
+            }
+        });
         
         if (currentTable) {
             loadTableInfo();
@@ -129,7 +157,7 @@ $(document).ready(function() {
             $('#queryInput').val('');
             $('#resultsSection').hide();
         }
-    });
+    }
 
     $('#executeBtn').click(function() {
         executeQuery();
@@ -213,10 +241,15 @@ $(document).ready(function() {
         }
     });
 
-    // Click on table name to copy table name to query
+    // Click on table name to copy table name to query and select table
     $(document).on('click', '.table-name', function(e) {
         e.stopPropagation();
         const tableName = $(this).data('table');
+        
+        // Select the table (this will update session and UI)
+        selectTable(tableName);
+        
+        // Also insert the table name into the query
         insertFieldName(tableName);
     });
 
@@ -262,20 +295,6 @@ function loadTables() {
         dataType: 'json',
         success: function(response) {
             if (response.success) {
-                const select = $('#tableSelect');
-                select.empty();
-                select.append('<option value="">-- Choose a table --</option>');
-                
-                // Populate dropdown
-                response.tables.forEach(function(table) {
-                    // Handle both old format (string) and new format (object)
-                    const tableName = typeof table === 'string' ? table : table.name;
-                    const tableType = typeof table === 'object' ? table.type : 'BASE TABLE';
-                    const label = tableType === 'VIEW' ? `${tableName} 👁️ (view)` : tableName;
-                    
-                    select.append(`<option value="${tableName}" data-type="${tableType}">${label}</option>`);
-                });
-                
                 // Populate tables container
                 populateTablesContainer(response.tables);
                 
@@ -283,13 +302,16 @@ function loadTables() {
                 $('#queryInterface').show();
                 $('#emptyState').hide();
                 
-                // Check for table parameter in URL and select it
+                // Check for current table from session or URL parameter and select it
                 const urlParams = new URLSearchParams(window.location.search);
                 const tableParam = urlParams.get('table');
-                if (tableParam) {
+                const tableToSelect = currentTable || tableParam;
+                
+                if (tableToSelect) {
                     const tableNames = response.tables.map(t => typeof t === 'string' ? t : t.name);
-                    if (tableNames.includes(tableParam)) {
-                        select.val(tableParam).trigger('change');
+                    if (tableNames.includes(tableToSelect)) {
+                        // Select the table programmatically
+                        selectTable(tableToSelect);
                     }
                 }
             }
@@ -820,7 +842,7 @@ function loadQuery(queryId) {
         
         // If query has a specific table and it's different from current, change table
         if (query.table_name && query.table_name !== currentTable) {
-            $('#tableSelect').val(query.table_name).trigger('change');
+            selectTable(query.table_name);
         } else {
             // Reload the saved queries to show updated usage count
             loadSavedQueries(currentTable);
