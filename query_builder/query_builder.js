@@ -16,6 +16,17 @@ $(document).ready(function() {
     loadTables();
     loadSavedQueries();
     
+    // Fallback: ensure loading spinner is removed after 15 seconds
+    setTimeout(function() {
+        if ($('#loading').hasClass('active')) {
+            console.warn('Loading spinner still active after 15 seconds, removing it');
+            $('#loading').removeClass('active');
+            if ($('#queryInterface').is(':hidden')) {
+                $('#queryInterface').show();
+            }
+        }
+    }, 15000);
+    
     // Try to get current table from session (non-blocking)
     $.ajax({
         url: '../api/?action=getCurrentTable',
@@ -99,7 +110,7 @@ $(document).ready(function() {
     }
     
     // Function to handle table selection (called when table is clicked)
-    function selectTable(tableName) {
+    function selectTable(tableName, setDefaultQuery = true) {
         const previousTable = currentTable;
         currentTable = tableName;
         
@@ -123,31 +134,34 @@ $(document).ready(function() {
         if (currentTable) {
             loadTableInfo();
             
-            // Check if SQL query was passed via URL parameter (takes priority)
-            if (sqlParam && !$('#queryInput').data('sql-loaded')) {
-                $('#queryInput').val(decodeURIComponent(sqlParam));
-                $('#queryInput').data('sql-loaded', true);
-                // Show a notification
-                showToast('SQL query loaded from table structure editor', 'success');
-            } 
-            // Check if we have a saved query for this table (only if no SQL was loaded from URL)
-            else if (!$('#queryInput').data('sql-loaded')) {
-                const savedQueryState = localStorage.getItem('currentQuery');
-                if (savedQueryState) {
-                    try {
-                        const queryState = JSON.parse(savedQueryState);
-                        // Restore query if it's for the same table
-                        if (queryState.table === currentTable) {
-                            $('#queryInput').val(queryState.query);
-                        } else {
-                            // Different table selected, clear and set default query
+            // Only set default queries if setDefaultQuery is true
+            if (setDefaultQuery) {
+                // Check if SQL query was passed via URL parameter (takes priority)
+                if (sqlParam && !$('#queryInput').data('sql-loaded')) {
+                    $('#queryInput').val(decodeURIComponent(sqlParam));
+                    $('#queryInput').data('sql-loaded', true);
+                    // Show a notification
+                    showToast('SQL query loaded from table structure editor', 'success');
+                } 
+                // Check if we have a saved query for this table (only if no SQL was loaded from URL)
+                else if (!$('#queryInput').data('sql-loaded')) {
+                    const savedQueryState = localStorage.getItem('currentQuery');
+                    if (savedQueryState) {
+                        try {
+                            const queryState = JSON.parse(savedQueryState);
+                            // Restore query if it's for the same table
+                            if (queryState.table === currentTable) {
+                                $('#queryInput').val(queryState.query);
+                            } else {
+                                // Different table selected, clear and set default query
+                                $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
+                            }
+                        } catch (e) {
                             $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
                         }
-                    } catch (e) {
+                    } else {
                         $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
                     }
-                } else {
-                    $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
                 }
             }
             
@@ -246,11 +260,18 @@ $(document).ready(function() {
         e.stopPropagation();
         const tableName = $(this).data('table');
         
-        // Select the table (this will update session and UI)
-        selectTable(tableName);
+        // Check if query is empty to determine behavior
+        const queryText = $('#queryInput').val().trim();
+        const isQueryEmpty = queryText === '';
         
-        // Also insert the table name into the query
-        insertFieldName(tableName);
+        if (isQueryEmpty) {
+            // If query is empty, select table and let it set default query
+            selectTable(tableName, true);
+        } else {
+            // If query is not empty, select table without setting default query, then insert table name at cursor
+            selectTable(tableName, false);
+            insertFieldName(tableName);
+        }
     });
 
     // Close modal on outside click
@@ -293,6 +314,7 @@ function loadTables() {
         url: '../api/?action=getTables',
         method: 'GET',
         dataType: 'json',
+        timeout: 10000, // 10 second timeout
         success: function(response) {
             if (response.success) {
                 // Populate tables container
@@ -302,23 +324,23 @@ function loadTables() {
                 $('#queryInterface').show();
                 $('#emptyState').hide();
                 
-                // Check for current table from session or URL parameter and select it
-                const urlParams = new URLSearchParams(window.location.search);
-                const tableParam = urlParams.get('table');
-                const tableToSelect = currentTable || tableParam;
-                
-                if (tableToSelect) {
+                // Select the current table from session if available
+                if (currentTable) {
                     const tableNames = response.tables.map(t => typeof t === 'string' ? t : t.name);
-                    if (tableNames.includes(tableToSelect)) {
+                    if (tableNames.includes(currentTable)) {
                         // Select the table programmatically
-                        selectTable(tableToSelect);
+                        selectTable(currentTable);
                     }
                 }
+            } else {
+                showToast('Error: ' + (response.error || 'Failed to load tables'), 'error');
+                showEmptyState();
             }
             $('#loading').removeClass('active');
         },
         error: function(xhr) {
-            showToast('Error loading tables: ' + xhr.responseText, 'error');
+            console.error('Error loading tables:', xhr);
+            showToast('Error loading tables: ' + (xhr.responseText || 'Network error'), 'error');
             $('#loading').removeClass('active');
             // Show empty state only when there's an error loading tables
             showEmptyState();
@@ -470,17 +492,9 @@ function insertFieldName(fieldName) {
     const before = text.substring(0, start);
     const after = text.substring(end, text.length);
     
-    // Check if this is a table name click and query is empty
-    const isTableName = $(`.table-name[data-table="${fieldName}"]`).length > 0;
-    const isQueryEmpty = text.trim() === '';
-    
-    let textToInsert = fieldName;
-    if (isTableName && isQueryEmpty) {
-        textToInsert = `SELECT * FROM ${fieldName}`;
-    }
-    
-    textarea.value = before + textToInsert + after;
-    textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length;
+    // Simply insert the field/table name at cursor position
+    textarea.value = before + fieldName + after;
+    textarea.selectionStart = textarea.selectionEnd = start + fieldName.length;
     textarea.focus();
 }
 

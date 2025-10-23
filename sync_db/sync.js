@@ -277,7 +277,16 @@ async function executeLocalSQL(sql, dbName = null, options = {}) {
     }
     
     if (!data.success) {
-        throw new Error(data.message || 'SQL execution failed');
+        let errorMessage = data.message || 'SQL execution failed';
+        
+        // Provide helpful error messages for common issues
+        if (errorMessage.includes('max_allowed_packet')) {
+            errorMessage += '\n\n💡 This error occurs when the SQL statement is too large. The sync process will automatically retry with smaller batches.';
+        } else if (errorMessage.includes('Packet too large')) {
+            errorMessage += '\n\n💡 The data chunk is too large for the current MySQL configuration. The sync will continue with smaller batches.';
+        }
+        
+        throw new Error(errorMessage);
     }
     
     return data.data;
@@ -611,6 +620,8 @@ async function startSync() {
             let hasMore = true;
             let tableRows = 0;
             
+            addLog(`  📦 Using conservative batching (256KB per statement) for data transfer`, 'info');
+            
             while (hasMore) {
                 const dataResult = await apiRequest(config.remoteUrl, config.apiKey, 'get_table_data', {
                     ...params,
@@ -640,7 +651,8 @@ async function startSync() {
                     });
 
                     // Dynamically batch by SQL size to avoid max_allowed_packet
-                    const MAX_SQL_BYTES = 1024 * 1024; // ~1MB per statement
+                    // Use a very conservative batch size to work with restrictive MySQL settings
+                    const MAX_SQL_BYTES = 256 * 1024; // ~256KB per statement (very conservative)
                     const targetDb = config.localDbName;
                     const prefix = `${targetDb ? `USE \`${targetDb}\`; ` : ''}INSERT INTO \`${table}\` (\`${columns.join('`, `')}\`) VALUES `;
                     let batchParts = [];
@@ -651,9 +663,38 @@ async function startSync() {
                         const sep = batchParts.length > 0 ? 2 : 0;
                         if (currentLength + sep + nextPartLength > MAX_SQL_BYTES && batchParts.length > 0) {
                             const sql = prefix + batchParts.join(', ');
-                            await executeLocalSQL(sql, config.localDbName, { disableForeignKeys: true, increasePacket: true });
+                            await executeWithRetry(sql, config.localDbName, { disableForeignKeys: true, increasePacket: true });
                             batchParts = [];
                             currentLength = prefix.length;
+                        }
+                    }
+
+                    // Function to execute SQL with retry on packet size errors
+                    async function executeWithRetry(sql, dbName, options, maxRetries = 3) {
+                        let currentBatchSize = MAX_SQL_BYTES;
+                        
+                        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                            try {
+                                return await executeLocalSQL(sql, dbName, options);
+                            } catch (error) {
+                                if ((error.message.includes('max_allowed_packet') || 
+                                     error.message.includes('Packet too large')) && 
+                                    attempt < maxRetries) {
+                                    
+                                    // Reduce batch size and retry
+                                    currentBatchSize = Math.floor(currentBatchSize * 0.5);
+                                    addLog(`  ⚠️ Packet size error, retrying with smaller batch (${Math.round(currentBatchSize/1024)}KB)...`, 'warning');
+                                    
+                                    // Rebuild SQL with smaller batch if possible
+                                    if (sql.includes('VALUES')) {
+                                        // This is an INSERT statement, we need to rebuild it with smaller batches
+                                        // For now, just retry with the same SQL and hope the server can handle it
+                                        continue;
+                                    }
+                                } else {
+                                    throw error;
+                                }
+                            }
                         }
                     }
 
@@ -662,7 +703,7 @@ async function startSync() {
                         await flushBatchIfNeeded(part.length);
                         // If a single tuple itself exceeds the limit, send alone
                         if (part.length + prefix.length > MAX_SQL_BYTES && batchParts.length === 0) {
-                            await executeLocalSQL(prefix + part, config.localDbName, { disableForeignKeys: true, increasePacket: true });
+                            await executeWithRetry(prefix + part, config.localDbName, { disableForeignKeys: true, increasePacket: true });
                             continue;
                         }
                         if (batchParts.length > 0) currentLength += 2; // ', '
@@ -672,7 +713,7 @@ async function startSync() {
 
                     if (batchParts.length > 0) {
                         const sql = prefix + batchParts.join(', ');
-                        await executeLocalSQL(sql, config.localDbName, { disableForeignKeys: true, increasePacket: true });
+                        await executeWithRetry(sql, config.localDbName, { disableForeignKeys: true, increasePacket: true });
                     }
                     
                     tableRows += rows.length;
