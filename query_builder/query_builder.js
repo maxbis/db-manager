@@ -12,23 +12,47 @@ let tableInfo = null;
 
 // Initialize
 $(document).ready(function() {
+    // Load tables and saved queries immediately
     loadTables();
     loadSavedQueries();
+    
+    // Fallback: ensure loading spinner is removed after 15 seconds
+    setTimeout(function() {
+        if ($('#loading').hasClass('active')) {
+            console.warn('Loading spinner still active after 15 seconds, removing it');
+            $('#loading').removeClass('active');
+            if ($('#queryInterface').is(':hidden')) {
+                $('#queryInterface').show();
+            }
+        }
+    }, 15000);
+    
+    // Try to get current table from session (non-blocking)
+    $.ajax({
+        url: '../api/?action=getCurrentTable',
+        method: 'GET',
+        dataType: 'json',
+        timeout: 3000, // 3 second timeout
+        success: function(response) {
+            if (response.success && response.table) {
+                currentTable = response.table;
+                console.log('Restored current table from session:', currentTable);
+                // Update the UI to reflect the current table
+                updateDatabaseBadge();
+                highlightSelectedTable(currentTable);
+            } else {
+                console.log('No table in session to restore');
+            }
+        },
+        error: function(err) {
+            console.error('Error getting current table:', err);
+            // Silently fail - the page is already loaded and functional
+        }
+    });
     
     // Check if examples box should be hidden (user previously closed it)
     if (localStorage.getItem('hideExamples') === 'true') {
         $('#queryExamples').hide();
-    }
-    
-    // Update navigation links with current table
-    function updateNavLinks() {
-        const selectedTable = $('#tableSelect').val();
-        if (selectedTable) {
-            $('.nav-link').each(function() {
-                const baseUrl = $(this).attr('href').split('?')[0];
-                $(this).attr('href', baseUrl + '?table=' + encodeURIComponent(selectedTable));
-            });
-        }
     }
 
     // Update database badge in header
@@ -36,13 +60,12 @@ $(document).ready(function() {
         const databaseBadge = document.querySelector('.control-group span span');
         if (databaseBadge) {
             const databaseName = databaseBadge.textContent.replace('🗄️ ', '');
-            const tableName = $('#tableSelect').val();
             
             let displayText = '🗄️ ' + databaseName;
-            if (tableName) {
+            if (currentTable) {
                 // Extract just the database name (remove any existing table part)
                 const dbName = databaseName.split(' - ')[0];
-                displayText = '🗄️ ' + dbName + ' -  ' + tableName;
+                displayText = '🗄️ ' + dbName + ' -  ' + currentTable;
             }
             databaseBadge.textContent = displayText;
         }
@@ -51,7 +74,7 @@ $(document).ready(function() {
     // Save current query to localStorage before leaving the page
     function saveCurrentQuery() {
         const query = $('#queryInput').val();
-        const table = $('#tableSelect').val();
+        const table = currentTable; // Use the global currentTable variable
         if (query && table) {
             const queryState = {
                 query: query,
@@ -78,48 +101,77 @@ $(document).ready(function() {
     const urlParams = new URLSearchParams(window.location.search);
     const sqlParam = urlParams.get('sql');
     
-    $('#tableSelect').change(function() {
+    // Load SQL from URL parameter immediately if present
+    if (sqlParam) {
+        $('#queryInput').val(decodeURIComponent(sqlParam));
+        $('#queryInput').data('sql-loaded', true);
+        // Show a notification
+        showToast('SQL query loaded from table structure editor', 'success');
+    }
+    
+    // Function to handle table selection (called when table is clicked)
+    function selectTable(tableName, setDefaultQuery = true) {
         const previousTable = currentTable;
-        currentTable = $(this).val();
-        updateNavLinks();
-        updateDatabaseBadge();
+        currentTable = tableName;
+        
+        // Update session cache
+        $.ajax({
+            url: '../api/',
+            method: 'POST',
+            data: {
+                action: 'setCurrentTable',
+                table: currentTable
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    updateDatabaseBadge();
+                    highlightSelectedTable(tableName);
+                }
+            }
+        });
         
         if (currentTable) {
             loadTableInfo();
             
-            // Check if SQL query was passed via URL parameter (takes priority)
-            if (sqlParam && !$('#queryInput').data('sql-loaded')) {
-                $('#queryInput').val(decodeURIComponent(sqlParam));
-                $('#queryInput').data('sql-loaded', true);
-                // Show a notification
-                showToast('SQL query loaded from table structure editor', 'success');
-            } 
-            // Check if we have a saved query for this table
-            else {
-                const savedQueryState = localStorage.getItem('currentQuery');
-                if (savedQueryState) {
-                    try {
-                        const queryState = JSON.parse(savedQueryState);
-                        // Restore query if it's for the same table
-                        if (queryState.table === currentTable) {
-                            $('#queryInput').val(queryState.query);
-                        } else {
-                            // Different table selected, clear and set default query
+            // Only set default queries if setDefaultQuery is true
+            if (setDefaultQuery) {
+                // Check if SQL query was passed via URL parameter (takes priority)
+                if (sqlParam && !$('#queryInput').data('sql-loaded')) {
+                    $('#queryInput').val(decodeURIComponent(sqlParam));
+                    $('#queryInput').data('sql-loaded', true);
+                    // Show a notification
+                    showToast('SQL query loaded from table structure editor', 'success');
+                } 
+                // Check if we have a saved query for this table (only if no SQL was loaded from URL)
+                else if (!$('#queryInput').data('sql-loaded')) {
+                    const savedQueryState = localStorage.getItem('currentQuery');
+                    if (savedQueryState) {
+                        try {
+                            const queryState = JSON.parse(savedQueryState);
+                            // Restore query if it's for the same table
+                            if (queryState.table === currentTable) {
+                                $('#queryInput').val(queryState.query);
+                            } else {
+                                // Different table selected, clear and set default query
+                                $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
+                            }
+                        } catch (e) {
                             $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
                         }
-                    } catch (e) {
+                    } else {
                         $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
                     }
-                } else {
-                    $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
                 }
             }
             
             loadSavedQueries(currentTable);
         } else {
-            showEmptyState();
+            // Clear the query input when no table is selected, but keep the interface visible
+            $('#queryInput').val('');
+            $('#resultsSection').hide();
         }
-    });
+    }
 
     $('#executeBtn').click(function() {
         executeQuery();
@@ -203,11 +255,23 @@ $(document).ready(function() {
         }
     });
 
-    // Click on table name to copy table name to query
+    // Click on table name to copy table name to query and select table
     $(document).on('click', '.table-name', function(e) {
         e.stopPropagation();
         const tableName = $(this).data('table');
-        insertFieldName(tableName);
+        
+        // Check if query is empty to determine behavior
+        const queryText = $('#queryInput').val().trim();
+        const isQueryEmpty = queryText === '';
+        
+        if (isQueryEmpty) {
+            // If query is empty, select table and let it set default query
+            selectTable(tableName, true);
+        } else {
+            // If query is not empty, select table without setting default query, then insert table name at cursor
+            selectTable(tableName, false);
+            insertFieldName(tableName);
+        }
     });
 
     // Close modal on outside click
@@ -215,6 +279,32 @@ $(document).ready(function() {
         if ($(e.target).is('#saveQueryModal')) {
             closeSaveModal();
         }
+    });
+
+    // Error panel event handlers (using event delegation)
+    $(document).on('click', '#copyAllErrorsBtn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        copyAllErrors();
+    });
+
+    $(document).on('click', '#clearErrorsBtn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearAllErrors();
+    });
+
+    $(document).on('click', '#toggleErrorsBtn', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleErrorPanel();
+    });
+
+    // Error panel header click to toggle
+    $(document).on('click', '.error-panel-header', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleErrorPanel();
     });
 });
 
@@ -224,40 +314,36 @@ function loadTables() {
         url: '../api/?action=getTables',
         method: 'GET',
         dataType: 'json',
+        timeout: 10000, // 10 second timeout
         success: function(response) {
             if (response.success) {
-                const select = $('#tableSelect');
-                select.empty();
-                select.append('<option value="">-- Choose a table --</option>');
-                
-                // Populate dropdown
-                response.tables.forEach(function(table) {
-                    // Handle both old format (string) and new format (object)
-                    const tableName = typeof table === 'string' ? table : table.name;
-                    const tableType = typeof table === 'object' ? table.type : 'BASE TABLE';
-                    const label = tableType === 'VIEW' ? `${tableName} 👁️ (view)` : tableName;
-                    
-                    select.append(`<option value="${tableName}" data-type="${tableType}">${label}</option>`);
-                });
-                
                 // Populate tables container
                 populateTablesContainer(response.tables);
                 
-                // Check for table parameter in URL and select it
-                const urlParams = new URLSearchParams(window.location.search);
-                const tableParam = urlParams.get('table');
-                if (tableParam) {
+                // Show the query interface immediately since we have tables
+                $('#queryInterface').show();
+                $('#emptyState').hide();
+                
+                // Select the current table from session if available
+                if (currentTable) {
                     const tableNames = response.tables.map(t => typeof t === 'string' ? t : t.name);
-                    if (tableNames.includes(tableParam)) {
-                        select.val(tableParam).trigger('change');
+                    if (tableNames.includes(currentTable)) {
+                        // Select the table programmatically
+                        selectTable(currentTable);
                     }
                 }
+            } else {
+                showToast('Error: ' + (response.error || 'Failed to load tables'), 'error');
+                showEmptyState();
             }
             $('#loading').removeClass('active');
         },
         error: function(xhr) {
-            showToast('Error loading tables: ' + xhr.responseText, 'error');
+            console.error('Error loading tables:', xhr);
+            showToast('Error loading tables: ' + (xhr.responseText || 'Network error'), 'error');
             $('#loading').removeClass('active');
+            // Show empty state only when there's an error loading tables
+            showEmptyState();
         }
     });
 }
@@ -277,8 +363,7 @@ function loadTableInfo() {
                 // Highlight the selected table in the collapsible structure
                 highlightSelectedTable(currentTable);
                 
-                $('#queryInterface').show();
-                $('#emptyState').hide();
+                // Query interface is already shown, no need to show/hide it
                 
                 // Show info if it's a view
                 if (tableInfo.isView) {
@@ -407,6 +492,7 @@ function insertFieldName(fieldName) {
     const before = text.substring(0, start);
     const after = text.substring(end, text.length);
     
+    // Simply insert the field/table name at cursor position
     textarea.value = before + fieldName + after;
     textarea.selectionStart = textarea.selectionEnd = start + fieldName.length;
     textarea.focus();
@@ -505,7 +591,7 @@ function displayResults(response) {
     resultsSection.show();
 }
 
-// Show empty state
+// Show empty state (only when no tables are available)
 function showEmptyState() {
     $('#queryInterface').hide();
     $('#emptyState').show();
@@ -515,14 +601,87 @@ function showEmptyState() {
 // Show toast notification
 function showToast(message, type = 'success') {
     const toast = $('#toast');
-    toast.text(message);
+    const toastMessage = $('#toastMessage');
+    const toastCloseBtn = $('#toastCloseBtn');
+    
+    // Set message content
+    toastMessage.text(message);
+    
+    // Remove previous classes
     toast.removeClass('success error warning');
     toast.addClass(type);
     toast.addClass('active');
     
-    setTimeout(function() {
-        toast.removeClass('active');
-    }, 4000);
+    // Add error to persistent error panel for error messages
+    if (type === 'error') {
+        addErrorToPanel(message);
+    }
+    
+    // Set up close button functionality
+    toastCloseBtn.off('click').on('click', function() {
+        closeToast();
+    });
+    
+    // Set duration back to 4 seconds for all messages
+    const duration = 4000;
+    
+    // Clear any existing timeout
+    if (window.toastTimeout) {
+        clearTimeout(window.toastTimeout);
+    }
+    
+    // Set new timeout
+    window.toastTimeout = setTimeout(function() {
+        closeToast();
+    }, duration);
+}
+
+// Close toast notification
+function closeToast() {
+    const toast = $('#toast');
+    toast.removeClass('active');
+    
+    // Clear timeout if it exists
+    if (window.toastTimeout) {
+        clearTimeout(window.toastTimeout);
+        window.toastTimeout = null;
+    }
+}
+
+// Copy text to clipboard (used by error panel)
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        // Use modern clipboard API
+        navigator.clipboard.writeText(text).then(function() {
+            // Success handled by calling function
+        }).catch(function() {
+            fallbackCopyTextToClipboard(text);
+        });
+    } else {
+        // Fallback for older browsers
+        fallbackCopyTextToClipboard(text);
+    }
+}
+
+// Fallback copy method for older browsers
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        // Success/failure handled by calling function
+    } catch (err) {
+        // Error handled by calling function
+    }
+    
+    document.body.removeChild(textArea);
 }
 
 // Escape HTML
@@ -697,7 +856,7 @@ function loadQuery(queryId) {
         
         // If query has a specific table and it's different from current, change table
         if (query.table_name && query.table_name !== currentTable) {
-            $('#tableSelect').val(query.table_name).trigger('change');
+            selectTable(query.table_name);
         } else {
             // Reload the saved queries to show updated usage count
             loadSavedQueries(currentTable);
@@ -880,4 +1039,132 @@ $('.nav-link').click(function(e) {
         window.location.href = href;
     }, 200);
 });
+
+// Error Panel Management
+let errorHistory = [];
+
+// Add error to panel
+function addErrorToPanel(message) {
+    const timestamp = new Date();
+    const errorId = Date.now() + Math.random();
+    
+    const error = {
+        id: errorId,
+        message: message,
+        timestamp: timestamp
+    };
+    
+    // Add to beginning of array (most recent first)
+    errorHistory.unshift(error);
+    
+    // Limit to 10 errors max
+    if (errorHistory.length > 10) {
+        errorHistory = errorHistory.slice(0, 10);
+    }
+    
+    // Update display
+    updateErrorPanelDisplay();
+    
+    // Show panel if it was hidden
+    $('#errorPanel').show();
+}
+
+// Update error panel display
+function updateErrorPanelDisplay() {
+    const errorList = $('#errorList');
+    errorList.empty();
+    
+    if (errorHistory.length === 0) {
+        errorList.append('<li style="text-align: center; padding: 20px; color: var(--color-text-muted); font-size: 13px;">No errors yet</li>');
+        $('#errorPanel').hide();
+        return;
+    }
+    
+    errorHistory.forEach(function(error) {
+        const timeString = error.timestamp.toLocaleTimeString();
+        const errorItem = $(`
+            <li class="error-item" data-error-id="${error.id}">
+                <div class="error-item-content">
+                    <div class="error-message">${escapeHtml(error.message)}</div>
+                    <div class="error-meta">
+                        <div class="error-timestamp">${timeString}</div>
+                        <div class="error-actions">
+                            <button class="error-copy-btn" onclick="copyError('${error.id}'); event.stopPropagation();">📋</button>
+                            <button class="error-remove-btn" onclick="removeError('${error.id}'); event.stopPropagation();">×</button>
+                        </div>
+                    </div>
+                </div>
+            </li>
+        `);
+        errorList.append(errorItem);
+    });
+}
+
+// Copy individual error
+function copyError(errorId) {
+    const error = errorHistory.find(e => e.id == errorId);
+    if (error) {
+        copyToClipboard(error.message);
+        
+        // Show visual feedback
+        const copyBtn = $(`.error-item[data-error-id="${errorId}"] .error-copy-btn`);
+        const originalText = copyBtn.text();
+        copyBtn.addClass('copied').text('✓');
+        
+        setTimeout(function() {
+            copyBtn.removeClass('copied').text(originalText);
+        }, 2000);
+    }
+}
+
+// Remove individual error
+function removeError(errorId) {
+    errorHistory = errorHistory.filter(e => e.id != errorId);
+    updateErrorPanelDisplay();
+}
+
+// Copy all errors
+function copyAllErrors() {
+    if (errorHistory.length === 0) {
+        showToast('No errors to copy', 'warning');
+        return;
+    }
+    
+    const allErrors = errorHistory.map(error => {
+        const timeString = error.timestamp.toLocaleTimeString();
+        return `[${timeString}] ${error.message}`;
+    }).join('\n\n');
+    
+    copyToClipboard(allErrors);
+    
+    // Show visual feedback
+    const copyBtn = $('#copyAllErrorsBtn');
+    const originalText = copyBtn.text();
+    copyBtn.text('✓ Copied!');
+    
+    setTimeout(function() {
+        copyBtn.text(originalText);
+    }, 2000);
+}
+
+// Clear all errors
+function clearAllErrors() {
+    errorHistory = [];
+    updateErrorPanelDisplay();
+    showToast('All errors cleared', 'success');
+}
+
+// Toggle error panel
+function toggleErrorPanel() {
+    const content = $('#errorPanelContent');
+    const toggleBtn = $('#toggleErrorsBtn');
+    
+    if (content.hasClass('collapsed')) {
+        content.removeClass('collapsed');
+        toggleBtn.removeClass('collapsed').text('▼');
+    } else {
+        content.addClass('collapsed');
+        toggleBtn.addClass('collapsed').text('▶');
+    }
+}
 

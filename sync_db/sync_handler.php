@@ -86,13 +86,12 @@ try {
         }
     }
     
-    // Optionally increase packet/buffer sizes for this request (session scope)
+    // Optionally increase packet/buffer sizes for this request
     if ($increasePacket) {
-        // Best-effort increases; ignore errors if not permitted
-        @$conn->query('SET SESSION max_allowed_packet=268435456'); // 256MB
-        @$conn->query('SET SESSION net_buffer_length=16777216');   // 16MB
-        // Try global as a fallback (may require privileges)
-        @$conn->query('SET GLOBAL max_allowed_packet=268435456');
+        // Note: Both max_allowed_packet and net_buffer_length may require SUPER privileges
+        // to set globally, and some MySQL configurations don't allow session-level changes
+        // We'll rely on the existing server configuration and conservative batching
+        // in the client to handle large data transfers
     }
 
     // Optionally disable foreign key checks for this request (session scope)

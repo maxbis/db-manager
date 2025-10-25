@@ -10,18 +10,27 @@ let currentEditColumn = null;
 
 // Initialize
 $(document).ready(function() {
-    loadTables();
-    
-    // Update navigation links with current table
-    function updateNavLinks() {
-        const selectedTable = $('#tableSelect').val();
-        if (selectedTable) {
-            $('.nav-link').each(function() {
-                const baseUrl = $(this).attr('href').split('?')[0];
-                $(this).attr('href', baseUrl + '?table=' + encodeURIComponent(selectedTable));
-            });
+    // Get current table from session first
+    $.ajax({
+        url: '../api/?action=getCurrentTable',
+        method: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.success && response.table) {
+                currentTable = response.table;
+                console.log('Restored current table from session:', currentTable);
+            } else {
+                console.log('No table in session to restore');
+            }
+            // Then load tables (which will select the current one if set)
+            loadTables();
+        },
+        error: function(err) {
+            console.error('Error getting current table:', err);
+            // If error, just load tables without pre-selection
+            loadTables();
         }
-    }
+    });
 
     // Update database badge in header
     function updateDatabaseBadge() {
@@ -42,8 +51,23 @@ $(document).ready(function() {
     
     $('#tableSelect').change(function() {
         currentTable = $(this).val();
-        updateNavLinks();
-        updateDatabaseBadge();
+        
+        // Update session cache
+        $.ajax({
+            url: '../api/',
+            method: 'POST',
+            data: {
+                action: 'setCurrentTable',
+                table: currentTable
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    updateDatabaseBadge();
+                }
+            }
+        });
+        
         if (currentTable) {
             loadTableStructure();
             $('#addColumnBtn').show();
@@ -87,13 +111,11 @@ function loadTables() {
                     select.append(`<option value="${tableName}" data-type="${tableType}">${label}</option>`);
                 });
                 
-                // Check for table parameter in URL and select it
-                const urlParams = new URLSearchParams(window.location.search);
-                const tableParam = urlParams.get('table');
-                if (tableParam) {
+                // Select the current table from session
+                if (currentTable) {
                     const tableNames = response.tables.map(t => typeof t === 'string' ? t : t.name);
-                    if (tableNames.includes(tableParam)) {
-                        select.val(tableParam).trigger('change');
+                    if (tableNames.includes(currentTable)) {
+                        select.val(currentTable).trigger('change');
                     }
                 }
             }
@@ -126,7 +148,6 @@ function loadTableStructure() {
                 // Disable add column button for views
                 if (tableInfo.isView) {
                     $('#addColumnBtn').hide();
-                    showError('📖 This is a database VIEW - Structure cannot be modified');
                 } else {
                     $('#addColumnBtn').show();
                 }
@@ -392,7 +413,23 @@ function saveColumn() {
     // Redirect to SQL Query Builder with the generated SQL
     const queryParam = encodeURIComponent(sqlQuery);
     const tableParam = encodeURIComponent(currentTable);
-    window.location.href = `../query_builder/?table=${tableParam}&sql=${queryParam}`;
+    // Set table in session before navigating
+    $.ajax({
+        url: '../api/',
+        method: 'POST',
+        data: {
+            action: 'setCurrentTable',
+            table: currentTable
+        },
+        dataType: 'json',
+        success: function() {
+            window.location.href = `../query_builder/?sql=${queryParam}`;
+        },
+        error: function() {
+            // If setting table fails, still navigate with URL parameter as fallback
+            window.location.href = `../query_builder/?table=${tableParam}&sql=${queryParam}`;
+        }
+    });
 }
 
 // Generate SQL for column modification
@@ -504,7 +541,23 @@ function deleteColumn() {
     // Redirect to SQL Query Builder with the generated SQL
     const queryParam = encodeURIComponent(sqlQuery);
     const tableParam = encodeURIComponent(currentTable);
-    window.location.href = `../query_builder/?table=${tableParam}&sql=${queryParam}`;
+    // Set table in session before navigating
+    $.ajax({
+        url: '../api/',
+        method: 'POST',
+        data: {
+            action: 'setCurrentTable',
+            table: currentTable
+        },
+        dataType: 'json',
+        success: function() {
+            window.location.href = `../query_builder/?sql=${queryParam}`;
+        },
+        error: function() {
+            // If setting table fails, still navigate with URL parameter as fallback
+            window.location.href = `../query_builder/?table=${tableParam}&sql=${queryParam}`;
+        }
+    });
 }
 
 // Close modal

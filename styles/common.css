@@ -42,8 +42,9 @@
     --color-text-primary: var(--color-sapphire-navy);
     --color-text-secondary: var(--color-sapphire-dark);
     --color-text-tertiary: var(--color-sapphire-muted);
-    --color-text-muted: #8A9BA8;
-    
+    /* --color-text-muted: #8A9BA8; */
+    --color-text-muted: #253038;
+
     /* Background Colors - Light sapphire tones */
     --color-bg-body-start: #F8FAFC;
     --color-bg-body-end: #F0F4F8;
@@ -482,6 +483,42 @@ button:disabled {
     animation: slideInRight 0.3s ease;
     display: none;
     max-width: 400px;
+    word-wrap: break-word;
+}
+
+.toast-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.toast-message {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.toast-close-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.toast-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    transform: scale(1.1);
 }
 
 .toast.active {

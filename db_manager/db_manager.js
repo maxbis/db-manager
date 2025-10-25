@@ -905,9 +905,44 @@ function updateDatabaseBadge(databaseName, tableName = '') {
 // View table (navigate to table structure page)
 function viewTableStructure(tableName, databaseName = null) {
     const dbName = databaseName || currentDatabase;
-    // Update the database badge to show database.table before navigating
-    updateDatabaseBadge(dbName, tableName);
-    window.location.href = `../table_structure/?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
+    
+    // Set both database and table in session before navigating
+    $.ajax({
+        url: '../api/',
+        method: 'POST',
+        data: {
+            action: 'setCurrentDatabase',
+            database: dbName
+        },
+        dataType: 'json',
+        success: function() {
+            // Set the current table in session
+            $.ajax({
+                url: '../api/',
+                method: 'POST',
+                data: {
+                    action: 'setCurrentTable',
+                    table: tableName
+                },
+                dataType: 'json',
+                success: function() {
+                    // Update the database badge to show database.table before navigating
+                    updateDatabaseBadge(dbName, tableName);
+                    window.location.href = '../table_structure/';
+                },
+                error: function() {
+                    // If setting table fails, still navigate
+                    updateDatabaseBadge(dbName, tableName);
+                    window.location.href = '../table_structure/';
+                }
+            });
+        },
+        error: function() {
+            // If setting database fails, still navigate (API will handle database selection)
+            updateDatabaseBadge(dbName, tableName);
+            window.location.href = '../table_structure/';
+        }
+    });
 }
 
 // View table (navigate to table data page)
