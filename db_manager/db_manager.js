@@ -573,7 +573,7 @@ function displayTablesInSubsection(databaseName, tables) {
                         </div>
                     </div>
                     <div class="table-actions">
-                        <button class="btn-success" onclick="event.stopPropagation(); viewTable('${tableName}', '${databaseName}')" title="View table">View</button>
+                        <button class="btn-success" onclick="event.stopPropagation(); viewTableStructure('${tableName}', '${databaseName}')" title="View table">Table</button>
                         ${isView
                             ? `<button class="btn-danger" disabled aria-disabled="true" title="Cannot delete a view">Delete</button>`
                             : `<button class=\"btn-danger\" onclick=\"event.stopPropagation(); deleteTable('${tableName}', '${databaseName}', true)\" title=\"Delete table\">Delete</button>`}
@@ -583,12 +583,13 @@ function displayTablesInSubsection(databaseName, tables) {
             
             // Add click handler to view the table
             tableItem.click(function (e) {
+                console.log('Clicking on table:', tableName, databaseName);
                 // Don't trigger if clicking on buttons
                 if ($(e.target).is('button') || $(e.target).closest('button').length) {
                     return;
                 }
                 e.stopPropagation(); // Prevent event bubbling
-                viewTable(tableName, databaseName);
+                viewTableData(tableName, databaseName);
             });
             
             tablesGrid.append(tableItem);
@@ -902,11 +903,19 @@ function updateDatabaseBadge(databaseName, tableName = '') {
 }
 
 // View table (navigate to table structure page)
-function viewTable(tableName, databaseName = null) {
+function viewTableStructure(tableName, databaseName = null) {
     const dbName = databaseName || currentDatabase;
     // Update the database badge to show database.table before navigating
     updateDatabaseBadge(dbName, tableName);
     window.location.href = `../table_structure/?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
+}
+
+// View table (navigate to table data page)
+function viewTableData(tableName, databaseName = null) {
+    const dbName = databaseName || currentDatabase;
+    // Update the database badge to show database.table before navigating
+    updateDatabaseBadge(dbName, tableName);
+    window.location.href = `../data_manager/?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
 }
 
 // Delete table (consolidated function)
