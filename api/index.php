@@ -167,6 +167,13 @@ try {
             $query = $_POST['query'] ?? '';
             $handler->executeQuery($query);
             break;
+
+        case 'exportQuery':
+            require_once __DIR__ . '/handlers/QueryHandler.php';
+            $handler = new QueryHandler($conn);
+            $query = $_POST['query'] ?? '';
+            $handler->exportQuery($query);
+            break;
             
         // Database Management Operations
         case 'getDatabases':
