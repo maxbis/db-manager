@@ -134,14 +134,17 @@ function loadTables() {
                     select.append(`<option value="${tableName}" data-type="${tableType}">${label}</option>`);
                 });
                 
-                // Check for current table from session or URL parameter and select it
+                // Check for current table from URL parameter (priority) or session and select it
                 const urlParams = new URLSearchParams(window.location.search);
                 const tableParam = urlParams.get('table');
-                const tableToSelect = currentTable || tableParam;
+                // Prioritize URL parameter over session (URL params represent immediate navigation intent)
+                const tableToSelect = tableParam || currentTable;
                 
                 if (tableToSelect) {
                     const tableNames = response.tables.map(t => typeof t === 'string' ? t : t.name);
                     if (tableNames.includes(tableToSelect)) {
+                        // Update currentTable to match selection
+                        currentTable = tableToSelect;
                         select.val(tableToSelect).trigger('change');
                     }
                 }

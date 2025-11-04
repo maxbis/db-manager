@@ -392,9 +392,31 @@ function loadDatabases() {
                     });
                     console.log('Badges updated:', badgesUpdated);
                     
+                    // Auto-expand the current database's tables section
+                    const expandIndicator = $currentDbItem.find('.expand-indicator');
+                    const tablesSubsection = $(`.database-tables-subsection[data-database="${currentDatabase}"]`);
+                    
+                    if (expandIndicator.length && tablesSubsection.length) {
+                        expandIndicator.addClass('expanded');
+                        tablesSubsection.addClass('expanded');
+                        
+                        // Load tables if not already loaded
+                        const tablesGrid = tablesSubsection.find('.database-tables-grid');
+                        if (tablesGrid.children().length === 0) {
+                            loadTablesForDatabase(currentDatabase, function(tables) {
+                                displayTablesInSubsection(currentDatabase, tables);
+                            });
+                        } else {
+                            // Tables already loaded, just show the subsection
+                            tablesSubsection.show();
+                        }
+                    }
+                    
                     updateButtonStates();
                 } else {
                     console.log('No currentDatabase set, skipping state restoration');
+                    // Ensure all databases are collapsed when no current database
+                    closeAllExpandedDatabases();
                 }
                 
                 // Update stats AFTER setting the visual state
@@ -948,9 +970,45 @@ function viewTableStructure(tableName, databaseName = null) {
 // View table (navigate to table data page)
 function viewTableData(tableName, databaseName = null) {
     const dbName = databaseName || currentDatabase;
-    // Update the database badge to show database.table before navigating
-    updateDatabaseBadge(dbName, tableName);
-    window.location.href = `../data_manager/?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
+    
+    // Set both database and table in session before navigating
+    $.ajax({
+        url: '../api/',
+        method: 'POST',
+        data: {
+            action: 'setCurrentDatabase',
+            database: dbName
+        },
+        dataType: 'json',
+        success: function() {
+            // Set the current table in session
+            $.ajax({
+                url: '../api/',
+                method: 'POST',
+                data: {
+                    action: 'setCurrentTable',
+                    table: tableName
+                },
+                dataType: 'json',
+                success: function() {
+                    // Update the database badge to show database.table before navigating
+                    updateDatabaseBadge(dbName, tableName);
+                    // Always include URL params as fallback even when session is set
+                    window.location.href = `../data_manager/?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
+                },
+                error: function() {
+                    // If setting table fails, still navigate with URL parameter as fallback
+                    updateDatabaseBadge(dbName, tableName);
+                    window.location.href = `../data_manager/?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
+                }
+            });
+        },
+        error: function() {
+            // If setting database fails, still navigate with URL parameters as fallback
+            updateDatabaseBadge(dbName, tableName);
+            window.location.href = `../data_manager/?table=${encodeURIComponent(tableName)}&database=${encodeURIComponent(dbName)}`;
+        }
+    });
 }
 
 // Delete table (consolidated function)
