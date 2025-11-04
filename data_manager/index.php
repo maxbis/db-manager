@@ -38,11 +38,14 @@ require_once '../login/auth_check.php';
             </div>
 
             <div id="tableContent" style="display: none;">
-                <div class="table-wrapper">
-                    <table id="dataTable">
-                        <thead id="tableHead"></thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
+                <div class="table-scroll-container">
+                    <div class="table-scrollbar-top" id="tableScrollbarTop"></div>
+                    <div class="table-wrapper" id="tableWrapper">
+                        <table id="dataTable">
+                            <thead id="tableHead"></thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div class="pagination">

@@ -177,10 +177,10 @@ function loadTableInfo() {
                 buildTableHeader();
                 loadRecords();
                 
-                // Check if table is scrollable after a brief delay
+                // Check if table is scrollable after a brief delay (after header is built)
                 setTimeout(function() {
                     checkTableScrollable();
-                }, 100);
+                }, 150);
                 
                 // Show/hide add button based on table type
                 if (tableInfo.isView) {
@@ -257,6 +257,11 @@ function buildTableHeader() {
             loadRecords(false); // Don't show loading spinner for filtering
         }, 300); // Reduced debounce time for more responsive filtering
     });
+    
+    // Check scrollability after header is built
+    setTimeout(function() {
+        checkTableScrollable();
+    }, 100);
 }
 
 // Update only the sort indicators without rebuilding the entire header
@@ -386,24 +391,75 @@ function displayRecords(records) {
         // Restore full opacity
         tbody.css('opacity', '1');
         
-        // Check if table is scrollable after rendering
+        // Check if table is scrollable after rendering and update top scrollbar
         setTimeout(function() {
             checkTableScrollable();
+            // Update top scrollbar width if it exists
+            const $topScrollbar = $('#tableScrollbarTop');
+            const $wrapper = $('#tableWrapper');
+            if ($topScrollbar.length && $wrapper.length && $topScrollbar.is(':visible')) {
+                const tableWidth = $wrapper[0].scrollWidth;
+                const $scrollbarContent = $topScrollbar.children().first();
+                if ($scrollbarContent.length) {
+                    $scrollbarContent.css('width', tableWidth + 'px');
+                }
+            }
         }, 50);
     });
 }
 
 // Check if table wrapper is scrollable and add visual indicator
 function checkTableScrollable() {
-    const $wrapper = $('.table-wrapper');
+    const $wrapper = $('#tableWrapper');
+    const $topScrollbar = $('#tableScrollbarTop');
+    
     if ($wrapper.length) {
         const isScrollable = $wrapper[0].scrollWidth > $wrapper[0].clientWidth;
+        
         if (isScrollable) {
             $wrapper.addClass('scrollable');
+            
+            // Set up top scrollbar
+            if ($topScrollbar.length) {
+                // Create invisible content div with same width as table
+                const tableWidth = $wrapper[0].scrollWidth;
+                if ($topScrollbar.children().length === 0) {
+                    $topScrollbar.append('<div style="width: ' + tableWidth + 'px; height: 1px;"></div>');
+                } else {
+                    $topScrollbar.children().first().css('width', tableWidth + 'px');
+                }
+                
+                // Show top scrollbar
+                $topScrollbar.show();
+                
+                // Synchronize scrolling between top and bottom scrollbars
+                syncScrollBars($wrapper, $topScrollbar);
+            }
         } else {
             $wrapper.removeClass('scrollable');
+            // Hide top scrollbar when not needed
+            if ($topScrollbar.length) {
+                $topScrollbar.hide();
+            }
         }
     }
+}
+
+// Synchronize scrolling between two scrollbars
+function syncScrollBars($wrapper, $topScrollbar) {
+    // Remove any existing event handlers to prevent infinite loops
+    $wrapper.off('scroll.sync');
+    $topScrollbar.off('scroll.sync');
+    
+    // Sync bottom to top
+    $wrapper.on('scroll.sync', function() {
+        $topScrollbar.scrollLeft($wrapper.scrollLeft());
+    });
+    
+    // Sync top to bottom
+    $topScrollbar.on('scroll.sync', function() {
+        $wrapper.scrollLeft($topScrollbar.scrollLeft());
+    });
 }
 
 // Update pagination info

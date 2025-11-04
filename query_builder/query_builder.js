@@ -39,7 +39,9 @@ $(document).ready(function() {
                 console.log('Restored current table from session:', currentTable);
                 // Update the UI to reflect the current table
                 updateDatabaseBadge();
-                highlightSelectedTable(currentTable);
+                // Highlight table after tables are loaded (will be called in loadTables success)
+                // Store it for later use
+                window.pendingTableHighlight = currentTable;
             } else {
                 console.log('No table in session to restore');
             }
@@ -331,6 +333,14 @@ function loadTables() {
                         // Select the table programmatically
                         selectTable(currentTable);
                     }
+                } else if (window.pendingTableHighlight) {
+                    // If we had a pending highlight from session restore, use it now
+                    const tableNames = response.tables.map(t => typeof t === 'string' ? t : t.name);
+                    if (tableNames.includes(window.pendingTableHighlight)) {
+                        currentTable = window.pendingTableHighlight;
+                        selectTable(currentTable);
+                    }
+                    window.pendingTableHighlight = null; // Clear after use
                 }
             } else {
                 showToast('Error: ' + (response.error || 'Failed to load tables'), 'error');
@@ -381,6 +391,20 @@ function loadTableInfo() {
 
 // Highlight the selected table in the collapsible structure
 function highlightSelectedTable(tableName) {
+    if (!tableName) {
+        return; // No table to highlight
+    }
+    
+    // Check if tables container exists and has content
+    const $tablesContainer = $('#tablesContainer');
+    if (!$tablesContainer.length || $tablesContainer.children().length === 0) {
+        // Tables not loaded yet, try again after a short delay
+        setTimeout(function() {
+            highlightSelectedTable(tableName);
+        }, 100);
+        return;
+    }
+    
     // Remove previous highlights
     $('.table-group').removeClass('selected');
     
@@ -395,10 +419,12 @@ function highlightSelectedTable(tableName) {
             const tableHeader = selectedTable.find('.table-header');
             const toggle = selectedTable.find('.table-toggle');
             
-            loadTableFields(tableName, tableFields);
-            tableFields.addClass('expanded');
-            toggle.addClass('expanded');
-            tableHeader.addClass('active');
+            if (tableFields.length && tableHeader.length && toggle.length) {
+                loadTableFields(tableName, tableFields);
+                tableFields.addClass('expanded');
+                toggle.addClass('expanded');
+                tableHeader.addClass('active');
+            }
         }
     }
 }
