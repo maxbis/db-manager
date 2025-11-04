@@ -102,8 +102,11 @@ require_once '../login/auth_check.php';
 
         <div class="results-section" id="resultsSection" style="display: none;">
             <div class="results-header">
-                <h3>📊 Query Results</h3>
-                <span class="results-info" id="resultsInfo"></span>
+                <div class="results-title">
+                    <h3>📊 Query Results</h3>
+                    <span class="results-info" id="resultsInfo"></span>
+                </div>
+                <button class="btn-export" id="exportQueryBtn" style="display: none;" title="Download results as CSV">⬇ Export</button>
             </div>
             <div class="results-wrapper">
                 <table class="results-table" id="resultsTable">

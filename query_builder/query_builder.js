@@ -5,16 +5,34 @@
 
 // Configuration
 const MAX_QUERY_RESULTS = 1000; // Must match QueryHandler::MAX_QUERY_RESULTS
+const MAX_EXPORT_RESULTS = 5000; // Must match QueryHandler::MAX_EXPORT_RESULTS
 
 // Global state
 let currentTable = '';
 let tableInfo = null;
+let lastExecutedQuery = null;
+let lastResultWasSelect = false;
+
+// UI helpers
+function toggleExportButton(enable) {
+    const exportButton = $('#exportQueryBtn');
+    if (!exportButton.length) {
+        return;
+    }
+
+    if (enable) {
+        exportButton.show().prop('disabled', false).text('⬇ Export');
+    } else {
+        exportButton.hide().prop('disabled', true).text('⬇ Export');
+    }
+}
 
 // Initialize
 $(document).ready(function() {
     // Load tables and saved queries immediately
     loadTables();
     loadSavedQueries();
+    toggleExportButton(false);
     
     // Fallback: ensure loading spinner is removed after 15 seconds
     setTimeout(function() {
@@ -115,6 +133,9 @@ $(document).ready(function() {
     function selectTable(tableName, setDefaultQuery = true) {
         const previousTable = currentTable;
         currentTable = tableName;
+        lastExecutedQuery = null;
+        lastResultWasSelect = false;
+        toggleExportButton(false);
         
         // Update session cache
         $.ajax({
@@ -196,6 +217,9 @@ $(document).ready(function() {
                     $('#queryInput').val('');
                 }
                 $('#resultsSection').hide();
+                toggleExportButton(false);
+                lastExecutedQuery = null;
+                lastResultWasSelect = false;
                 // Clear saved query state when explicitly clearing
                 localStorage.removeItem('currentQuery');
             }
@@ -212,6 +236,10 @@ $(document).ready(function() {
 
     $('#exportQueriesBtn').click(function() {
         exportQueries();
+    });
+
+    $('#exportQueryBtn').click(function() {
+        exportCurrentQuery();
     });
 
     $('#importQueriesBtn').click(function() {
@@ -533,6 +561,10 @@ function executeQuery() {
         return;
     }
     
+    lastExecutedQuery = null;
+    lastResultWasSelect = false;
+    toggleExportButton(false);
+
     $('#loading').addClass('active');
     $('#executeBtn').prop('disabled', true);
     
@@ -546,9 +578,21 @@ function executeQuery() {
         dataType: 'json',
         success: function(response) {
             if (response.success) {
+                if (response.type === 'select') {
+                    lastExecutedQuery = query;
+                    lastResultWasSelect = true;
+                    toggleExportButton(true);
+                } else {
+                    lastExecutedQuery = null;
+                    lastResultWasSelect = false;
+                    toggleExportButton(false);
+                }
                 displayResults(response);
                 showToast('Query executed successfully', 'success');
             } else {
+                lastExecutedQuery = null;
+                lastResultWasSelect = false;
+                toggleExportButton(false);
                 showToast('Query error: ' + response.error, 'error');
             }
             $('#loading').removeClass('active');
@@ -557,6 +601,9 @@ function executeQuery() {
         error: function(xhr) {
             const response = xhr.responseJSON || {};
             showToast('Error: ' + (response.error || 'Unknown error'), 'error');
+            lastExecutedQuery = null;
+            lastResultWasSelect = false;
+            toggleExportButton(false);
             $('#loading').removeClass('active');
             $('#executeBtn').prop('disabled', false);
         }
@@ -617,11 +664,71 @@ function displayResults(response) {
     resultsSection.show();
 }
 
+function exportCurrentQuery() {
+    if (!lastResultWasSelect || !lastExecutedQuery) {
+        showToast('Please run a SELECT query before exporting', 'warning');
+        return;
+    }
+
+    const exportButton = $('#exportQueryBtn');
+    const originalText = exportButton.text();
+    exportButton.prop('disabled', true).text('⏳ Exporting...');
+
+    const params = new URLSearchParams();
+    params.append('action', 'exportQuery');
+    params.append('query', lastExecutedQuery);
+    params.append('maxRows', MAX_EXPORT_RESULTS);
+    params.append('format', 'csv');
+
+    fetch('../api/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+        },
+        body: params.toString()
+    })
+    .then(async (response) => {
+        const contentType = response.headers.get('Content-Type') || '';
+
+        if (!response.ok) {
+            if (contentType.includes('application/json')) {
+                const data = await response.json();
+                throw new Error(data.error || 'Unknown error');
+            }
+            throw new Error('Unexpected error exporting query');
+        }
+
+        if (!contentType.includes('text/csv')) {
+            throw new Error('Unexpected response format');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = (window.URL || window.webkitURL).createObjectURL(blob);
+        const link = document.createElement('a');
+        const timestamp = new Date().toISOString().replace(/[:]/g, '-').split('.')[0];
+        link.href = downloadUrl;
+        link.download = `query-results-${timestamp}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        (window.URL || window.webkitURL).revokeObjectURL(downloadUrl);
+        showToast('Export complete', 'success');
+    })
+    .catch((error) => {
+        console.error('Error exporting query:', error);
+        showToast('Error exporting query: ' + error.message, 'error');
+    })
+    .finally(() => {
+        exportButton.prop('disabled', false).text(originalText);
+    });
+}
+
 // Show empty state (only when no tables are available)
 function showEmptyState() {
     $('#queryInterface').hide();
     $('#emptyState').show();
     $('#resultsSection').hide();
+    toggleExportButton(false);
 }
 
 // Show toast notification
