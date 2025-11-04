@@ -177,6 +177,11 @@ function loadTableInfo() {
                 buildTableHeader();
                 loadRecords();
                 
+                // Check if table is scrollable after a brief delay
+                setTimeout(function() {
+                    checkTableScrollable();
+                }, 100);
+                
                 // Show/hide add button based on table type
                 if (tableInfo.isView) {
                     $('#addRecordBtn').hide();
@@ -363,7 +368,25 @@ function displayRecords(records) {
         
         // Restore full opacity
         tbody.css('opacity', '1');
+        
+        // Check if table is scrollable after rendering
+        setTimeout(function() {
+            checkTableScrollable();
+        }, 50);
     });
+}
+
+// Check if table wrapper is scrollable and add visual indicator
+function checkTableScrollable() {
+    const $wrapper = $('.table-wrapper');
+    if ($wrapper.length) {
+        const isScrollable = $wrapper[0].scrollWidth > $wrapper[0].clientWidth;
+        if (isScrollable) {
+            $wrapper.addClass('scrollable');
+        } else {
+            $wrapper.removeClass('scrollable');
+        }
+    }
 }
 
 // Update pagination info
