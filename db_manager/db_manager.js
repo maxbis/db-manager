@@ -400,15 +400,33 @@ function loadDatabases() {
                         expandIndicator.addClass('expanded');
                         tablesSubsection.addClass('expanded');
                         
+                        // Function to scroll database into view
+                        const scrollToDatabase = function() {
+                            // Use setTimeout to ensure DOM is fully updated
+                            setTimeout(function() {
+                                const elementOffset = $currentDbItem.offset().top;
+                                const windowHeight = $(window).height();
+                                const elementHeight = $currentDbItem.outerHeight();
+                                const scrollPosition = elementOffset - (windowHeight / 2) + (elementHeight / 2);
+                                
+                                // Smooth scroll to center the database item in viewport
+                                $('html, body').animate({
+                                    scrollTop: scrollPosition
+                                }, 500);
+                            }, 100);
+                        };
+                        
                         // Load tables if not already loaded
                         const tablesGrid = tablesSubsection.find('.database-tables-grid');
                         if (tablesGrid.children().length === 0) {
                             loadTablesForDatabase(currentDatabase, function(tables) {
                                 displayTablesInSubsection(currentDatabase, tables);
+                                scrollToDatabase();
                             });
                         } else {
                             // Tables already loaded, just show the subsection
                             tablesSubsection.show();
+                            scrollToDatabase();
                         }
                     }
                     
