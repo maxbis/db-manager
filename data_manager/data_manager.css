@@ -164,6 +164,15 @@ td {
     text-overflow: ellipsis;
     white-space: nowrap;
     position: relative;
+    /* Ensure ellipsis works properly */
+    word-wrap: break-word;
+}
+
+/* Allow NULL styling to display normally */
+td em {
+    display: inline;
+    white-space: normal;
+    font-style: italic;
 }
 
 /* Show full content on hover for truncated cells */

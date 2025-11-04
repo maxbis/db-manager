@@ -344,11 +344,28 @@ function displayRecords(records) {
                 const primaryValue = tableInfo.primaryKey ? record[tableInfo.primaryKey] : (tableInfo.columns.length > 0 ? record[tableInfo.columns[0].name] : '');
                 let row = '<tr data-primary-value="' + primaryValue + '">';
                 tableInfo.columns.forEach(function(col) {
-                    let value = record[col.name];
-                    if (value === null) {
-                        value = '<em style="color: var(--color-text-muted);">NULL</em>';
+                    let rawValue = record[col.name];
+                    let displayValue;
+                    
+                    if (rawValue === null || rawValue === undefined) {
+                        displayValue = '<em style="color: var(--color-text-muted);">NULL</em>';
+                    } else {
+                        // Convert to string and escape HTML
+                        const stringValue = String(rawValue);
+                        const escapedValue = escapeHtml(stringValue);
+                        
+                        // Truncate long text (max 50 characters) and add ellipsis
+                        const maxLength = 50;
+                        if (stringValue.length > maxLength) {
+                            displayValue = escapedValue.substring(0, maxLength) + '...';
+                        } else {
+                            displayValue = escapedValue;
+                        }
                     }
-                    row += `<td title="${escapeHtml(String(record[col.name] || ''))}">${value}</td>`;
+                    
+                    // Always include full value in title attribute for hover tooltip
+                    const fullValue = rawValue === null || rawValue === undefined ? 'NULL' : String(rawValue);
+                    row += `<td title="${escapeHtml(fullValue)}">${displayValue}</td>`;
                 });
                 row += '</tr>';
                 tbody.append(row);
