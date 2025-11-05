@@ -248,5 +248,4 @@ function displayAccessDenied($ip) {
 if (!checkAuthorization()) {
     displayAccessDenied(getClientIP());
 }
-?>
 

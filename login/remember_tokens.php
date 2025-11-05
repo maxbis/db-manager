@@ -342,5 +342,4 @@ function cleanupExpiredTokens() {
     
     return $removedCount;
 }
-?>
-
+ 
