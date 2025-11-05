@@ -25,6 +25,11 @@ $pageConfig = array_merge([
     'controls_html' => ''
 ], $pageConfig ?? []);
 
+// Ensure session is started before accessing $_SESSION
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Define menu items
 $menuItems = [
     [
@@ -91,6 +96,12 @@ if (!empty($selectedTable) && !empty($currentDatabase)) {
                 </span>
                 <a href="../login/logout.php" style="padding: 8px 12px; font-size: 12px; text-decoration: none; background: linear-gradient(135deg, var(--color-danger-lighter) 0%, var(--color-danger-lightest) 100%); color: var(--color-danger); border: 1px solid var(--color-danger-light); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
                     🚪 Logout
+                </a>
+            </div>
+            <?php else: ?>
+            <div class="control-group">
+                <a href="../login/login.php" style="padding: 8px 12px; font-size: 12px; text-decoration: none; background: linear-gradient(135deg, var(--color-primary-lighter) 0%, var(--color-primary-lightest) 100%); color: var(--color-primary); border: 1px solid var(--color-primary-light); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                    🔐 Login
                 </a>
             </div>
             <?php endif; ?>
