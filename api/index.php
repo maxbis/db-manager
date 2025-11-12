@@ -84,6 +84,15 @@ try {
             $name = $_POST['name'] ?? '';
             $handler->deleteTable($database, $name);
             break;
+
+        case 'renameTable':
+            require_once __DIR__ . '/handlers/TableHandler.php';
+            $handler = new TableHandler($conn);
+            $database = $_POST['database'] ?? '';
+            $oldName = $_POST['oldName'] ?? '';
+            $newName = $_POST['newName'] ?? '';
+            $handler->renameTable($database, $oldName, $newName);
+            break;
             
         // Record Operations
         case 'getRecords':

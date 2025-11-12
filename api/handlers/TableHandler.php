@@ -187,6 +187,50 @@ class TableHandler {
             throw new Exception("Failed to delete table: " . $this->conn->error);
         }
     }
+
+    /**
+     * Rename a table within a database
+     */
+    public function renameTable($database, $oldName, $newName) {
+        if (empty($database) || empty($oldName) || empty($newName)) {
+            throw new Exception("Database name, current table name, and new table name are required");
+        }
+
+        // Validate table names
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $oldName) || !preg_match('/^[a-zA-Z0-9_]+$/', $newName)) {
+            throw new Exception("Table names can only contain letters, numbers, and underscores");
+        }
+
+        if ($oldName === $newName) {
+            throw new Exception("The new table name must be different from the current name");
+        }
+
+        // Switch to the specified database
+        $this->conn->query("USE `$database`");
+
+        // Ensure the source table exists
+        $checkOld = $this->conn->query("SHOW FULL TABLES LIKE '$oldName'");
+        if (!$checkOld || $checkOld->num_rows === 0) {
+            throw new Exception("Table '$oldName' does not exist in database '$database'");
+        }
+
+        // Ensure the destination table name is not already taken
+        $checkNew = $this->conn->query("SHOW FULL TABLES LIKE '$newName'");
+        if ($checkNew && $checkNew->num_rows > 0) {
+            throw new Exception("A table or view named '$newName' already exists in database '$database'");
+        }
+
+        $sql = "RENAME TABLE `$oldName` TO `$newName`";
+
+        if ($this->conn->query($sql)) {
+            echo json_encode([
+                'success' => true,
+                'message' => "Table '$oldName' was renamed to '$newName' in database '$database'"
+            ]);
+        } else {
+            throw new Exception("Failed to rename table: " . $this->conn->error);
+        }
+    }
 }
 ?>
 
