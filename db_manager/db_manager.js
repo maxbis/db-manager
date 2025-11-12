@@ -695,7 +695,7 @@ function displayDatabases() {
                         <button type="button" class="dropdown-toggle">⚙️ Actions</button>
                         <div class="dropdown-menu" role="menu" aria-label="Actions for ${db.name}">
                             <ul>
-                                <li><button class="menu-item db-create-table-btn" data-database="${db.name}">➕ Create Table</button></li>
+                                <!-- <li><button class="menu-item db-create-table-btn" data-database="${db.name}">➕ Create Table</button></li> -->
                                 <li><button class="menu-item db-export-btn" data-database="${db.name}">📤 Export</button></li>
                                 <li><button class="menu-item db-delete-btn" data-database="${db.name}">🗑️ Delete</button></li>
                             </ul>

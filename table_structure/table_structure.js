@@ -299,7 +299,12 @@ function buildColumnForm(column) {
     modalBody.html(`
         <div class="form-group">
             <label for="fieldName">Column Name:</label>
-            <input type="text" id="fieldName" name="name" value="${column ? column.name : ''}" ${isNew ? '' : 'readonly'}>
+            <input type="text" id="fieldName" name="name" value="${column ? column.name : ''}">
+            ${column ? `
+            <p id="renameWarning" style="display: none; margin-top: 8px; color: var(--color-warning, #b45309); font-size: 13px; line-height: 1.4;">
+                ⚠️ Renaming a column can break queries, foreign keys, or application code that references the old name.
+            </p>
+            ` : ''}
         </div>
         
         ${isNew ? `
@@ -382,6 +387,22 @@ function buildColumnForm(column) {
             <textarea id="fieldExtra" name="extra" placeholder="Additional MySQL attributes like 'COMMENT \'description\'' or 'ON UPDATE CURRENT_TIMESTAMP'">${column ? (column.extra || '') : ''}</textarea>
         </div>
     `);
+
+    if (!isNew && column) {
+        const originalName = column.name;
+        const $fieldName = $('#fieldName');
+        const $warning = $('#renameWarning');
+
+        $fieldName.on('input', function() {
+            if ($(this).val() !== originalName) {
+                $warning.show();
+            } else {
+                $warning.hide();
+            }
+        });
+
+        $fieldName.trigger('input');
+    }
 }
 
 // Save column
@@ -470,11 +491,21 @@ function generateColumnSQL(formData, editColumn) {
     }
     
     if (editColumn) {
+        const isRenaming = editColumn.name !== formData.name;
+        const warningComment = isRenaming
+            ? [
+                '-- WARNING: Column rename detected.',
+                `-- Old name: ${editColumn.name}`,
+                `-- New name: ${formData.name}`,
+                '-- Ensure dependent queries, views, and application code are updated before executing.'
+            ].join('\n')
+            : '';
+
         // MODIFY existing column
         sql = `ALTER TABLE \`${currentTable}\` MODIFY COLUMN ${columnDef};`;
         
         // If column name changed, we need CHANGE instead of MODIFY
-        if (editColumn.name !== formData.name) {
+        if (isRenaming) {
             sql = `ALTER TABLE \`${currentTable}\` CHANGE COLUMN \`${editColumn.name}\` ${columnDef};`;
         }
         
@@ -498,7 +529,11 @@ function generateColumnSQL(formData, editColumn) {
         if (indexSQL.length > 0) {
             sql = sql + '\n\n' + indexSQL.join('\n');
         }
-        
+
+        if (warningComment) {
+            sql = warningComment + '\n' + sql;
+        }
+
     } else {
         // ADD new column
         sql = `ALTER TABLE \`${currentTable}\` ADD COLUMN ${columnDef}`;
@@ -536,7 +571,12 @@ function deleteColumn() {
     if (!currentEditColumn) return;
     
     // Generate SQL query for column deletion
-    const sqlQuery = `ALTER TABLE \`${currentTable}\` DROP COLUMN \`${currentEditColumn.name}\`;`;
+    const warningComment = [
+        '-- WARNING: Column drop operation.',
+        `-- Column to drop: ${currentEditColumn.name}`,
+        '-- Verify no queries, views, or application code still rely on this column before executing.'
+    ].join('\n');
+    const sqlQuery = `${warningComment}\nALTER TABLE \`${currentTable}\` DROP COLUMN \`${currentEditColumn.name}\`;`;
     
     // Redirect to SQL Query Builder with the generated SQL
     const queryParam = encodeURIComponent(sqlQuery);
