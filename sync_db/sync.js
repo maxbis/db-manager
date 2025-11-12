@@ -533,9 +533,10 @@ async function startSync() {
     // Hide any previous error
     hideError();
     
-    // Show progress card
+    // Show progress card and scroll to it
     const progressCard = document.getElementById('progressCard');
     progressCard.classList.add('active');
+    progressCard.scrollIntoView({ behavior: 'smooth', block: 'end' });
     
     // Clear previous logs
     document.getElementById('logContainer').innerHTML = '';

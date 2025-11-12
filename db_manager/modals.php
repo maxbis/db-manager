@@ -74,6 +74,35 @@
     </div>
 </div>
 
+<!-- Rename Table Modal -->
+<div class="modal" id="renameTableModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>✏️ Rename Table</h2>
+            <button class="modal-close" onclick="closeModal('renameTableModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="renameTableDatabase">
+            <div class="form-group">
+                <label for="renameTableCurrentName">Current Name:</label>
+                <input type="text" id="renameTableCurrentName" readonly style="background: var(--color-bg-light);">
+            </div>
+            <div class="form-group">
+                <label for="renameTableNewName">New Name: <span style="color: var(--color-danger);">*</span></label>
+                <input type="text" id="renameTableNewName" placeholder="Enter new table name">
+                <div class="help-text">Use letters, numbers, and underscores only.</div>
+            </div>
+            <p class="help-text" style="margin-top: 12px; color: var(--color-warning);">
+                ⚠️ Renaming a table may break queries, views, or application code referencing the old name.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('renameTableModal')">Cancel</button>
+            <button class="btn-success" id="confirmRenameTableBtn">💾 Rename</button>
+        </div>
+    </div>
+</div>
+
 <!-- Export Database Modal -->
 <div class="modal" id="exportDatabaseModal">
     <div class="modal-content">

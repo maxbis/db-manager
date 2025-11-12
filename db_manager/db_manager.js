@@ -173,6 +173,15 @@ $(document).ready(function () {
         $('.db-actions-dropdown .dropdown-menu').removeClass('show');
     });
 
+    // Table rename button (per table row)
+    $(document).on('click', '.table-rename-btn', function(e){
+        e.stopPropagation();
+        const $btn = $(this);
+        const tableName = $btn.data('table');
+        const databaseName = $btn.data('database') || currentDatabase;
+        openRenameTableModal(tableName, databaseName);
+    });
+
     $('#confirmCreateDatabaseBtn').click(function () {
         createDatabase();
     });
@@ -245,6 +254,10 @@ $(document).ready(function () {
         $('#newTableColumns').val(lines.join(',\n'));
 
         createTable();
+    });
+
+    $('#confirmRenameTableBtn').click(function () {
+        renameTable();
     });
 
     $('#confirmImportBtn').click(function () {
@@ -604,6 +617,17 @@ function displayTablesInSubsection(databaseName, tables) {
                     <span class="table-icon">${tableIcon}</span>
                     <span class="table-name">${tableName}</span>
                     ${isView ? '<span class="table-type">View</span>' : '<span class="table-type">Table</span>'}
+                    
+                    <div class="table-actions">
+                        <button class="btn-success table-action-btn" onclick="event.stopPropagation(); viewTableStructure('${tableName}', '${databaseName}')" title="View table structure">View 🔍</button>
+                        ${isView
+                            ? `<button class="btn-secondary table-action-btn" disabled aria-disabled="true" title="Cannot rename a view">Ren. 🔄</button>`
+                            : `<button class="btn-secondary table-action-btn table-rename-btn" data-table="${tableName}" data-database="${databaseName}" title="Rename table">Ren. 🔄</button>`}
+                        ${isView
+                            ? `<button class="btn-danger table-action-btn" disabled aria-disabled="true" title="Cannot delete a view">Del.  🗑️</button>`
+                            : `<button class="btn-danger table-action-btn" onclick=\"event.stopPropagation(); deleteTable('${tableName}', '${databaseName}', true)\" title=\"Delete table\">Del. 🗑️</button>`}
+                    </div>
+
                     <div class="table-size-section">
                         <div class="database-size-info">
                             <div class="database-size-bar" data-tooltip="Size: ${displaySize}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${sizePercent}" aria-label="Table size of ${tableName}">
@@ -612,12 +636,7 @@ function displayTablesInSubsection(databaseName, tables) {
                             <span class="database-size-text">${displaySize}</span>
                         </div>
                     </div>
-                    <div class="table-actions">
-                        <button class="btn-success" onclick="event.stopPropagation(); viewTableStructure('${tableName}', '${databaseName}')" title="View table">Table</button>
-                        ${isView
-                            ? `<button class="btn-danger" disabled aria-disabled="true" title="Cannot delete a view">Delete</button>`
-                            : `<button class=\"btn-danger\" onclick=\"event.stopPropagation(); deleteTable('${tableName}', '${databaseName}', true)\" title=\"Delete table\">Delete</button>`}
-                    </div>
+
                 </div>
             `);
             
@@ -1079,6 +1098,101 @@ function deleteTable(tableName, databaseName = null, fromSubsection = false) {
     });
 }
 
+// Open rename table modal
+function openRenameTableModal(tableName, databaseName = null) {
+    const dbName = databaseName || currentDatabase;
+    if (!dbName) {
+        showToast('Please select a database first', 'warning');
+        return;
+    }
+
+    $('#renameTableDatabase').val(dbName);
+    $('#renameTableCurrentName').val(tableName);
+    $('#renameTableNewName').val(tableName);
+
+    // Reset button state in case of previous errors
+    $('#confirmRenameTableBtn').prop('disabled', false).text('💾 Rename');
+
+    openModal('renameTableModal');
+
+    // Focus the input after modal opens
+    setTimeout(function() {
+        const input = document.getElementById('renameTableNewName');
+        if (input) {
+            input.focus();
+            input.select();
+        }
+    }, 100);
+}
+
+// Rename table logic
+function renameTable() {
+    const databaseName = ($('#renameTableDatabase').val() || '').trim() || currentDatabase;
+    const oldName = ($('#renameTableCurrentName').val() || '').trim();
+    const newName = ($('#renameTableNewName').val() || '').trim();
+
+    if (!databaseName || !oldName) {
+        showToast('Missing table information. Please try again.', 'error');
+        return;
+    }
+
+    if (!newName) {
+        showToast('Please enter a new table name', 'warning');
+        return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(newName)) {
+        showToast('Table names can only contain letters, numbers, and underscores', 'warning');
+        return;
+    }
+
+    if (newName === oldName) {
+        showToast('Please enter a different table name', 'warning');
+        return;
+    }
+
+    $('#confirmRenameTableBtn').prop('disabled', true).text('⏳ Renaming...');
+
+    $.ajax({
+        url: '../api/',
+        method: 'POST',
+        data: {
+            action: 'renameTable',
+            database: databaseName,
+            oldName: oldName,
+            newName: newName
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showToast('Table renamed successfully!', 'success');
+                closeModal('renameTableModal');
+
+                // Ensure the renamed table's database stays selected
+                currentDatabase = databaseName;
+
+                // Refresh database list to reflect new name
+                loadDatabases();
+            } else {
+                showToast('Error: ' + response.error, 'error');
+            }
+        },
+        error: function(xhr) {
+            let errorMessage = 'Unknown error';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                errorMessage = response.error || 'Unknown error';
+            } catch (e) {
+                errorMessage = xhr.responseText || 'Unknown error';
+            }
+            showToast('Error: ' + errorMessage, 'error');
+        },
+        complete: function() {
+            $('#confirmRenameTableBtn').prop('disabled', false).text('💾 Rename');
+        }
+    });
+}
+
 // Update table count in database item after table deletion
 function updateDatabaseTableCount(databaseName) {
     const databaseItem = $(`.database-item[data-database="${databaseName}"]`);
@@ -1430,6 +1544,11 @@ function closeModal(modalId) {
         // Clear and reset column builder
         $('#columnsBuilder .column-rows').empty();
         addColumnRow(); // Add one fresh empty row
+    } else if (modalId === 'renameTableModal') {
+        $('#renameTableDatabase').val('');
+        $('#renameTableCurrentName').val('');
+        $('#renameTableNewName').val('');
+        $('#confirmRenameTableBtn').prop('disabled', false).text('💾 Rename');
     } else if (modalId === 'exportDatabaseModal') {
         $('#exportDatabaseName').val('');
         $('#exportFileName').val('');
