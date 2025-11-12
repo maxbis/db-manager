@@ -40,6 +40,7 @@ if (!isset($_SESSION['csrf_token'])) {
 }
 
 $error = '';
+$errorHtml = '';
 $credentialsFile = __DIR__ . '/credentials.txt';
 
 // Check if user is already logged in
@@ -61,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Please enter both username and password';
         } elseif (!file_exists($credentialsFile)) {
             $error = 'No credentials found. Please run setup.php first.';
+            $errorHtml = 'No credentials found. Please run <a href="setup.php">setup.php</a> first.';
         } else {
             // Read credentials
             $credentials = file_get_contents($credentialsFile);
@@ -334,7 +336,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             <?php if ($error): ?>
                 <div class="error-box">
-                    <?php echo htmlspecialchars($error); ?>
+                    <?php echo $errorHtml !== '' ? $errorHtml : htmlspecialchars($error); ?>
                 </div>
             <?php endif; ?>
             
