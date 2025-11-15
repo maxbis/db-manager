@@ -30,6 +30,18 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Determine relative path prefix for shared assets based on current script depth
+$scriptDirectory = trim(dirname($_SERVER['SCRIPT_NAME']), '/');
+if ($scriptDirectory === '.' || $scriptDirectory === DIRECTORY_SEPARATOR) {
+    $scriptDirectory = '';
+}
+$directoryDepth = ($scriptDirectory === '' ? 0 : substr_count($scriptDirectory, '/') + 1);
+$pathPrefix = str_repeat('../', $directoryDepth);
+
+$sessionStatusUrl = $pathPrefix . 'login/session_status.php';
+$loginUrl = $pathPrefix . 'login/login.php';
+$sessionHandlerScript = $pathPrefix . 'assets/js/session_handler.js';
+
 // Define menu items
 $menuItems = [
     [
@@ -83,6 +95,14 @@ if (!empty($selectedTable) && !empty($currentDatabase)) {
     $databaseDisplay = $currentDatabase . ' -  ' . $selectedTable;
 }
 ?>
+
+<script>
+window.APP_SESSION_CONFIG = Object.assign({}, window.APP_SESSION_CONFIG || {}, {
+    statusUrl: '<?php echo htmlspecialchars($sessionStatusUrl, ENT_QUOTES); ?>',
+    loginUrl: '<?php echo htmlspecialchars($loginUrl, ENT_QUOTES); ?>'
+});
+</script>
+<script defer src="<?php echo htmlspecialchars($sessionHandlerScript, ENT_QUOTES); ?>"></script>
 
 <div class="container">
     <div class="header">
