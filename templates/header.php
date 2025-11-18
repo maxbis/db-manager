@@ -14,7 +14,12 @@
 
 // Ensure db_config is loaded for database functions
 if (!function_exists('getCurrentDatabase')) {
-    require_once __DIR__ . '/../db_config.php';
+    try {
+        require_once __DIR__ . '/../db_config.php';
+    } catch (Exception $e) {
+        // If db_config.php fails to load, log error but don't break the page
+        error_log('Failed to load db_config.php: ' . $e->getMessage());
+    }
 }
 
 // Default values
@@ -81,7 +86,13 @@ $currentDatabase = $_GET['database'] ?? $_SESSION['auto_selected_database'] ?? n
 
 // If still no database, try getCurrentDatabase() function
 if (!$currentDatabase && function_exists('getCurrentDatabase')) {
-    $currentDatabase = getCurrentDatabase();
+    try {
+        $currentDatabase = getCurrentDatabase();
+    } catch (Exception $e) {
+        // Silently fail - database credentials might not be available yet
+        // This is expected when user hasn't logged in or credentials aren't configured
+        $currentDatabase = null;
+    }
 }
 
 // Final fallback - no default database (DB_NAME constant may not be set)
