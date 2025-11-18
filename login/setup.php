@@ -39,6 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Passwords do not match';
     } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
         $error = 'Username can only contain letters, numbers, and underscores';
+    } elseif (empty($dbUser)) {
+        $error = 'Database username is required';
     } else {
         // Create credentials
         $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
@@ -437,19 +439,22 @@ $credentialsExist = file_exists($credentialsFile) && filesize($credentialsFile) 
                     </div>
                     
                     <div style="margin: 30px 0; border-top: 2px solid #E0E8F0; padding-top: 20px;">
-                        <h3 style="font-size: 16px; color: #262B40; margin-bottom: 15px;">🗄️ Database Credentials (Optional)</h3>
+                        <h3 style="font-size: 16px; color: #262B40; margin-bottom: 15px;">🗄️ Database Credentials <span class="required">*</span></h3>
                         <p style="font-size: 13px; color: #8A9BA8; margin-bottom: 20px;">
-                            If provided, this user will use these database credentials instead of the default ones in db_config.php. Leave empty to use defaults.
+                            Database credentials are required. These will be used for all database connections when this user is logged in.
                         </p>
                         
                         <div class="form-group">
-                            <label for="db_user">Database Username</label>
+                            <label for="db_user">
+                                Database Username <span class="required">*</span>
+                            </label>
                             <input 
                                 type="text" 
                                 id="db_user" 
                                 name="db_user" 
+                                required
                                 value="<?php echo htmlspecialchars($_POST['db_user'] ?? ''); ?>"
-                                placeholder="Leave empty to use default"
+                                placeholder="Enter database username"
                             >
                         </div>
                         
@@ -460,8 +465,9 @@ $credentialsExist = file_exists($credentialsFile) && filesize($credentialsFile) 
                                 id="db_pass" 
                                 name="db_pass" 
                                 value="<?php echo htmlspecialchars($_POST['db_pass'] ?? ''); ?>"
-                                placeholder="Leave empty to use default"
+                                placeholder="Enter database password (can be empty)"
                             >
+                            <div class="help-text">Leave empty if database user has no password</div>
                         </div>
                         
                         <div class="form-group">

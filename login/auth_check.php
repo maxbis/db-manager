@@ -83,31 +83,41 @@ function checkAuthorization() {
                         $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
                         $_SESSION['auto_login'] = true; // Flag to indicate auto-login via remember-me
                         
-                        // Load database credentials for this user if they exist
+                        // Load database credentials for this user (required)
                         $credentialsFile = __DIR__ . '/credentials.txt';
                         if (file_exists($credentialsFile)) {
                             $credentialsContent = file_get_contents($credentialsFile);
                             $lines = explode("\n", trim($credentialsContent));
                             
+                            $credentialsLoaded = false;
                             foreach ($lines as $line) {
                                 $line = trim($line);
                                 if (empty($line)) continue;
                                 
                                 $parts = explode('|', $line);
                                 if (count($parts) >= 6 && $parts[0] === $userData['username']) {
-                                    // Found user - load database credentials if provided
+                                    // Found user - load database credentials (required)
                                     if (isset($parts[6]) && !empty($parts[6])) {
                                         $_SESSION['db_user'] = $parts[6];
-                                    }
-                                    if (isset($parts[7]) && !empty($parts[7])) {
-                                        $_SESSION['db_pass'] = $parts[7];
-                                    }
-                                    if (isset($parts[8]) && !empty($parts[8])) {
-                                        $_SESSION['db_host'] = $parts[8];
+                                        $_SESSION['db_pass'] = $parts[7] ?? '';
+                                        $_SESSION['db_host'] = $parts[8] ?? 'localhost';
+                                        $credentialsLoaded = true;
                                     }
                                     break;
                                 }
                             }
+                            
+                            // If credentials not found, clear session and redirect to login
+                            if (!$credentialsLoaded) {
+                                session_destroy();
+                                header('Location: login.php?error=db_credentials_required');
+                                exit;
+                            }
+                        } else {
+                            // No credentials file - clear session and redirect
+                            session_destroy();
+                            header('Location: login.php?error=db_credentials_required');
+                            exit;
                         }
                         
                         // Allow access to continue
@@ -275,4 +285,6 @@ function displayAccessDenied($ip) {
 if (!checkAuthorization()) {
     displayAccessDenied(getClientIP());
 }
+
+
 

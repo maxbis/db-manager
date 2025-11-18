@@ -113,16 +113,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['user_ip'] = $_SERVER['REMOTE_ADDR'] ?? '';
                         $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
                         
-                        // Store database credentials in session if provided
+                        // Store database credentials in session (required)
+                        // If not provided in credentials.txt, use defaults from db_config.php as fallback
                         if (!empty($userCred['db_user'])) {
                             $_SESSION['db_user'] = $userCred['db_user'];
+                        } else {
+                            // Require database user - throw error if not set
+                            $error = 'Database credentials not configured for this user. Please set database credentials in login/setup.php.';
+                            break;
                         }
-                        if (!empty($userCred['db_pass'])) {
-                            $_SESSION['db_pass'] = $userCred['db_pass'];
-                        }
-                        if (!empty($userCred['db_host'])) {
-                            $_SESSION['db_host'] = $userCred['db_host'];
-                        }
+                        $_SESSION['db_pass'] = $userCred['db_pass'] ?? '';
+                        $_SESSION['db_host'] = $userCred['db_host'] ?? 'localhost';
                         
                         // Handle "Remember Me" functionality
                         if (isset($_POST['remember_me']) && $_POST['remember_me'] === '1') {
