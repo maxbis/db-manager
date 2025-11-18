@@ -79,7 +79,15 @@ require_once '../login/auth_check.php';
     <?php include 'modals.php'; ?>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="table_structure.js"></script>
+    <!-- Modular JavaScript - Load in dependency order -->
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/table-operations.js"></script>
+    <script src="js/ui-renderer.js"></script>
+    <script src="js/column-form.js"></script>
+    <script src="js/column-operations.js"></script>
+    <script src="js/event-handlers.js"></script>
+    <script src="js/main.js"></script>
 
     <?php include '../templates/footer.php'; ?>
 </body>

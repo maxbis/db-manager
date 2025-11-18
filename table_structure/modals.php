@@ -3,13 +3,13 @@
     <div class="modal-content">
         <div class="modal-header">
             <h2 id="modalTitle">Edit Column</h2>
-            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <button class="modal-close" onclick="window.Utils.closeModal('columnModal')">&times;</button>
         </div>
         <div class="modal-body" id="modalBody">
             <!-- Form fields will be generated dynamically -->
         </div>
         <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn-secondary" onclick="window.Utils.closeModal('columnModal')">Cancel</button>
             <button class="btn-danger" id="deleteColumnBtn" style="display: none;">🗑️ Generate Delete SQL</button>
             <button class="btn-primary" id="saveColumnBtn">⚡ Generate SQL</button>
         </div>
