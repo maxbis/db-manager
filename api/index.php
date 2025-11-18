@@ -74,6 +74,19 @@ try {
             $columnName = $_GET['column'] ?? '';
             $handler->getColumnMaxLength($tableName, $columnName);
             break;
+
+        case 'getTablesForForeignKey':
+            require_once __DIR__ . '/handlers/TableHandler.php';
+            $handler = new TableHandler($conn);
+            $handler->getTablesForForeignKey();
+            break;
+
+        case 'getTableColumns':
+            require_once __DIR__ . '/handlers/TableHandler.php';
+            $handler = new TableHandler($conn);
+            $tableName = $_GET['table'] ?? '';
+            $handler->getTableColumns($tableName);
+            break;
             
         case 'createTable':
             require_once __DIR__ . '/handlers/TableHandler.php';

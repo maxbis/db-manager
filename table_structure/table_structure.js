@@ -216,8 +216,9 @@ function displayStructureTable() {
         { key: 'primary', text: 'PRIMARY', class: 'primary' },
         { key: 'unique', text: 'UNIQUE', class: 'unique' },
         { key: 'index', text: 'INDEX', class: 'index' },
-        { key: 'required', text: 'NOT NULL', class: 'required' },
-        { key: 'auto_increment', text: 'AUTO_INCREMENT', class: 'auto-increment' }
+        { key: 'required', text: 'NOTNULL', class: 'required' },
+        { key: 'auto_increment', text: 'A.I.', class: 'auto-increment' },
+        { key: 'foreign_key', text: 'FK', class: 'foreign-key' }
     ];
     
     tableInfo.columns.forEach(function(col) {
@@ -228,12 +229,18 @@ function displayStructureTable() {
         applicableAttributes.push(col.key === 'MUL' ? 'index' : null);
         applicableAttributes.push(!col.null ? 'required' : null);
         applicableAttributes.push(col.extra.toLowerCase().includes('auto_increment') ? 'auto_increment' : null);
+        applicableAttributes.push(col.foreignKey ? 'foreign_key' : null);
         
         // Create attribute buttons - all attributes, dimmed if not applicable
         const attributesHtml = allAttributes.map(attr => {
             const isApplicable = applicableAttributes.includes(attr.key);
             const dimmedClass = isApplicable ? '' : 'dimmed';
-            return `<span class="attribute-badge ${attr.class} ${dimmedClass}">${attr.text}</span>`;
+            let badgeText = attr.text;
+            // Add FK reference info to the badge
+            if (attr.key === 'foreign_key' && col.foreignKey) {
+                badgeText = `FK → ${col.foreignKey.referenced_table}.${col.foreignKey.referenced_column}`;
+            }
+            return `<span class="attribute-badge ${attr.class} ${dimmedClass}" title="${col.foreignKey ? `References ${col.foreignKey.referenced_table}.${col.foreignKey.referenced_column} (${col.foreignKey.update_rule}/${col.foreignKey.delete_rule})` : ''}">${badgeText}</span>`;
         }).join('');
         
         // Format type display - make VARCHAR clickable for measurement
@@ -345,7 +352,8 @@ function buildColumnForm(column) {
             <div class="form-group">
                 <label for="fieldType">Data Type:</label>
                 <select id="fieldType" name="type">
-                    <option value="VARCHAR(255)" ${column && column.type.startsWith('VARCHAR') ? 'selected' : ''}>VARCHAR(255)</option>
+                    ${column ? `<option value="--" selected>-- Don't change --</option>` : ''}
+                    <option value="VARCHAR(255)" ${!column && 'selected'}>VARCHAR(255)</option>
                     <option value="INT" ${column && column.type === 'INT' ? 'selected' : ''}>INT</option>
                     <option value="TINYINT" ${column && column.type === 'TINYINT' ? 'selected' : ''}>TINYINT</option>
                     <option value="BIGINT" ${column && column.type === 'BIGINT' ? 'selected' : ''}>BIGINT</option>
@@ -382,8 +390,12 @@ function buildColumnForm(column) {
                     <label for="attrUnique">Unique</label>
                 </div>
                 <div class="checkbox-item">
+                    <input type="checkbox" id="attrIndex" name="index" ${column && column.key === 'MUL' ? 'checked' : ''}>
+                    <label for="attrIndex">Index</label>
+                </div>
+                <div class="checkbox-item">
                     <input type="checkbox" id="attrAutoIncrement" name="auto_increment" ${column && column.extra.toLowerCase().includes('auto_increment') ? 'checked' : ''}>
-                    <label for="attrAutoIncrement">Auto Increment</label>
+                    <label for="attrAutoIncrement" >Auto Increment</label>
                 </div>
             </div>
         </div>
@@ -407,6 +419,49 @@ function buildColumnForm(column) {
             </label>
             <textarea id="fieldExtra" name="extra" placeholder="Additional MySQL attributes like 'COMMENT \'description\'' or 'ON UPDATE CURRENT_TIMESTAMP'">${column ? (column.extra || '') : ''}</textarea>
         </div>
+        
+        <div class="form-group" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="hasForeignKey" name="has_foreign_key" title="Add foreign key constraint" style="margin: 0; width: auto;" ${column && column.foreignKey ? 'checked' : ''}>
+                <label for="hasForeignKey" style="font-weight: 600; margin: 0; cursor: pointer;">Foreign Key</label>
+            </div>
+            <div id="foreignKeySection" style="display: ${column && column.foreignKey ? 'block' : 'none'}; margin-top: 15px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fkReferencedTable">Referenced Table:</label>
+                        <select id="fkReferencedTable" name="fk_referenced_table">
+                            <option value="">-- Select table --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fkReferencedColumn">Referenced Column:</label>
+                        <select id="fkReferencedColumn" name="fk_referenced_column">
+                            <option value="">-- Select column --</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fkUpdateRule">ON UPDATE:</label>
+                        <select id="fkUpdateRule" name="fk_update_rule">
+                            <option value="RESTRICT" ${column && column.foreignKey && column.foreignKey.update_rule === 'RESTRICT' ? 'selected' : ''}>RESTRICT</option>
+                            <option value="CASCADE" ${column && column.foreignKey && column.foreignKey.update_rule === 'CASCADE' ? 'selected' : ''}>CASCADE</option>
+                            <option value="SET NULL" ${column && column.foreignKey && column.foreignKey.update_rule === 'SET NULL' ? 'selected' : ''}>SET NULL</option>
+                            <option value="NO ACTION" ${column && column.foreignKey && column.foreignKey.update_rule === 'NO ACTION' ? 'selected' : ''}>NO ACTION</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fkDeleteRule">ON DELETE:</label>
+                        <select id="fkDeleteRule" name="fk_delete_rule">
+                            <option value="RESTRICT" ${column && column.foreignKey && column.foreignKey.delete_rule === 'RESTRICT' ? 'selected' : ''}>RESTRICT</option>
+                            <option value="CASCADE" ${column && column.foreignKey && column.foreignKey.delete_rule === 'CASCADE' ? 'selected' : ''}>CASCADE</option>
+                            <option value="SET NULL" ${column && column.foreignKey && column.foreignKey.delete_rule === 'SET NULL' ? 'selected' : ''}>SET NULL</option>
+                            <option value="NO ACTION" ${column && column.foreignKey && column.foreignKey.delete_rule === 'NO ACTION' ? 'selected' : ''}>NO ACTION</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
     `);
 
     if (!isNew && column) {
@@ -424,6 +479,96 @@ function buildColumnForm(column) {
 
         $fieldName.trigger('input');
     }
+    
+    // Load tables for foreign key selection
+    loadTablesForForeignKey();
+    
+    // Handle foreign key checkbox
+    $('#hasForeignKey').change(function() {
+        if ($(this).is(':checked')) {
+            $('#foreignKeySection').show();
+        } else {
+            $('#foreignKeySection').hide();
+        }
+    });
+    
+    // Handle referenced table change
+    $('#fkReferencedTable').change(function() {
+        const tableName = $(this).val();
+        if (tableName) {
+            loadColumnsForForeignKey(tableName);
+        } else {
+            $('#fkReferencedColumn').empty().append('<option value="">-- Select column --</option>');
+        }
+    });
+    
+    // Set initial foreign key values if editing existing column with FK
+    if (column && column.foreignKey) {
+        $('#hasForeignKey').prop('checked', true);
+        $('#foreignKeySection').show();
+        // Populate referenced table
+        setTimeout(function() {
+            $('#fkReferencedTable').val(column.foreignKey.referenced_table);
+            if (column.foreignKey.referenced_table) {
+                loadColumnsForForeignKey(column.foreignKey.referenced_table, column.foreignKey.referenced_column);
+            }
+        }, 100);
+    }
+}
+
+// Load tables for foreign key selection
+function loadTablesForForeignKey() {
+    $.ajax({
+        url: '../api/?action=getTablesForForeignKey',
+        method: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const select = $('#fkReferencedTable');
+                // Don't clear existing selection if editing
+                const currentValue = select.val();
+                response.tables.forEach(function(table) {
+                    // Don't include current table in the list
+                    if (table !== currentTable) {
+                        select.append(`<option value="${table}">${table}</option>`);
+                    }
+                });
+                // Restore selection if it was set
+                if (currentValue) {
+                    select.val(currentValue);
+                }
+            }
+        },
+        error: function(xhr) {
+            console.error('Error loading tables for foreign key:', xhr);
+        }
+    });
+}
+
+// Load columns from a table for foreign key reference
+function loadColumnsForForeignKey(tableName, selectedColumn = null) {
+    $.ajax({
+        url: '../api/?action=getTableColumns&table=' + encodeURIComponent(tableName),
+        method: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const select = $('#fkReferencedColumn');
+                select.empty();
+                select.append('<option value="">-- Select column --</option>');
+                
+                response.columns.forEach(function(col) {
+                    // Prefer primary keys and unique columns
+                    const isKey = col.key === 'PRI' || col.key === 'UNI';
+                    const option = `<option value="${col.name}" ${isKey ? 'style="font-weight: bold;"' : ''} ${selectedColumn && col.name === selectedColumn ? 'selected' : ''}>${col.name} (${col.type})${isKey ? ' ⭐' : ''}</option>`;
+                    select.append(option);
+                });
+            }
+        },
+        error: function(xhr) {
+            console.error('Error loading columns for foreign key:', xhr);
+        }
+    });
 }
 
 // Save column
@@ -435,9 +580,26 @@ function saveColumn() {
         null: $('#attrNull').is(':checked'),
         primary: $('#attrPrimary').is(':checked'),
         unique: $('#attrUnique').is(':checked'),
+        index: $('#attrIndex').is(':checked'),
         auto_increment: $('#attrAutoIncrement').is(':checked'),
         extra: $('#fieldExtra').val()
     };
+    
+    // Add foreign key data if checkbox is checked
+    if ($('#hasForeignKey').is(':checked')) {
+        formData.foreignKey = {
+            referenced_table: $('#fkReferencedTable').val(),
+            referenced_column: $('#fkReferencedColumn').val(),
+            update_rule: $('#fkUpdateRule').val(),
+            delete_rule: $('#fkDeleteRule').val()
+        };
+        
+        // Validate foreign key fields
+        if (!formData.foreignKey.referenced_table || !formData.foreignKey.referenced_column) {
+            alert('Please select both a referenced table and column for the foreign key');
+            return;
+        }
+    }
     
     // Add position for new columns
     if (!currentEditColumn) {
@@ -478,8 +640,14 @@ function saveColumn() {
 function generateColumnSQL(formData, editColumn) {
     let sql = '';
     
+    // Determine the type to use - if "--" is selected and editing existing column, use original type
+    let columnType = formData.type;
+    if (editColumn && formData.type === '--') {
+        columnType = editColumn.type;
+    }
+    
     // Build column definition
-    let columnDef = `\`${formData.name}\` ${formData.type}`;
+    let columnDef = `\`${formData.name}\` ${columnType}`;
     
     // Add NOT NULL or NULL
     if (!formData.null) {
@@ -491,10 +659,10 @@ function generateColumnSQL(formData, editColumn) {
     // Add DEFAULT value
     if (formData.default !== null && formData.default !== '') {
         // Check if default should be quoted (non-numeric types)
-        if (formData.type.toUpperCase().includes('INT') || 
-            formData.type.toUpperCase().includes('DECIMAL') || 
-            formData.type.toUpperCase().includes('FLOAT') ||
-            formData.type.toUpperCase().includes('DOUBLE')) {
+        if (columnType.toUpperCase().includes('INT') || 
+            columnType.toUpperCase().includes('DECIMAL') || 
+            columnType.toUpperCase().includes('FLOAT') ||
+            columnType.toUpperCase().includes('DOUBLE')) {
             columnDef += ` DEFAULT ${formData.default}`;
         } else {
             columnDef += ` DEFAULT '${formData.default.replace(/'/g, "''")}'`;
@@ -513,6 +681,37 @@ function generateColumnSQL(formData, editColumn) {
     
     if (editColumn) {
         const isRenaming = editColumn.name !== formData.name;
+        
+        // Check if column definition actually changed
+        // If type is "--", use original type, so it won't be considered changed
+        const typeChanged = formData.type !== '--' && columnType !== editColumn.type;
+        const nullChanged = formData.null !== editColumn.null;
+        
+        // Compare default values
+        // Normalize: treat null, undefined, and empty string as "no default"
+        const oldDefault = editColumn.default !== null && editColumn.default !== undefined && String(editColumn.default).trim() !== '' ? String(editColumn.default).trim() : null;
+        const newDefault = formData.default !== null && formData.default !== undefined && String(formData.default).trim() !== '' ? String(formData.default).trim() : null;
+        const defaultChanged = oldDefault !== newDefault;
+        
+        // Compare auto_increment
+        const oldAutoIncrement = editColumn.extra ? editColumn.extra.toLowerCase().includes('auto_increment') : false;
+        const autoIncrementChanged = formData.auto_increment !== oldAutoIncrement;
+        
+        // Compare extra attributes (excluding auto_increment which we handle separately)
+        const oldExtra = editColumn.extra ? editColumn.extra.replace(/auto_increment/gi, '').trim() : '';
+        const newExtra = formData.extra ? formData.extra.replace(/auto_increment/gi, '').trim() : '';
+        const extraChanged = oldExtra !== newExtra;
+        
+        // Check if column definition needs to be modified
+        // If "-- Don't change --" is selected, ignore type changes and only check other fields
+        const strictMode = formData.type === '--';
+        const columnDefChanged = isRenaming || 
+            (!strictMode && typeChanged) ||  // Only check typeChanged if not in strict mode
+            nullChanged || 
+            defaultChanged || 
+            autoIncrementChanged || 
+            extraChanged;
+        
         const warningComment = isRenaming
             ? [
                 '-- WARNING: Column rename detected.',
@@ -522,12 +721,13 @@ function generateColumnSQL(formData, editColumn) {
             ].join('\n')
             : '';
 
-        // MODIFY existing column
-        sql = `ALTER TABLE \`${currentTable}\` MODIFY COLUMN ${columnDef};`;
-        
-        // If column name changed, we need CHANGE instead of MODIFY
-        if (isRenaming) {
-            sql = `ALTER TABLE \`${currentTable}\` CHANGE COLUMN \`${editColumn.name}\` ${columnDef};`;
+        // Only generate MODIFY/CHANGE statement if column definition actually changed
+        if (columnDefChanged) {
+            if (isRenaming) {
+                sql = `ALTER TABLE \`${currentTable}\` CHANGE COLUMN \`${editColumn.name}\` ${columnDef};`;
+            } else {
+                sql = `ALTER TABLE \`${currentTable}\` MODIFY COLUMN ${columnDef};`;
+            }
         }
         
         // Add index modifications if needed
@@ -547,12 +747,67 @@ function generateColumnSQL(formData, editColumn) {
             indexSQL.push(`ALTER TABLE \`${currentTable}\` DROP INDEX \`${formData.name}\`;`);
         }
         
+        // Handle INDEX (regular index, not PRIMARY or UNIQUE)
+        // Only add/remove index if not PRIMARY or UNIQUE (they already create indexes)
+        const currentHasIndex = editColumn.key === 'MUL';
+        const wantsRegularIndex = formData.index && !formData.primary && !formData.unique;
+        
+        if (wantsRegularIndex && !currentHasIndex) {
+            indexSQL.push(`ALTER TABLE \`${currentTable}\` ADD INDEX (\`${formData.name}\`);`);
+        } else if (!wantsRegularIndex && currentHasIndex && !formData.primary && !formData.unique) {
+            // Drop index - MySQL typically names the index after the column if created with ADD INDEX(column)
+            // However, it might have a different name, so we try the column name first
+            indexSQL.push(`ALTER TABLE \`${currentTable}\` DROP INDEX \`${formData.name}\`;`);
+        }
+        
+        // Handle FOREIGN KEY
+        const hasOldFK = editColumn.foreignKey;
+        const hasNewFK = formData.foreignKey && formData.foreignKey.referenced_table && formData.foreignKey.referenced_column;
+        
+        if (hasOldFK && !hasNewFK) {
+            // Drop existing foreign key
+            const fkName = editColumn.foreignKey.constraint_name || `fk_${editColumn.name}`;
+            indexSQL.push(`ALTER TABLE \`${currentTable}\` DROP FOREIGN KEY \`${fkName}\`;`);
+        } else if (hasNewFK) {
+            // Generate constraint name
+            const fkName = hasOldFK ? editColumn.foreignKey.constraint_name : `fk_${formData.name}`;
+            
+            // Check if FK changed
+            const fkChanged = !hasOldFK || 
+                editColumn.foreignKey.referenced_table !== formData.foreignKey.referenced_table ||
+                editColumn.foreignKey.referenced_column !== formData.foreignKey.referenced_column ||
+                editColumn.foreignKey.update_rule !== formData.foreignKey.update_rule ||
+                editColumn.foreignKey.delete_rule !== formData.foreignKey.delete_rule;
+            
+            if (fkChanged) {
+                // Drop old FK if exists
+                if (hasOldFK) {
+                    const oldFkName = editColumn.foreignKey.constraint_name || `fk_${editColumn.name}`;
+                    indexSQL.push(`ALTER TABLE \`${currentTable}\` DROP FOREIGN KEY \`${oldFkName}\`;`);
+                }
+                
+                // Add new FK
+                const updateRule = formData.foreignKey.update_rule || 'RESTRICT';
+                const deleteRule = formData.foreignKey.delete_rule || 'RESTRICT';
+                indexSQL.push(`ALTER TABLE \`${currentTable}\` ADD CONSTRAINT \`${fkName}\` FOREIGN KEY (\`${formData.name}\`) REFERENCES \`${formData.foreignKey.referenced_table}\` (\`${formData.foreignKey.referenced_column}\`) ON UPDATE ${updateRule} ON DELETE ${deleteRule};`);
+            }
+        }
+        
         if (indexSQL.length > 0) {
-            sql = sql + '\n\n' + indexSQL.join('\n');
+            if (sql) {
+                sql = sql + '\n\n' + indexSQL.join('\n');
+            } else {
+                sql = indexSQL.join('\n');
+            }
         }
 
         if (warningComment) {
             sql = warningComment + '\n' + sql;
+        }
+        
+        // If no SQL was generated at all, return empty string
+        if (!sql) {
+            return '';
         }
 
     } else {
@@ -577,6 +832,18 @@ function generateColumnSQL(formData, editColumn) {
         }
         if (formData.unique) {
             indexSQL.push(`ALTER TABLE \`${currentTable}\` ADD UNIQUE (\`${formData.name}\`);`);
+        }
+        // Add regular index only if not PRIMARY or UNIQUE (they already create indexes)
+        if (formData.index && !formData.primary && !formData.unique) {
+            indexSQL.push(`ALTER TABLE \`${currentTable}\` ADD INDEX (\`${formData.name}\`);`);
+        }
+        
+        // Add foreign key if specified
+        if (formData.foreignKey && formData.foreignKey.referenced_table && formData.foreignKey.referenced_column) {
+            const fkName = `fk_${formData.name}`;
+            const updateRule = formData.foreignKey.update_rule || 'RESTRICT';
+            const deleteRule = formData.foreignKey.delete_rule || 'RESTRICT';
+            indexSQL.push(`ALTER TABLE \`${currentTable}\` ADD CONSTRAINT \`${fkName}\` FOREIGN KEY (\`${formData.name}\`) REFERENCES \`${formData.foreignKey.referenced_table}\` (\`${formData.foreignKey.referenced_column}\`) ON UPDATE ${updateRule} ON DELETE ${deleteRule};`);
         }
         
         if (indexSQL.length > 0) {

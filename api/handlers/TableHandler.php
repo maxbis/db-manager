@@ -61,6 +61,12 @@ class TableHandler {
         // Sanitize table name
         $tableName = $this->conn->real_escape_string($tableName);
         
+        // Get current database name
+        $dbResult = $this->conn->query("SELECT DATABASE()");
+        $dbRow = $dbResult->fetch_array();
+        $databaseName = $dbRow[0];
+        $databaseNameEscaped = $this->conn->real_escape_string($databaseName);
+        
         // Check if it's a view or table
         $typeResult = $this->conn->query("SHOW FULL TABLES LIKE '$tableName'");
         if (!$typeResult) {
@@ -73,6 +79,41 @@ class TableHandler {
         $result = $this->conn->query("SHOW COLUMNS FROM `$tableName`");
         if (!$result) {
             throw new Exception("Failed to get columns from '$tableName': " . $this->conn->error);
+        }
+        
+        // Get foreign key information from information_schema
+        $fkQuery = "
+            SELECT 
+                kcu.COLUMN_NAME,
+                kcu.CONSTRAINT_NAME,
+                kcu.REFERENCED_TABLE_NAME,
+                kcu.REFERENCED_COLUMN_NAME,
+                rc.UPDATE_RULE,
+                rc.DELETE_RULE
+            FROM information_schema.KEY_COLUMN_USAGE kcu
+            LEFT JOIN information_schema.REFERENTIAL_CONSTRAINTS rc 
+                ON kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME 
+                AND kcu.TABLE_SCHEMA = rc.CONSTRAINT_SCHEMA
+            WHERE kcu.TABLE_SCHEMA = '$databaseNameEscaped'
+              AND kcu.TABLE_NAME = '$tableName'
+              AND kcu.REFERENCED_TABLE_NAME IS NOT NULL
+        ";
+        $fkResult = $this->conn->query($fkQuery);
+        $foreignKeys = [];
+        if ($fkResult) {
+            while ($fkRow = $fkResult->fetch_assoc()) {
+                $columnName = $fkRow['COLUMN_NAME'];
+                if (!isset($foreignKeys[$columnName])) {
+                    $foreignKeys[$columnName] = [];
+                }
+                $foreignKeys[$columnName][] = [
+                    'constraint_name' => $fkRow['CONSTRAINT_NAME'],
+                    'referenced_table' => $fkRow['REFERENCED_TABLE_NAME'],
+                    'referenced_column' => $fkRow['REFERENCED_COLUMN_NAME'],
+                    'update_rule' => $fkRow['UPDATE_RULE'],
+                    'delete_rule' => $fkRow['DELETE_RULE']
+                ];
+            }
         }
         
         $columns = [];
@@ -97,6 +138,19 @@ class TableHandler {
             if (in_array($columnInfo['baseType'], ['enum', 'set'])) {
                 preg_match_all("/'([^']+)'/", $row['Type'], $enumMatches);
                 $columnInfo['enumValues'] = $enumMatches[1];
+            }
+            
+            // Add foreign key information if exists
+            if (isset($foreignKeys[$row['Field']])) {
+                // Use the first foreign key if multiple exist
+                $fk = $foreignKeys[$row['Field']][0];
+                $columnInfo['foreignKey'] = [
+                    'referenced_table' => $fk['referenced_table'],
+                    'referenced_column' => $fk['referenced_column'],
+                    'update_rule' => $fk['update_rule'],
+                    'delete_rule' => $fk['delete_rule'],
+                    'constraint_name' => $fk['constraint_name']
+                ];
             }
             
             $columns[] = $columnInfo;
@@ -268,6 +322,53 @@ class TableHandler {
         } else {
             throw new Exception("Failed to rename table: " . $this->conn->error);
         }
+    }
+    
+    /**
+     * Get list of tables for foreign key reference selection
+     */
+    public function getTablesForForeignKey() {
+        $result = $this->conn->query("SHOW TABLES");
+        $tables = [];
+
+        if (!$result) {
+            throw new Exception("Failed to list tables: " . $this->conn->error);
+        }
+
+        while ($row = $result->fetch_array()) {
+            $tables[] = $row[0];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'tables' => $tables
+        ]);
+    }
+    
+    /**
+     * Get columns from a table (for foreign key reference selection)
+     */
+    public function getTableColumns($tableName) {
+        $tableName = $this->conn->real_escape_string($tableName);
+        
+        $result = $this->conn->query("SHOW COLUMNS FROM `$tableName`");
+        if (!$result) {
+            throw new Exception("Failed to get columns from '$tableName': " . $this->conn->error);
+        }
+        
+        $columns = [];
+        while ($row = $result->fetch_assoc()) {
+            $columns[] = [
+                'name' => $row['Field'],
+                'type' => $row['Type'],
+                'key' => $row['Key']
+            ];
+        }
+        
+        echo json_encode([
+            'success' => true,
+            'columns' => $columns
+        ]);
     }
 }
 ?>

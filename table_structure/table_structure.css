@@ -95,15 +95,16 @@
 .attribute-badge {
     background: var(--color-primary-pale);
     color: var(--color-primary);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9px;
     font-weight: 500;
     border: 1px solid var(--color-border-primary);
     display: inline-block;
-    min-width: 60px;
+    width: 50px;
     text-align: center;
     transition: all 0.3s ease;
+    box-sizing: border-box;
 }
 
 .attribute-badge.primary {
@@ -136,8 +137,17 @@
     border-color: var(--color-sapphire-muted);
 }
 
+.attribute-badge.foreign-key {
+    background: var(--color-warning-lightest);
+    color: var(--color-warning);
+    border-color: var(--color-warning-light);
+}
+
 .attribute-badge.dimmed {
-    opacity: 0.2;
+    opacity: 0.8;
+    background: #f0f0f0 !important;
+    color: #999 !important;
+    border-color: #ddd !important;
     cursor: default;
 }
 

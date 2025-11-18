@@ -511,7 +511,10 @@ function toggleDatabaseTables(databaseName) {
     
     if (tablesSubsection.hasClass('expanded')) {
         // Collapse this database
-        tablesSubsection.removeClass('expanded').slideUp(200);
+        tablesSubsection.slideUp(200, function() {
+            // Remove class after animation completes
+            $(this).removeClass('expanded');
+        });
         expandIndicator.removeClass('expanded');
     } else {
         // Close any other expanded databases first (but not this one)
@@ -585,7 +588,10 @@ function closeAllExpandedDatabases(excludeDatabase = null) {
         
         const expandIndicator = $(`.expand-indicator[aria-label*="${databaseName}"]`);
         
-        $(this).removeClass('expanded').slideUp(200);
+        $(this).slideUp(200, function() {
+            // Remove class after animation completes
+            $(this).removeClass('expanded');
+        });
         expandIndicator.removeClass('expanded');
     });
 }
