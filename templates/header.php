@@ -84,10 +84,10 @@ if (!$currentDatabase && function_exists('getCurrentDatabase')) {
     $currentDatabase = getCurrentDatabase();
 }
 
-// Final fallback to DB_NAME
-if (!$currentDatabase) {
-    $currentDatabase = DB_NAME;
-}
+// Final fallback - no default database (DB_NAME constant may not be set)
+// if (!$currentDatabase) {
+//     $currentDatabase = DB_NAME;
+// }
 
 // Format database display: database.table if table is selected, otherwise just database
 $databaseDisplay = $currentDatabase;
