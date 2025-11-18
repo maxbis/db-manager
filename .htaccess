@@ -1,0 +1,32 @@
+# Root .htaccess - Additional security for sensitive files
+# This provides an extra layer of protection
+
+# Deny access to sensitive file types in all subdirectories
+<FilesMatch "\.(txt|log|bak|backup|old|tmp)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Alternative syntax for Apache 2.4+
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(txt|log|bak|backup|old|tmp)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# Protect common sensitive files
+<FilesMatch "(credentials|config|\.env|\.key|\.pem|\.p12|\.pfx)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<IfModule mod_authz_core.c>
+    <FilesMatch "(credentials|config|\.env|\.key|\.pem|\.p12|\.pfx)$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# Allow PHP files to execute normally
+# PHP can still read files using file_get_contents(), file(), etc.
+# This only blocks direct HTTP access to files
+

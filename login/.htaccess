@@ -1,0 +1,48 @@
+# Protect sensitive files from direct browser access
+# This file prevents direct access to credentials and other sensitive files
+
+# Deny access to all .txt files
+<FilesMatch "\.txt$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Alternative syntax for Apache 2.4+
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.txt$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+
+# Deny access to specific sensitive files
+<Files "credentials.txt">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files "remember_tokens.txt">
+    Order allow,deny
+    Deny from all
+</Files>
+
+<Files "ipAllowed.txt">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Alternative syntax for Apache 2.4+
+<IfModule mod_authz_core.c>
+    <Files "credentials.txt">
+        Require all denied
+    </Files>
+    <Files "remember_tokens.txt">
+        Require all denied
+    </Files>
+    <Files "ipAllowed.txt">
+        Require all denied
+    </Files>
+</IfModule>
+
+# Allow PHP files to access these files (they use file_get_contents)
+# This doesn't affect PHP's ability to read files, only direct HTTP access
+
