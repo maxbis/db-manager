@@ -399,6 +399,16 @@ button:disabled {
     font-weight: 500;
 }
 
+/* Checkbox labels should be inline to keep checkbox and text on same line */
+.form-group label:has(input[type="checkbox"]),
+.form-group > label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
 .form-group label .required {
     color: var(--color-required);
     margin-left: 4px;
@@ -408,6 +418,13 @@ button:disabled {
 .form-group textarea,
 .form-group select {
     width: 100%;
+}
+
+/* Checkboxes should not be full width */
+.form-group input[type="checkbox"],
+.form-group input[type="radio"] {
+    width: auto;
+    flex-shrink: 0;
 }
 
 .form-group textarea {

@@ -40,7 +40,7 @@ const ColumnBuilder = {
                         <option value="current_timestamp">Default: CURRENT_TIMESTAMP</option>
                     </select>
                     <input type="text" class="col-default" placeholder="default value" style="flex:1 1 200px; padding:6px 8px; border:1px solid var(--color-border-input); border-radius:8px; display:none;">
-                    <label style="display:flex; align-items:center; gap:6px;">
+                    <label style="display:flex; align-items:center; gap:6px;margin-left:15px;">
                         <input type="checkbox" class="col-null"> NULL
                     </label>
                     <label style="display:flex; align-items:center; gap:6px;">
@@ -48,14 +48,14 @@ const ColumnBuilder = {
                     </label>
                 </div>
                 <div class="row-line" style="margin-top:6px;">
-                    <label style="display:flex; align-items:center; gap:6px;">
-                        <input type="checkbox" class="col-primary"> 🔑 PRIMARY KEY
+                    <label style="display:flex; align-items:center; gap:6px;margin-right:20px;">
+                        <input type="checkbox" class="col-primary"> 🔑&nbsp;PRIMARY&nbsp;KEY
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px;margin-right:20px;">
+                        <input type="checkbox" class="col-index"> 📇&nbsp;INDEX
                     </label>
                     <label style="display:flex; align-items:center; gap:6px;">
-                        <input type="checkbox" class="col-index"> 📇 INDEX
-                    </label>
-                    <label style="display:flex; align-items:center; gap:6px;">
-                        <input type="checkbox" class="col-unique"> ✨ UNIQUE
+                        <input type="checkbox" class="col-unique"> ✨&nbsp;UNIQUE
                     </label>
                 </div>
             </div>

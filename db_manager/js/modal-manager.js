@@ -5,7 +5,7 @@
 
 const ModalManager = {
     /**
-     * Open a modal by ID
+     * Open a modal by ID (for form modals that still use custom HTML)
      */
     open: function(modalId) {
         $('#' + modalId).addClass('active');
@@ -56,37 +56,19 @@ const ModalManager = {
     },
 
     /**
-     * Show confirm dialog
+     * Show confirm dialog (using standard Dialog component)
      */
     showConfirmDialog: function(options, onConfirm) {
-        const { title, message, confirmText = 'Confirm', confirmClass = '' } = options || {};
-        $('#confirmActionTitle').text(title || 'Confirm Action');
-        $('#confirmActionMessage').text(message || 'Are you sure?');
-        const $confirmBtn = $('#confirmActionConfirmBtn');
-        $confirmBtn.text(confirmText);
-        // reset classes
-        $confirmBtn.removeClass('btn-success btn-warning btn-danger');
-        if (confirmClass) {
-            $confirmBtn.addClass(confirmClass);
-        }
-
-        // Clean previous handlers
-        $confirmBtn.off('click');
-        $('#confirmActionCancelBtn').off('click');
-
-        // Bind actions
-        $('#confirmActionCancelBtn').on('click', function () {
-            ModalManager.close('confirmActionModal');
+        const { title, message, confirmText = 'Confirm', confirmClass = 'btn-primary', icon = '⚠️' } = options || {};
+        
+        Dialog.confirm({
+            title: title || 'Confirm Action',
+            message: message || 'Are you sure?',
+            confirmText: confirmText,
+            confirmClass: confirmClass,
+            icon: icon,
+            onConfirm: onConfirm || null
         });
-        $confirmBtn.on('click', function () {
-            ModalManager.close('confirmActionModal');
-            if (typeof onConfirm === 'function') {
-                onConfirm();
-            }
-        });
-
-        // Open
-        ModalManager.open('confirmActionModal');
     },
 
     /**

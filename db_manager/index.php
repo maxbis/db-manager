@@ -14,6 +14,7 @@ require_once '../login/auth_check.php';
     <title>Database Manager - Database CRUD Manager</title>
     <link rel="stylesheet" href="../styles/common.css">
     <link rel="stylesheet" href="db_manager.css">
+    <link rel="stylesheet" href="../dialog/dialog.css">
 </head>
 
 <body>
@@ -113,11 +114,16 @@ require_once '../login/auth_check.php';
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
-    <!-- Include Modals -->
+    <!-- Include Standard Dialog Component -->
+    <?php include '../dialog/dialog.php'; ?>
+    
+    <!-- Include Form Modals (for complex forms) -->
     <?php include 'modals.php'; ?>
 
     <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
     <script src="js/jquery-3.6.0.min.js"></script>
+    <!-- Standard Dialog Component -->
+    <script src="../dialog/dialog.js"></script>
     <!-- Modular JavaScript - Load in dependency order -->
     <script src="js/state.js"></script>
     <script src="js/utils.js"></script>

@@ -221,7 +221,7 @@ const EventHandlers = {
         // Drag & drop reordering for column rows
         window.ColumnBuilder.enableDragAndDrop();
 
-        // Close modal on outside click
+        // Close modal on outside click (for custom form modals)
         $(document).click(function (e) {
             if ($(e.target).hasClass('modal')) {
                 window.ModalManager.close($(e.target).attr('id'));

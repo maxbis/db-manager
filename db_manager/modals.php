@@ -204,21 +204,5 @@
     </div>
 </div>
 
-<!-- Confirm Dialog (Reusable) -->
-<div class="modal" id="confirmActionModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="confirmActionTitle">Confirm Action</h2>
-            <button class="modal-close" onclick="closeModal('confirmActionModal')">&times;</button>
-        </div>
-        <div class="modal-body">
-            <p id="confirmActionMessage" style="margin: 0; font-size: 14px; color: var(--color-text-secondary);">
-            </p>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-secondary" id="confirmActionCancelBtn">Cancel</button>
-            <button class="btn-danger" id="confirmActionConfirmBtn">Delete</button>
-        </div>
-    </div>
-</div>
+<!-- Note: Confirm dialogs now use the standard Dialog component (../dialog/dialog.php) -->
 
