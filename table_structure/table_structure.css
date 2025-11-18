@@ -73,6 +73,18 @@
     color: var(--color-primary);
 }
 
+.field-type-clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.field-type-clickable:hover {
+    background: var(--color-primary-lightest);
+    color: var(--color-primary);
+    box-shadow: 0 0 0 1px var(--color-primary-light);
+}
+
 .field-attributes {
     display: flex;
     flex-wrap: wrap;

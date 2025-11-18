@@ -236,10 +236,24 @@ function displayStructureTable() {
             return `<span class="attribute-badge ${attr.class} ${dimmedClass}">${attr.text}</span>`;
         }).join('');
         
+        // Format type display - make VARCHAR clickable for measurement
+        let typeDisplay = col.type;
+        let typeClass = 'field-type';
+        if (col.baseType === 'varchar') {
+            typeClass += ' field-type-clickable';
+            const typeTitle = 'Click to measure maximum used length in this column';
+            // Extract and store the defined length for later use
+            const lengthMatch = col.type.match(/VARCHAR\((\d+)\)/i);
+            const definedLength = lengthMatch ? lengthMatch[1] : '';
+            typeDisplay = `<span class="${typeClass}" data-column="${col.name}" data-defined-length="${definedLength}" data-original-type="${col.type}" title="${typeTitle}">${col.type}</span>`;
+        } else {
+            typeDisplay = `<span class="${typeClass}">${col.type}</span>`;
+        }
+        
         const row = `
             <tr data-column-name="${col.name}">
                 <td><strong>${col.name}</strong></td>
-                <td><span class="field-type">${col.type}</span></td>
+                <td>${typeDisplay}</td>
                 <td>${col.null ? 'YES' : 'NO'}</td>
                 <td>${col.key || ''}</td>
                 <td>${col.default !== null ? col.default : '<em>NULL</em>'}</td>
@@ -265,6 +279,13 @@ function displayStructureTable() {
     // Add click handler for View Source button
     $('#viewSourceBtn').click(function() {
         showViewSource();
+    });
+    
+    // Add click handlers for clickable VARCHAR types (stop propagation to prevent row click)
+    tbody.find('.field-type-clickable').click(function(e) {
+        e.stopPropagation();
+        const columnName = $(this).data('column');
+        measureColumnMaxLength(columnName, $(this));
     });
 }
 
@@ -725,5 +746,65 @@ function copyViewSource(sql) {
         document.body.removeChild(textArea);
         showSuccess('SQL copied to clipboard!');
     });
+}
+
+// Measure maximum used length for a VARCHAR column
+function measureColumnMaxLength(columnName, $typeElement) {
+    if (!currentTable) {
+        showError('No table selected');
+        return;
+    }
+    
+    if (!$typeElement) {
+        $typeElement = $(`.field-type-clickable[data-column="${columnName}"]`);
+    }
+    
+    // Get defined length from data attribute
+    const definedLength = $typeElement.data('defined-length') || '';
+    const originalText = $typeElement.text();
+    
+    // Show loading state
+    $typeElement.text('Measuring...').css('opacity', '0.6');
+    
+    $.ajax({
+        url: '../api/',
+        method: 'GET',
+        data: {
+            action: 'getColumnMaxLength',
+            table: currentTable,
+            column: columnName
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                const maxLength = response.maxLength || 0;
+                
+                // Display as VARCHAR(defined/max)
+                const newDisplay = `VARCHAR(${definedLength}/${maxLength})`;
+                $typeElement.text(newDisplay).css('opacity', '1');
+            } else {
+                showError('Error: ' + (response.error || 'Failed to measure column length'));
+                $typeElement.text(originalText).css('opacity', '1');
+            }
+        },
+        error: function(xhr) {
+            let errorMsg = 'Error measuring column length';
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.error) {
+                    errorMsg += ': ' + response.error;
+                }
+            } catch (e) {
+                errorMsg += ': ' + xhr.responseText;
+            }
+            showError(errorMsg);
+            $typeElement.text(originalText).css('opacity', '1');
+        }
+    });
+}
+
+// Show success message (simple alert for now, can be enhanced with toast)
+function showSuccess(message) {
+    alert('Success: ' + message);
 }
 
