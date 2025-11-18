@@ -235,11 +235,8 @@ function displayStructureTable() {
         const attributesHtml = allAttributes.map(attr => {
             const isApplicable = applicableAttributes.includes(attr.key);
             const dimmedClass = isApplicable ? '' : 'dimmed';
-            let badgeText = attr.text;
-            // Add FK reference info to the badge
-            if (attr.key === 'foreign_key' && col.foreignKey) {
-                badgeText = `FK → ${col.foreignKey.referenced_table}.${col.foreignKey.referenced_column}`;
-            }
+            // Always show just "FK" in the badge, full reference is in the tooltip
+            const badgeText = attr.text;
             return `<span class="attribute-badge ${attr.class} ${dimmedClass}" title="${col.foreignKey ? `References ${col.foreignKey.referenced_table}.${col.foreignKey.referenced_column} (${col.foreignKey.update_rule}/${col.foreignKey.delete_rule})` : ''}">${badgeText}</span>`;
         }).join('');
         
