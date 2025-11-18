@@ -66,7 +66,8 @@ if (empty($sql)) {
 try {
     // Get database connection
     // First connect without database to allow database creation
-    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS);
+    $credentials = getDbCredentials();
+    $conn = new mysqli($credentials['host'], $credentials['user'], $credentials['pass']);
     
     if ($conn->connect_error) {
         throw new Exception("Connection failed: " . $conn->connect_error);

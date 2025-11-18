@@ -270,10 +270,12 @@ class ExportHandler {
             return false; // mysqldump not available
         }
         
-        // Get connection details
-        $host = DB_HOST;
-        $user = DB_USER;
-        $pass = DB_PASS;
+        // Get connection details from session
+        require_once __DIR__ . '/../../db_config.php';
+        $credentials = getDbCredentials();
+        $host = $credentials['host'];
+        $user = $credentials['user'];
+        $pass = $credentials['pass'];
         $port = 3306; // Default MySQL port
         
         // Parse host for port
