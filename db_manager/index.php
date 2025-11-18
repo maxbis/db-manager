@@ -116,8 +116,19 @@ require_once '../login/auth_check.php';
     <!-- Include Modals -->
     <?php include 'modals.php'; ?>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="db_manager.js"></script>
+    <!-- <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> -->
+    <script src="js/jquery-3.6.0.min.js"></script>
+    <!-- Modular JavaScript - Load in dependency order -->
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/modal-manager.js"></script>
+    <script src="js/column-builder.js"></script>
+    <script src="js/database-operations.js"></script>
+    <script src="js/table-operations.js"></script>
+    <script src="js/ui-renderer.js"></script>
+    <script src="js/ui-interactions.js"></script>
+    <script src="js/event-handlers.js"></script>
+    <script src="js/main.js"></script>
 
     <?php include '../templates/footer.php'; ?>
 </body>
