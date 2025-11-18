@@ -6,6 +6,7 @@
 // Configuration
 const MAX_QUERY_RESULTS = 1000; // Must match QueryHandler::MAX_QUERY_RESULTS
 const MAX_EXPORT_RESULTS = 5000; // Must match QueryHandler::MAX_EXPORT_RESULTS
+const LAST_QUERY_KEY = 'queryBuilder:lastQuery';
 
 // Global state
 let currentTable = '';
@@ -94,14 +95,14 @@ $(document).ready(function() {
     // Save current query to localStorage before leaving the page
     function saveCurrentQuery() {
         const query = $('#queryInput').val();
-        const table = currentTable; // Use the global currentTable variable
-        if (query && table) {
+        if (query && query.trim() !== '') {
             const queryState = {
                 query: query,
-                table: table,
                 timestamp: Date.now()
             };
-            localStorage.setItem('currentQuery', JSON.stringify(queryState));
+            localStorage.setItem(LAST_QUERY_KEY, JSON.stringify(queryState));
+        } else {
+            localStorage.removeItem(LAST_QUERY_KEY);
         }
     }
     
@@ -111,6 +112,23 @@ $(document).ready(function() {
         clearTimeout(autoSaveTimeout);
         autoSaveTimeout = setTimeout(saveCurrentQuery, 500);
     });
+
+    // Restore last query regardless of current table
+    (function restoreLastQuery() {
+        const savedQueryState = localStorage.getItem(LAST_QUERY_KEY);
+        if (!savedQueryState) {
+            return;
+        }
+        try {
+            const queryState = JSON.parse(savedQueryState);
+            if (queryState && queryState.query) {
+                $('#queryInput').val(queryState.query);
+                $('#queryInput').data('sql-loaded', true);
+            }
+        } catch (e) {
+            console.warn('Unable to restore last query:', e);
+        }
+    })();
     
     // Save query when leaving the page
     $(window).on('beforeunload', function() {
@@ -165,26 +183,8 @@ $(document).ready(function() {
                     $('#queryInput').data('sql-loaded', true);
                     // Show a notification
                     showToast('SQL query loaded from table structure editor', 'success');
-                } 
-                // Check if we have a saved query for this table (only if no SQL was loaded from URL)
-                else if (!$('#queryInput').data('sql-loaded')) {
-                    const savedQueryState = localStorage.getItem('currentQuery');
-                    if (savedQueryState) {
-                        try {
-                            const queryState = JSON.parse(savedQueryState);
-                            // Restore query if it's for the same table
-                            if (queryState.table === currentTable) {
-                                $('#queryInput').val(queryState.query);
-                            } else {
-                                // Different table selected, clear and set default query
-                                $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
-                            }
-                        } catch (e) {
-                            $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
-                        }
-                    } else {
-                        $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
-                    }
+                } else if (!$('#queryInput').data('sql-loaded')) {
+                    $('#queryInput').val(`SELECT * FROM ${currentTable} LIMIT 10`);
                 }
             }
             
@@ -195,6 +195,9 @@ $(document).ready(function() {
             $('#resultsSection').hide();
         }
     }
+
+    // Expose selectTable globally for other modules/functions
+    window.selectTable = selectTable;
 
     $('#executeBtn').click(function() {
         executeQuery();
@@ -221,7 +224,8 @@ $(document).ready(function() {
                 lastExecutedQuery = null;
                 lastResultWasSelect = false;
                 // Clear saved query state when explicitly clearing
-                localStorage.removeItem('currentQuery');
+                localStorage.removeItem(LAST_QUERY_KEY);
+                $('#queryInput').data('sql-loaded', false);
             }
         });
     });
@@ -835,11 +839,7 @@ function loadSavedQueries(tableName = null) {
         // Get queries from localStorage
         const queriesJson = localStorage.getItem('savedQueries');
         let queries = queriesJson ? JSON.parse(queriesJson) : [];
-        
-        // Filter by table if specified
-        if (tableName) {
-            queries = queries.filter(q => q.table_name === tableName || !q.table_name);
-        }
+        // Display all saved queries regardless of current table to match user expectations
         
         // Sort by last used (most recent first), then by created date
         queries.sort((a, b) => {
