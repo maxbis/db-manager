@@ -87,7 +87,7 @@
 
 .field-attributes {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 4px;
     margin-top: 4px;
 }
