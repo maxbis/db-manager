@@ -6,9 +6,9 @@
  */
 
 // Database connection parameters
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+const DB_HOST = 'localhost';
+const DB_USER = 'root';
+const DB_PASS = '';
 
 /**
  * DB_NAME Configuration:
@@ -24,18 +24,18 @@ define('DB_PASS', '');
  * The system will automatically fall back to the first available database
  * if DB_NAME is empty, making this portable across different environments.
  */
-define('DB_NAME', ''); // Leave empty for auto-detection
-
-define('DB_CHARSET', 'utf8mb4');
+const DB_NAME = ''; // Leave empty for auto-detection
+const DB_CHARSET = 'utf8mb4';
 
 /**
  * Get database connection
  * 
- * @param string $database Optional: Specific database to connect to
+ * @param string|null $database Optional: Specific database to connect to
  * @return mysqli Database connection object
  * @throws Exception if connection fails
  */
-function getDbConnection($database = null) {
+function getDbConnection(string $database = null): mysqli
+{
     // Use provided database, or fall back to DB_NAME constant, or connect without database
     $dbToUse = $database ?? (DB_NAME ?: null);
     
@@ -56,7 +56,7 @@ function getDbConnection($database = null) {
  * @param mysqli $conn Database connection object
  * @return string|null First available database name or null if none found
  */
-function getFirstAvailableDatabase($conn) {
+function getFirstAvailableDatabase(mysqli $conn) {
     $result = $conn->query("SHOW DATABASES");
     if (!$result) {
         return null;
@@ -105,7 +105,7 @@ function getCurrentDatabase() {
  * 
  * @param string $database Database name to cache
  */
-function setCurrentDatabase($database) {
+function setCurrentDatabase(string $database) {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
@@ -119,7 +119,7 @@ function setCurrentDatabase($database) {
  * @param string $database Database name to select
  * @throws Exception if selection fails
  */
-function selectDatabase($conn, $database) {
+function selectDatabase(mysqli $conn, string $database) {
     if (!$conn->select_db($database)) {
         throw new Exception("Failed to select database '$database': " . $conn->error);
     }
@@ -130,9 +130,7 @@ function selectDatabase($conn, $database) {
  * 
  * @param mysqli $conn Database connection object
  */
-function closeDbConnection($conn) {
-    if ($conn) {
-        $conn->close();
-    }
+function closeDbConnection(mysqli $conn) {
+    $conn->close();
 }
 

@@ -66,6 +66,14 @@ try {
             $tableName = $_GET['table'] ?? '';
             $handler->getTableInfo($tableName);
             break;
+
+        case 'getColumnMaxLength':
+            require_once __DIR__ . '/handlers/TableHandler.php';
+            $handler = new TableHandler($conn);
+            $tableName = $_GET['table'] ?? '';
+            $columnName = $_GET['column'] ?? '';
+            $handler->getColumnMaxLength($tableName, $columnName);
+            break;
             
         case 'createTable':
             require_once __DIR__ . '/handlers/TableHandler.php';

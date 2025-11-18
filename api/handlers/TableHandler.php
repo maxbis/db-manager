@@ -114,6 +114,44 @@ class TableHandler {
             'tableType' => $isView ? 'VIEW' : 'BASE TABLE'
         ]);
     }
+
+    /**
+     * Get maximum used length for a VARCHAR column
+     */
+    public function getColumnMaxLength($tableName, $columnName) {
+        if (empty($tableName) || empty($columnName)) {
+            throw new Exception("Table name and column name are required");
+        }
+
+        $tableNameEscaped = $this->conn->real_escape_string($tableName);
+        $columnNameEscaped = $this->conn->real_escape_string($columnName);
+
+        // Verify column exists and is VARCHAR
+        $columnResult = $this->conn->query("SHOW COLUMNS FROM `$tableNameEscaped` LIKE '$columnNameEscaped'");
+        if (!$columnResult || $columnResult->num_rows === 0) {
+            throw new Exception("Column '$columnName' not found in table '$tableName'");
+        }
+        $columnInfo = $columnResult->fetch_assoc();
+        $typeLower = strtolower(trim($columnInfo['Type']));
+        if (strpos($typeLower, 'varchar') !== 0) {
+            throw new Exception("Column '$columnName' is not a VARCHAR column (type: " . $columnInfo['Type'] . ")");
+        }
+
+        $query = "SELECT MAX(CHAR_LENGTH(`$columnNameEscaped`)) AS maxLength FROM `$tableNameEscaped`";
+        $result = $this->conn->query($query);
+        if (!$result) {
+            throw new Exception("Failed to compute max length: " . $this->conn->error);
+        }
+        $row = $result->fetch_assoc();
+        $maxLength = isset($row['maxLength']) ? (int)$row['maxLength'] : 0;
+
+        echo json_encode([
+            'success' => true,
+            'table' => $tableName,
+            'column' => $columnName,
+            'maxLength' => $maxLength
+        ]);
+    }
     
     /**
      * Create a new table

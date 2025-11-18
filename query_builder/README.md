@@ -180,7 +180,7 @@ let tableInfo = null;       // Table structure data
 ### LocalStorage Keys
 ```javascript
 'savedQueries'    // Array of saved query objects
-'currentQuery'    // Current query auto-save state
+'queryBuilder:lastQuery'    // Last query auto-save state
 'hideExamples'    // User preference for examples box
 ```
 
@@ -401,11 +401,10 @@ window.location.href =
 ]
 ```
 
-#### currentQuery
+#### queryBuilder:lastQuery
 ```javascript
 {
     query: "SELECT * FROM users",
-    table: "users",
     timestamp: 1635780000000
 }
 ```

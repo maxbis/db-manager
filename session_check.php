@@ -89,12 +89,13 @@ if (!isset($_SESSION['regenerated_at'])) {
 $sessionInfo = [
     'username' => $_SESSION['username'] ?? 'Unknown',
     'login_time' => $_SESSION['login_time'] ?? time(),
-    'last_activity' => $_SESSION['last_activity'] ?? time(),
-    'remaining_time' => $sessionTimeout - (time() - ($_SESSION['last_activity'] ?? time()))
+    'last_activity' => $_SESSION['last_activity'],
+    'remaining_time' => $sessionTimeout - (time() - $_SESSION['last_activity'] )
 ];
 
 // Function to check if session is still valid (for AJAX calls)
-function isSessionValid() {
+function isSessionValid(): bool
+{
     global $sessionTimeout;
     
     if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
@@ -122,5 +123,3 @@ function getSessionRemainingMinutes() {
     $remainingSeconds = $sessionTimeout - (time() - $_SESSION['last_activity']);
     return max(0, floor($remainingSeconds / 60));
 }
-?>
-
