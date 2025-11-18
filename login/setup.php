@@ -24,6 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
+    $dbUser = trim($_POST['db_user'] ?? '');
+    $dbPass = trim($_POST['db_pass'] ?? '');
+    $dbHost = trim($_POST['db_host'] ?? '');
     
     // Validation
     if (empty($username) || empty($password)) {
@@ -41,45 +44,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
         $created = date('Y-m-d H:i:s');
         
-        // Format: username|hashed_password|created_date|last_login|failed_attempts|locked_until
+        // Format: username|hashed_password|created_date|last_login|failed_attempts|locked_until|db_user|db_pass|db_host
         $credentialLine = sprintf(
-            "%s|%s|%s|%s|%d|%s\n",
+            "%s|%s|%s|%s|%d|%s|%s|%s|%s\n",
             $username,
             $hashedPassword,
             $created,
             '', // last_login (empty initially)
             0,  // failed_attempts
-            ''  // locked_until (empty initially)
+            '', // locked_until (empty initially)
+            $dbUser, // database username (optional)
+            $dbPass, // database password (optional)
+            $dbHost  // database host (optional, defaults to localhost)
         );
         
-        // Write to credentials file (overwrite mode with exclusive lock)
-        // Clear any stat cache first to ensure we're working with fresh file info
+        // Read existing credentials to append (support multiple users)
+        $existingContent = '';
         if (file_exists($credentialsFile)) {
             clearstatcache(true, $credentialsFile);
+            $existingContent = file_get_contents($credentialsFile);
+            $existingLines = explode("\n", trim($existingContent));
+            
+            // Check if username already exists
+            foreach ($existingLines as $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
+                $parts = explode('|', $line);
+                if (count($parts) > 0 && $parts[0] === $username) {
+                    $error = 'Username already exists. Please choose a different username.';
+                    break;
+                }
+            }
         }
         
-        $bytesWritten = file_put_contents($credentialsFile, $credentialLine, LOCK_EX);
-        if ($bytesWritten !== false) {
-            chmod($credentialsFile, 0600); // Read/write for owner only
+        if (empty($error)) {
+            // Append new user (or create file if it doesn't exist)
+            $newContent = $existingContent . $credentialLine;
+            $bytesWritten = file_put_contents($credentialsFile, $newContent, LOCK_EX);
             
-            // Clear stat cache again after writing
-            clearstatcache(true, $credentialsFile);
-            
-            // Verify the write was successful
-            $verifyContent = file_get_contents($credentialsFile);
-            
-            // Verify that ONLY the new username exists (old content should be gone)
-            $lines = explode("\n", trim($verifyContent));
-            $validLines = array_filter($lines, function($line) { return !empty(trim($line)); });
-            
-            if (count($validLines) !== 1 || strpos($verifyContent, $username) === false) {
-                $error = 'File was written but content verification failed. Check file permissions and ensure file is writable.';
-                $success = false;
+            if ($bytesWritten !== false) {
+                chmod($credentialsFile, 0600); // Read/write for owner only
+                
+                // Clear stat cache again after writing
+                clearstatcache(true, $credentialsFile);
+                
+                // Verify the write was successful
+                $verifyContent = file_get_contents($credentialsFile);
+                
+                if (strpos($verifyContent, $username) === false) {
+                    $error = 'File was written but content verification failed. Check file permissions and ensure file is writable.';
+                    $success = false;
+                } else {
+                    $success = true;
+                }
             } else {
-                $success = true;
+                $error = 'Failed to write credentials file. Check file permissions.';
             }
-        } else {
-            $error = 'Failed to write credentials file. Check file permissions.';
         }
     }
 }
@@ -350,9 +370,9 @@ $credentialsExist = file_exists($credentialsFile) && filesize($credentialsFile) 
                 </div>
             <?php else: ?>
                 <?php if ($credentialsExist): ?>
-                    <div class="warning-box">
-                        <h3>⚠️ Credentials Already Exist</h3>
-                        <p>A credentials file already exists. Creating new credentials will overwrite the existing ones. Make sure you want to do this!</p>
+                    <div class="info-box" style="background: #E8F2FF; border-left: 4px solid #0474C4;">
+                        <h3 style="color: #0474C4; margin-bottom: 8px;">ℹ️ Multiple Users Supported</h3>
+                        <p style="color: #2C444C;">A credentials file already exists. You can add additional users - each user can have their own database credentials.</p>
                     </div>
                 <?php endif; ?>
                 
@@ -416,8 +436,49 @@ $credentialsExist = file_exists($credentialsFile) && filesize($credentialsFile) 
                         >
                     </div>
                     
+                    <div style="margin: 30px 0; border-top: 2px solid #E0E8F0; padding-top: 20px;">
+                        <h3 style="font-size: 16px; color: #262B40; margin-bottom: 15px;">🗄️ Database Credentials (Optional)</h3>
+                        <p style="font-size: 13px; color: #8A9BA8; margin-bottom: 20px;">
+                            If provided, this user will use these database credentials instead of the default ones in db_config.php. Leave empty to use defaults.
+                        </p>
+                        
+                        <div class="form-group">
+                            <label for="db_user">Database Username</label>
+                            <input 
+                                type="text" 
+                                id="db_user" 
+                                name="db_user" 
+                                value="<?php echo htmlspecialchars($_POST['db_user'] ?? ''); ?>"
+                                placeholder="Leave empty to use default"
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="db_pass">Database Password</label>
+                            <input 
+                                type="password" 
+                                id="db_pass" 
+                                name="db_pass" 
+                                value="<?php echo htmlspecialchars($_POST['db_pass'] ?? ''); ?>"
+                                placeholder="Leave empty to use default"
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="db_host">Database Host</label>
+                            <input 
+                                type="text" 
+                                id="db_host" 
+                                name="db_host" 
+                                value="<?php echo htmlspecialchars($_POST['db_host'] ?? 'localhost'); ?>"
+                                placeholder="localhost"
+                            >
+                            <div class="help-text">Default: localhost</div>
+                        </div>
+                    </div>
+                    
                     <button type="submit" class="btn btn-primary">
-                        <?php echo $credentialsExist ? '🔄 Update' : '✨ Create'; ?> Credentials
+                        <?php echo $credentialsExist ? '➕ Add User' : '✨ Create User'; ?>
                     </button>
                 </form>
                 

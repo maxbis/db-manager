@@ -64,20 +64,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'No credentials found. Please run setup.php first.';
             $errorHtml = 'No credentials found. Please run <a href="setup.php">setup.php</a> first.';
         } else {
-            // Read credentials
-            $credentials = file_get_contents($credentialsFile);
-            $parts = explode('|', trim($credentials));
+            // Read credentials file - support multiple users (one per line)
+            $credentialsContent = file_get_contents($credentialsFile);
+            $lines = explode("\n", trim($credentialsContent));
             
-            if (count($parts) >= 6) {
-                list($storedUsername, $storedPasswordHash, $created, $lastLogin, $failedAttempts, $lockedUntil) = $parts;
+            $userFound = false;
+            $allCredentials = [];
+            
+            // Parse all users from file
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
                 
-                // Check if account is locked
-                if (!empty($lockedUntil) && strtotime($lockedUntil) > time()) {
-                    $remainingMinutes = ceil((strtotime($lockedUntil) - time()) / 60);
-                    $error = "Account is temporarily locked. Try again in $remainingMinutes minute(s).";
-                } elseif ($username === $storedUsername) {
-                    // Username matches, verify password
-                    if (password_verify($password, $storedPasswordHash)) {
+                $parts = explode('|', $line);
+                if (count($parts) >= 6) {
+                    // Format: username|hashed_password|created|last_login|failed_attempts|locked_until|db_user|db_pass|db_host
+                    $allCredentials[] = [
+                        'username' => $parts[0],
+                        'password_hash' => $parts[1],
+                        'created' => $parts[2] ?? '',
+                        'last_login' => $parts[3] ?? '',
+                        'failed_attempts' => (int)($parts[4] ?? 0),
+                        'locked_until' => $parts[5] ?? '',
+                        'db_user' => $parts[6] ?? '', // Optional database username
+                        'db_pass' => $parts[7] ?? '', // Optional database password
+                        'db_host' => $parts[8] ?? ''  // Optional database host
+                    ];
+                }
+            }
+            
+            // Find matching user
+            foreach ($allCredentials as $userCred) {
+                if ($userCred['username'] === $username) {
+                    $userFound = true;
+                    
+                    // Check if account is locked
+                    if (!empty($userCred['locked_until']) && strtotime($userCred['locked_until']) > time()) {
+                        $remainingMinutes = ceil((strtotime($userCred['locked_until']) - time()) / 60);
+                        $error = "Account is temporarily locked. Try again in $remainingMinutes minute(s).";
+                    } elseif (password_verify($password, $userCred['password_hash'])) {
                         // Success! Create secure session
                         session_regenerate_id(true); // Prevent session fixation
                         
@@ -87,6 +112,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['last_activity'] = time();
                         $_SESSION['user_ip'] = $_SERVER['REMOTE_ADDR'] ?? '';
                         $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
+                        
+                        // Store database credentials in session if provided
+                        if (!empty($userCred['db_user'])) {
+                            $_SESSION['db_user'] = $userCred['db_user'];
+                        }
+                        if (!empty($userCred['db_pass'])) {
+                            $_SESSION['db_pass'] = $userCred['db_pass'];
+                        }
+                        if (!empty($userCred['db_host'])) {
+                            $_SESSION['db_host'] = $userCred['db_host'];
+                        }
                         
                         // Handle "Remember Me" functionality
                         if (isset($_POST['remember_me']) && $_POST['remember_me'] === '1') {
@@ -111,24 +147,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
                         
-                        // Reset failed attempts and update last login
-                        $updatedCredentials = sprintf(
-                            "%s|%s|%s|%s|%d|%s\n",
-                            $storedUsername,
-                            $storedPasswordHash,
-                            $created,
-                            date('Y-m-d H:i:s'), // last_login
-                            0, // reset failed_attempts
-                            '' // clear locked_until
-                        );
-                        file_put_contents($credentialsFile, $updatedCredentials);
+                        // Update credentials file with new last_login and reset failed attempts
+                        $updatedLines = [];
+                        foreach ($allCredentials as $uc) {
+                            if ($uc['username'] === $username) {
+                                // Update this user's record
+                                $updatedLines[] = sprintf(
+                                    "%s|%s|%s|%s|%d|%s|%s|%s|%s",
+                                    $uc['username'],
+                                    $uc['password_hash'],
+                                    $uc['created'],
+                                    date('Y-m-d H:i:s'), // last_login
+                                    0, // reset failed_attempts
+                                    '', // clear locked_until
+                                    $uc['db_user'] ?? '',
+                                    $uc['db_pass'] ?? '',
+                                    $uc['db_host'] ?? ''
+                                );
+                            } else {
+                                // Keep other users unchanged
+                                $updatedLines[] = sprintf(
+                                    "%s|%s|%s|%s|%d|%s|%s|%s|%s",
+                                    $uc['username'],
+                                    $uc['password_hash'],
+                                    $uc['created'],
+                                    $uc['last_login'],
+                                    $uc['failed_attempts'],
+                                    $uc['locked_until'],
+                                    $uc['db_user'] ?? '',
+                                    $uc['db_pass'] ?? '',
+                                    $uc['db_host'] ?? ''
+                                );
+                            }
+                        }
+                        file_put_contents($credentialsFile, implode("\n", $updatedLines) . "\n");
                         
                         // Redirect to main page
                         header('Location: ../');
                         exit;
                     } else {
                         // Password incorrect - increment failed attempts
-                        $failedAttempts = (int)$failedAttempts + 1;
+                        $failedAttempts = $userCred['failed_attempts'] + 1;
                         $lockedUntil = '';
                         
                         // Lock account after 5 failed attempts
@@ -140,24 +199,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $error = "Invalid username or password. $remainingAttempts attempt(s) remaining.";
                         }
                         
-                        // Update credentials file
-                        $updatedCredentials = sprintf(
-                            "%s|%s|%s|%s|%d|%s\n",
-                            $storedUsername,
-                            $storedPasswordHash,
-                            $created,
-                            $lastLogin,
-                            $failedAttempts,
-                            $lockedUntil
-                        );
-                        file_put_contents($credentialsFile, $updatedCredentials);
+                        // Update credentials file with incremented failed attempts
+                        $updatedLines = [];
+                        foreach ($allCredentials as $uc) {
+                            if ($uc['username'] === $username) {
+                                // Update this user's failed attempts
+                                $updatedLines[] = sprintf(
+                                    "%s|%s|%s|%s|%d|%s|%s|%s|%s",
+                                    $uc['username'],
+                                    $uc['password_hash'],
+                                    $uc['created'],
+                                    $uc['last_login'],
+                                    $failedAttempts,
+                                    $lockedUntil,
+                                    $uc['db_user'] ?? '',
+                                    $uc['db_pass'] ?? '',
+                                    $uc['db_host'] ?? ''
+                                );
+                            } else {
+                                // Keep other users unchanged
+                                $updatedLines[] = sprintf(
+                                    "%s|%s|%s|%s|%d|%s|%s|%s|%s",
+                                    $uc['username'],
+                                    $uc['password_hash'],
+                                    $uc['created'],
+                                    $uc['last_login'],
+                                    $uc['failed_attempts'],
+                                    $uc['locked_until'],
+                                    $uc['db_user'] ?? '',
+                                    $uc['db_pass'] ?? '',
+                                    $uc['db_host'] ?? ''
+                                );
+                            }
+                        }
+                        file_put_contents($credentialsFile, implode("\n", $updatedLines) . "\n");
                     }
-                } else {
-                    // Username doesn't match - don't reveal this for security
-                    $error = 'Invalid username or password';
+                    break; // Found user, exit loop
                 }
-            } else {
-                $error = 'Invalid credentials file format';
+            }
+            
+            if (!$userFound) {
+                // Username doesn't match - don't reveal this for security
+                $error = 'Invalid username or password';
             }
         }
     }

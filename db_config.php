@@ -34,12 +34,22 @@ const DB_CHARSET = 'utf8mb4';
  * @return mysqli Database connection object
  * @throws Exception if connection fails
  */
-function getDbConnection(string $database = null): mysqli
+function getDbConnection(?string $database = null): mysqli
 {
     // Use provided database, or fall back to DB_NAME constant, or connect without database
     $dbToUse = $database ?? (DB_NAME ?: null);
     
-    $conn = new mysqli(DB_HOST, DB_USER, DB_PASS, $dbToUse);
+    // Check if user has custom database credentials in session
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    // Use session-based credentials if available, otherwise use defaults
+    $dbUser = $_SESSION['db_user'] ?? DB_USER;
+    $dbPass = $_SESSION['db_pass'] ?? DB_PASS;
+    $dbHost = $_SESSION['db_host'] ?? DB_HOST;
+    
+    $conn = new mysqli($dbHost, $dbUser, $dbPass, $dbToUse);
     
     if ($conn->connect_error) {
         throw new Exception("Database connection failed: " . $conn->connect_error);

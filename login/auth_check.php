@@ -83,6 +83,33 @@ function checkAuthorization() {
                         $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
                         $_SESSION['auto_login'] = true; // Flag to indicate auto-login via remember-me
                         
+                        // Load database credentials for this user if they exist
+                        $credentialsFile = __DIR__ . '/credentials.txt';
+                        if (file_exists($credentialsFile)) {
+                            $credentialsContent = file_get_contents($credentialsFile);
+                            $lines = explode("\n", trim($credentialsContent));
+                            
+                            foreach ($lines as $line) {
+                                $line = trim($line);
+                                if (empty($line)) continue;
+                                
+                                $parts = explode('|', $line);
+                                if (count($parts) >= 6 && $parts[0] === $userData['username']) {
+                                    // Found user - load database credentials if provided
+                                    if (isset($parts[6]) && !empty($parts[6])) {
+                                        $_SESSION['db_user'] = $parts[6];
+                                    }
+                                    if (isset($parts[7]) && !empty($parts[7])) {
+                                        $_SESSION['db_pass'] = $parts[7];
+                                    }
+                                    if (isset($parts[8]) && !empty($parts[8])) {
+                                        $_SESSION['db_host'] = $parts[8];
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        
                         // Allow access to continue
                         return true;
                     } else {
