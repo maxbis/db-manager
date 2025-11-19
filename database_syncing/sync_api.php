@@ -351,7 +351,7 @@ function syncDatabase($remoteConfig, $localConfig, $tables) {
         
         // Connect to local database
         $logs[] = ['message' => 'Connecting to local database...', 'type' => 'info'];
-        require_once __DIR__ . '/../db_config.php';
+        require_once __DIR__ . '/../db_connection.php';
         
         $credentials = getDbCredentials();
         $localConn = new mysqli($credentials['host'], $credentials['user'], $credentials['pass'], null, $localConfig['port'] ?? 3306);

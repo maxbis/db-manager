@@ -204,7 +204,7 @@ Use `ip_functions.php` for:
 Don't use for:
 - ❌ Session management (use `remember_tokens.php`)
 - ❌ User authentication (use `auth_check.php`)
-- ❌ Database operations (use `db_config.php`)
+- ❌ Database operations (use `db_connection.php`)
 
 ## Code Example
 

@@ -12,7 +12,7 @@
 require_once '../login/auth_check.php';
 
 header('Content-Type: application/json');
-require_once '../db_config.php';
+require_once '../db_connection.php';
 
 // Get the action from request
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
@@ -41,7 +41,7 @@ try {
                 // Auto-select first available database
                 $database = getFirstAvailableDatabase($conn);
                 if (empty($database)) {
-                    throw new Exception("No databases available. Please create a database first or set DB_NAME in db_config.php.");
+                    throw new Exception("No databases available. Please create a database first or set DB_NAME in db_connection.php.");
                 }
                 // Cache the selection
                 $_SESSION['auto_selected_database'] = $database;

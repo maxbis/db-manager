@@ -8,7 +8,7 @@
 
 // Require authentication
 require_once __DIR__ . '/../login/auth_check.php';
-require_once __DIR__ . '/../db_config.php';
+require_once __DIR__ . '/../db_connection.php';
 
 header('Content-Type: application/json');
 

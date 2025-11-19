@@ -1168,7 +1168,7 @@ git revert [phase-1-commit-hash]
 **Files to NEVER modify:**
 - `login/*` - Authentication system is working well
 - `docs/*` - Documentation is complete
-- `db_config.php` - Database configuration
+- `db_connection.php` - Database connection management
 - `api.php` - Backend API (can be refactored later in future phase)
 
 ---

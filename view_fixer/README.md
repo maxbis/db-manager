@@ -472,7 +472,7 @@ error_log("Fixed view: $database.$viewName - " . date('Y-m-d H:i:s'));
 
 - Main documentation: `/docs/`
 - Common CSS: `../styles/common.css`
-- Database config: `../db_config.php`
+- Database config: `../db_connection.php`
 - Template system: `../templates/`
 
 ---

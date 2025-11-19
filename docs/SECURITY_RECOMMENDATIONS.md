@@ -46,7 +46,7 @@ if (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] !== 'on') {
 ```
 
 #### 3. Environment Variables for Credentials
-**Current**: Credentials in `db_config.php`  
+**Current**: Credentials in `db_connection.php`  
 **Needed**: Use environment variables
 
 ```php

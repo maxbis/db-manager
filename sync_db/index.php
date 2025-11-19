@@ -6,7 +6,7 @@
  * It uses the same authentication system as other pages.
  */
 require_once __DIR__ . '/../login/auth_check.php';
-require_once __DIR__ . '/../db_config.php';
+require_once __DIR__ . '/../db_connection.php';
 require_once __DIR__ . '/config.php';
 
 // Page configuration for header template

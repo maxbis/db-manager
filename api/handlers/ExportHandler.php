@@ -271,7 +271,7 @@ class ExportHandler {
         }
         
         // Get connection details from session
-        require_once __DIR__ . '/../../db_config.php';
+        require_once __DIR__ . '/../../db_connection.php';
         $credentials = getDbCredentials();
         $host = $credentials['host'];
         $user = $credentials['user'];

@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'] ?? '';
                         
                         // Store database credentials in session (required)
-                        // If not provided in credentials.txt, use defaults from db_config.php as fallback
+                        // If not provided in credentials.txt, use defaults from db_connection.php as fallback
                         if (!empty($userCred['db_user'])) {
                             $_SESSION['db_user'] = $userCred['db_user'];
                         } else {

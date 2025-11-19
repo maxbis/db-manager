@@ -12,13 +12,13 @@
  * include 'templates/header.php';
  */
 
-// Ensure db_config is loaded for database functions
+// Ensure db_connection is loaded for database functions
 if (!function_exists('getCurrentDatabase')) {
     try {
-        require_once __DIR__ . '/../db_config.php';
+        require_once __DIR__ . '/../db_connection.php';
     } catch (Exception $e) {
-        // If db_config.php fails to load, log error but don't break the page
-        error_log('Failed to load db_config.php: ' . $e->getMessage());
+        // If db_connection.php fails to load, log error but don't break the page
+        error_log('Failed to load db_connection.php: ' . $e->getMessage());
     }
 }
 

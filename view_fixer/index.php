@@ -4,7 +4,7 @@
  * Automatically fixes MySQL view definer issues
  */
 require_once '../login/auth_check.php';
-require_once '../db_config.php';
+require_once '../db_connection.php';
 
 // Handle AJAX requests
 if (isset($_POST['action'])) {
