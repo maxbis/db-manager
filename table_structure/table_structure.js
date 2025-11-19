@@ -945,6 +945,119 @@ $('.nav-link').click(function(e) {
     }, 200);
 });
 
+// Format SQL for better readability
+function formatSQL(sql) {
+    if (!sql) return sql;
+    
+    // Basic SQL formatter - handles common patterns
+    let formatted = sql;
+    
+    // Remove excessive whitespace but preserve structure
+    formatted = formatted.replace(/\s+/g, ' ');
+    
+    // Add line breaks after major keywords
+    const keywords = [
+        'CREATE VIEW', 'CREATE TABLE', 'SELECT', 'FROM', 'WHERE', 
+        'JOIN', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL JOIN',
+        'ON', 'GROUP BY', 'ORDER BY', 'HAVING', 'UNION', 'UNION ALL',
+        'INSERT INTO', 'UPDATE', 'DELETE FROM', 'ALTER TABLE',
+        'AND', 'OR', 'AS', 'SET'
+    ];
+    
+    // Sort keywords by length (longest first) to avoid partial matches
+    keywords.sort((a, b) => b.length - a.length);
+    
+    // Add newlines before keywords (case insensitive)
+    keywords.forEach(keyword => {
+        const regex = new RegExp(`\\s+${keyword.replace(/\s+/g, '\\s+')}\\s+`, 'gi');
+        formatted = formatted.replace(regex, `\n${keyword.toUpperCase()} `);
+    });
+    
+    // Handle commas in SELECT lists - add newline after comma
+    formatted = formatted.replace(/,\s*([a-zA-Z_`])/g, ',\n    $1');
+    
+    // Handle JOIN conditions - indent ON clauses
+    formatted = formatted.replace(/\n\s*ON\s+/gi, '\n        ON ');
+    
+    // Handle WHERE conditions - indent
+    formatted = formatted.replace(/\n\s*WHERE\s+/gi, '\n    WHERE ');
+    
+    // Handle AND/OR in WHERE clauses - indent
+    formatted = formatted.replace(/\n\s+(AND|OR)\s+/gi, '\n        $1 ');
+    
+    // Indent SELECT columns
+    formatted = formatted.replace(/\nSELECT\s+/gi, '\nSELECT\n    ');
+    
+    // Indent FROM clause
+    formatted = formatted.replace(/\nFROM\s+/gi, '\nFROM\n    ');
+    
+    // Handle UNION - add extra spacing
+    formatted = formatted.replace(/\nUNION\s+/gi, '\n\nUNION\n');
+    
+    // Clean up multiple newlines (max 2 consecutive)
+    formatted = formatted.replace(/\n{3,}/g, '\n\n');
+    
+    // Trim and add proper indentation
+    const lines = formatted.split('\n');
+    let indentLevel = 0;
+    const indentSize = 4;
+    
+    const formattedLines = lines.map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return '';
+        
+        // Check if this is a major clause that should reset indent
+        const isMajorClause = trimmed.match(/^(FROM|WHERE|GROUP BY|ORDER BY|HAVING|UNION|SELECT)/i);
+        const isJoin = trimmed.match(/^(JOIN|INNER JOIN|LEFT JOIN|RIGHT JOIN|FULL JOIN)/i);
+        const isOn = trimmed.match(/^ON\s+/i);
+        
+        // Reset indent level for major clauses
+        if (isMajorClause) {
+            indentLevel = 0;
+        }
+        
+        // JOIN clauses should be at same level as FROM (indentLevel 1)
+        if (isJoin) {
+            indentLevel = 1;
+        }
+        
+        // ON clauses should be indented more than JOIN
+        if (isOn) {
+            indentLevel = 2;
+        }
+        
+        // Decrease indent before certain keywords (but not JOINs)
+        if (trimmed.match(/^(WHERE|GROUP BY|ORDER BY|HAVING|UNION)/i) && !isJoin) {
+            indentLevel = Math.max(0, indentLevel - 1);
+        }
+        
+        // Increase indent after certain keywords (but handle JOINs separately)
+        if (trimmed.match(/^(SELECT|FROM)/i)) {
+            const indent = ' '.repeat(indentLevel * indentSize);
+            indentLevel++;
+            return indent + trimmed;
+        }
+        
+        // Handle subqueries and parentheses
+        const openParens = (trimmed.match(/\(/g) || []).length;
+        const closeParens = (trimmed.match(/\)/g) || []).length;
+        
+        if (closeParens > openParens) {
+            indentLevel = Math.max(0, indentLevel - (closeParens - openParens));
+        }
+        
+        const indent = ' '.repeat(indentLevel * indentSize);
+        
+        if (openParens > closeParens) {
+            indentLevel += (openParens - closeParens);
+        }
+        
+        return indent + trimmed;
+    });
+    
+    return formattedLines.filter(line => line.trim() || line === '').join('\n').trim();
+}
+
 // Show view source
 function showViewSource() {
     if (!currentTable) {
@@ -962,6 +1075,9 @@ function showViewSource() {
         dataType: 'json',
         success: function(response) {
             if (response.success) {
+                // Format the SQL for better readability
+                const formattedSQL = formatSQL(response.createStatement);
+                
                 // Create modal for view source
                 const modalHtml = `
                     <div class="modal active" id="viewSourceModal">
@@ -973,7 +1089,7 @@ function showViewSource() {
                             <div class="modal-body">
                                 <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
                                     <h4 style="margin-bottom: 10px; color: var(--color-primary);">📝 CREATE VIEW Statement:</h4>
-                                    <pre style="background: #ffffff; border: 1px solid #e9ecef; border-radius: 4px; padding: 15px; margin: 0; overflow-x: auto; white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.4; color: var(--color-text-primary);">${response.createStatement}</pre>
+                                    <pre id="viewSourceSQL" style="background: #ffffff; border: 1px solid #e9ecef; border-radius: 4px; padding: 15px; margin: 0; overflow-x: auto; white-space: pre; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: var(--color-text-primary); tab-size: 4;"></pre>
                                 </div>
                                 <div style="background: var(--color-warning-pale); border: 1px solid var(--color-warning-light); border-radius: 6px; padding: 12px;">
                                     <p style="margin: 0; color: var(--color-warning); font-weight: 600;">💡 <strong>Tip:</strong> You can copy this SQL and run it in the SQL Query Builder to recreate this view.</p>
@@ -988,6 +1104,9 @@ function showViewSource() {
                 `;
                 
                 $('body').append(modalHtml);
+                
+                // Set SQL content using textContent to avoid escaping issues
+                $('#viewSourceSQL').text(formattedSQL);
                 
                 // Add click-outside-to-close functionality
                 $('#viewSourceModal').click(function(e) {
