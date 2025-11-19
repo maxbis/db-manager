@@ -9,7 +9,6 @@ const UIRenderer = {
      */
     displayTableInfo: function() {
         const tableInfoDiv = $('#tableInfo');
-        const statsGrid = $('#statsGrid');
         
         // Count different types of columns
         const totalColumns = window.State.tableInfo.columns.length;
@@ -19,35 +18,29 @@ const UIRenderer = {
         
         const typeIcon = window.State.tableInfo.isView ? '👁️' : '📊';
         const typeLabel = window.State.tableInfo.isView ? 'View' : 'Table';
-        const viewWarning = window.State.tableInfo.isView ? '<p style="color: var(--color-warning); font-weight: 600;">⚠️ Read-only VIEW - Structure cannot be modified</p>' : '';
-        const viewSourceBtn = window.State.tableInfo.isView ? '<button id="viewSourceBtn" class="btn-primary" style="margin-top: 10px; padding: 8px 16px; font-size: 14px;">🔍 View Source</button>' : '';
+        const viewWarning = window.State.tableInfo.isView ? '<p class="view-warning">⚠️ Read-only VIEW</p>' : '';
+        const viewSourceBtn = window.State.tableInfo.isView ? '<button id="viewSourceBtn" class="btn-primary view-source-btn">🔍 View Source</button>' : '';
         
         tableInfoDiv.html(`
-            <h2>${typeIcon} ${typeLabel}: ${window.State.currentTable}</h2>
-            ${viewWarning}
+            <div class="table-info-grid">
+                <div class="table-info-column table-info-title">
+                    <h2>${typeIcon} Table: ${window.State.currentTable}</h2>
+                    ${viewWarning}
+                </div>
+                <div class="table-info-column">
+                    <p><strong>Type:</strong> ${window.State.tableInfo.tableType}</p>
+                    <p><strong>Primary Key:</strong> ${window.State.tableInfo.primaryKey || 'None'}</p>
+                </div>
+                <div class="table-info-column">
+                    <p><strong>Total Columns:</strong> ${totalColumns}</p>
+                    <p><strong>Primary Keys:</strong> ${primaryKeys}</p>
+                </div>
+                <div class="table-info-column">
+                    <p><strong>Nullable Fields:</strong> ${nullableColumns}</p>
+                    <p><strong>Auto Increment:</strong> ${autoIncrementColumns}</p>
+                </div>
+            </div>
             ${viewSourceBtn}
-            <p><strong>Type:</strong> ${window.State.tableInfo.tableType}</p>
-            <p><strong>Primary Key:</strong> ${window.State.tableInfo.primaryKey || 'None'}</p>
-            <p><strong>Total Columns:</strong> ${totalColumns}</p>
-        `);
-        
-        statsGrid.html(`
-            <div class="stat-card">
-                <h3>${totalColumns}</h3>
-                <p>Total Columns</p>
-            </div>
-            <div class="stat-card">
-                <h3>${primaryKeys}</h3>
-                <p>Primary Keys</p>
-            </div>
-            <div class="stat-card">
-                <h3>${nullableColumns}</h3>
-                <p>Nullable Fields</p>
-            </div>
-            <div class="stat-card">
-                <h3>${autoIncrementColumns}</h3>
-                <p>Auto Increment</p>
-            </div>
         `);
     },
 
@@ -59,6 +52,15 @@ const UIRenderer = {
         tbody.empty();
         
         // Define all possible attributes
+        const attributeDescriptions = {
+            primary: 'PRIMARY: Column is part of the primary key',
+            unique: 'UNIQUE: Values must be unique',
+            index: 'INDEX: Column has a non-unique index',
+            required: 'NOTNULL: Column cannot be NULL',
+            auto_increment: 'A.I.: Auto-incrementing numeric value',
+            foreign_key: 'FK: References another table'
+        };
+        
         const allAttributes = [
             { key: 'primary', text: 'PRIMARY', class: 'primary' },
             { key: 'unique', text: 'UNIQUE', class: 'unique' },
@@ -67,6 +69,12 @@ const UIRenderer = {
             { key: 'auto_increment', text: 'A.I.', class: 'auto-increment' },
             { key: 'foreign_key', text: 'FK', class: 'foreign-key' }
         ];
+        
+        const keyDescriptions = {
+            'PRI': 'Primary key — uniquely identifies each row',
+            'UNI': 'Unique index — values must be unique',
+            'MUL': 'Indexed column — non-unique values allowed'
+        };
         
         window.State.tableInfo.columns.forEach(function(col) {
             // Determine which attributes are applicable
@@ -82,9 +90,11 @@ const UIRenderer = {
             const attributesHtml = allAttributes.map(attr => {
                 const isApplicable = applicableAttributes.includes(attr.key);
                 const dimmedClass = isApplicable ? '' : 'dimmed';
-                // Always show just "FK" in the badge, full reference is in the tooltip
-                const badgeText = attr.text;
-                return `<span class="attribute-badge ${attr.class} ${dimmedClass}" title="${col.foreignKey ? `References ${col.foreignKey.referenced_table}.${col.foreignKey.referenced_column} (${col.foreignKey.update_rule}/${col.foreignKey.delete_rule})` : ''}">${badgeText}</span>`;
+                let titleText = attributeDescriptions[attr.key] || '';
+                if (attr.key === 'foreign_key' && col.foreignKey) {
+                    titleText = `FK: References ${col.foreignKey.referenced_table}.${col.foreignKey.referenced_column} (UPDATE ${col.foreignKey.update_rule}/DELETE ${col.foreignKey.delete_rule})`;
+                }
+                return `<span class="attribute-badge ${attr.class} ${dimmedClass}" title="${titleText}">${attr.text}</span>`;
             }).join('');
             
             // Format type display - make VARCHAR clickable for measurement
@@ -101,12 +111,18 @@ const UIRenderer = {
                 typeDisplay = `<span class="${typeClass}">${col.type}</span>`;
             }
             
+            const keyValue = col.key || '';
+            const keyTitle = keyDescriptions[keyValue] || '';
+            const keyDisplay = keyValue 
+                ? `<span class="key-indicator" title="${keyTitle}">${keyValue}</span>`
+                : '';
+            
             const row = `
                 <tr data-column-name="${col.name}">
                     <td><strong>${col.name}</strong></td>
                     <td>${typeDisplay}</td>
                     <td>${col.null ? 'YES' : 'NO'}</td>
-                    <td>${col.key || ''}</td>
+                    <td>${keyDisplay}</td>
                     <td>${col.default !== null ? col.default : '<em>NULL</em>'}</td>
                     <td>${col.extra || ''}</td>
                     <td><div class="field-attributes">${attributesHtml}</div></td>
@@ -138,6 +154,9 @@ const UIRenderer = {
             const columnName = $(this).data('column');
             window.Utils.measureColumnMaxLength(columnName, $(this));
         });
+        
+        // Clean up any existing tooltips when table structure is redisplayed
+        tbody.find('.varchar-adjust-tooltip').remove();
     }
 };
 

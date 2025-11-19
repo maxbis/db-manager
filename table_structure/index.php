@@ -42,10 +42,6 @@ require_once '../login/auth_check.php';
             <!-- Table information will be populated here -->
         </div>
 
-        <div class="stats-grid" id="statsGrid">
-            <!-- Statistics will be populated here -->
-        </div>
-
         <div class="structure-table-wrapper">
             <table class="structure-table" id="structureTable">
                 <thead>
@@ -73,6 +69,14 @@ require_once '../login/auth_check.php';
         <div class="empty-state-icon">📋</div>
         <h3>No Table Selected</h3>
         <p>Please select a table from the dropdown above to view its structure.</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <div class="toast-content">
+            <div class="toast-message" id="toastMessage"></div>
+            <button class="toast-close-btn" id="toastCloseBtn" title="Close">×</button>
+        </div>
     </div>
 
     <!-- Include Modals -->
