@@ -16,16 +16,14 @@ const UIRenderer = {
         const nullableColumns = window.State.tableInfo.columns.filter(col => col.null).length;
         const autoIncrementColumns = window.State.tableInfo.columns.filter(col => col.extra.toLowerCase().includes('auto_increment')).length;
         
-        const typeIcon = window.State.tableInfo.isView ? '👁️' : '📊';
+        const typeIcon  = window.State.tableInfo.isView ? '👁️' : '📊';
         const typeLabel = window.State.tableInfo.isView ? 'View' : 'Table';
-        const viewWarning = window.State.tableInfo.isView ? '<p class="view-warning">⚠️ Read-only VIEW</p>' : '';
         const viewSourceBtn = window.State.tableInfo.isView ? '<button id="viewSourceBtn" class="btn-primary view-source-btn">🔍 View Source</button>' : '';
         
         tableInfoDiv.html(`
             <div class="table-info-grid">
                 <div class="table-info-column table-info-title">
-                    <h2>${typeIcon} Table: ${window.State.currentTable}</h2>
-                    ${viewWarning}
+                    <h2>${typeIcon} ${typeLabel}: ${window.State.currentTable}</h2>
                 </div>
                 <div class="table-info-column">
                     <p><strong>Type:</strong> ${window.State.tableInfo.tableType}</p>

@@ -5,7 +5,7 @@
 .table-info {
     background: var(--color-bg-lighter);
     border-radius: 8px;
-    padding: 20px;
+    padding: 10px;
     margin-bottom: 25px;
     border: 1px solid var(--color-border-light);
 }
@@ -17,11 +17,11 @@
 }
 
 .table-info-column p {
-    margin-bottom: 6px;
+    margin-bottom: 0px;
 }
 
 .table-info-title h2 {
-    margin-bottom: 8px;
+    margin-bottom: 0px;
 }
 
 .view-warning {
@@ -32,20 +32,20 @@
 
 .view-source-btn {
     margin-top: 0;
-    padding: 8px 16px;
-    font-size: 14px;
+    padding: 4px 8px;
+    font-size: 10px;
     white-space: nowrap;
 }
 
 .table-info h2 {
     color: var(--color-primary);
-    font-size: 22px;
+    font-size: 20px;
     margin-bottom: 10px;
 }
 
 .table-info p {
     color: var(--color-text-secondary);
-    margin-bottom: 5px;
+    margin-bottom: 0px;
 }
 
 .structure-table {
