@@ -7,7 +7,7 @@ const DatabaseOperations = {
     /**
      * Load all databases from the API
      */
-    load: function() {
+    load: function () {
         $('#loading').addClass('active');
 
         $.ajax({
@@ -19,20 +19,20 @@ const DatabaseOperations = {
                     window.State.databases = response.databases;
                     window.UIRenderer.displayDatabases();
                     window.UIRenderer.populateDatabaseSelect();
-                    
+
                     // If there's a current database set from session, restore its state
                     if (window.State.currentDatabase) {
                         console.log('Restoring state for currentDatabase:', window.State.currentDatabase);
-                        
+
                         // Update visual state of database items
                         $('.database-item').removeClass('active');
                         const $currentDbItem = $(`.database-item[data-database="${window.State.currentDatabase}"]`);
                         $currentDbItem.addClass('active');
                         console.log('Active class added to:', $currentDbItem.length, 'items');
-                        
+
                         // Update database badges
                         let badgesUpdated = 0;
-                        $('.database-name').each(function() {
+                        $('.database-name').each(function () {
                             const $this = $(this);
                             const $badge = $this.find('.badge-current');
                             const itemDbName = $this.closest('.database-item').data('database');
@@ -44,33 +44,44 @@ const DatabaseOperations = {
                             }
                         });
                         console.log('Badges updated:', badgesUpdated);
-                        
+
                         // Auto-expand the current database's tables section
                         const expandIndicator = $currentDbItem.find('.expand-indicator');
                         const tablesSubsection = $(`.database-tables-subsection[data-database="${window.State.currentDatabase}"]`);
-                        
+
                         if (expandIndicator.length && tablesSubsection.length) {
                             expandIndicator.addClass('expanded');
                             tablesSubsection.addClass('expanded');
-                            
+
                             // Function to scroll database into view
-                            const scrollToDatabase = function() {
-                                setTimeout(function() {
+                            const scrollToDatabase = function () {
+                                // Check settings
+                                const settings = window.DB_MANAGER_SETTINGS || {};
+                                const dbManagerSettings = settings['Database Manager'] || {};
+                                // Default to true if not set
+                                const shouldScroll = dbManagerSettings['initial scroll'] !== false;
+
+                                if (!shouldScroll) {
+                                    console.log('Initial scroll disabled by settings');
+                                    return;
+                                }
+
+                                setTimeout(function () {
                                     const elementOffset = $currentDbItem.offset().top;
                                     const windowHeight = $(window).height();
                                     const elementHeight = $currentDbItem.outerHeight();
                                     const scrollPosition = elementOffset - (windowHeight / 2) + (elementHeight / 2);
-                                    
+
                                     $('html, body').animate({
                                         scrollTop: scrollPosition
                                     }, 500);
                                 }, 100);
                             };
-                            
+
                             // Load tables if not already loaded
                             const tablesGrid = tablesSubsection.find('.database-tables-grid');
                             if (tablesGrid.children().length === 0) {
-                                window.TableOperations.loadForDatabase(window.State.currentDatabase, function(tables) {
+                                window.TableOperations.loadForDatabase(window.State.currentDatabase, function (tables) {
                                     window.UIRenderer.displayTablesInSubsection(window.State.currentDatabase, tables);
                                     scrollToDatabase();
                                 });
@@ -79,13 +90,13 @@ const DatabaseOperations = {
                                 scrollToDatabase();
                             }
                         }
-                        
+
                         window.UIRenderer.updateButtonStates();
                     } else {
                         console.log('No currentDatabase set, skipping state restoration');
                         window.UIInteractions.closeAllExpandedDatabases();
                     }
-                    
+
                     window.UIRenderer.updateStats();
                 }
                 $('#loading').removeClass('active');
@@ -102,7 +113,7 @@ const DatabaseOperations = {
     /**
      * Create a new database
      */
-    create: function() {
+    create: function () {
         const name = $('#newDatabaseName').val().trim();
         const charset = $('#newDatabaseCharset').val();
         const collation = $('#newDatabaseCollation').val();
@@ -141,7 +152,7 @@ const DatabaseOperations = {
     /**
      * Delete a database
      */
-    delete: function(databaseName) {
+    delete: function (databaseName) {
         window.ModalManager.showConfirmDialog({
             title: 'Delete Database',
             message: `Are you sure you want to delete the database "${databaseName}"? This action cannot be undone!`,
@@ -179,7 +190,7 @@ const DatabaseOperations = {
     /**
      * Export a database
      */
-    export: function() {
+    export: function () {
         const databaseName = $('#exportDatabaseName').val();
         const fileName = $('#exportFileName').val().trim();
         const includeCreateDatabase = $('#exportCreateDatabase').is(':checked');
@@ -231,7 +242,7 @@ const DatabaseOperations = {
     /**
      * Export all databases
      */
-    exportAll: function() {
+    exportAll: function () {
         const filename = $('#exportAllFilename').val().trim();
         const includeCreateDatabase = $('#exportAllIncludeCreateDatabase').is(':checked');
         const dataOnly = $('#exportAllDataOnly').is(':checked');
@@ -290,7 +301,7 @@ const DatabaseOperations = {
     /**
      * Import a database
      */
-    import: function() {
+    import: function () {
         const fileInput = document.getElementById('importFile');
         const file = fileInput.files[0];
         const targetDatabase = $('#importTargetDatabase').val();

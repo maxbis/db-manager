@@ -29,25 +29,6 @@ $pageConfig = array_merge([
     'icon' => '📊',
     'controls_html' => ''
 ], $pageConfig ?? []);
-
-// Ensure session is started before accessing $_SESSION
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Determine relative path prefix for shared assets based on current script depth
-$scriptDirectory = trim(dirname($_SERVER['SCRIPT_NAME']), '/');
-if ($scriptDirectory === '.' || $scriptDirectory === DIRECTORY_SEPARATOR) {
-    $scriptDirectory = '';
-}
-$directoryDepth = ($scriptDirectory === '' ? 0 : substr_count($scriptDirectory, '/') + 1);
-$pathPrefix = str_repeat('../', $directoryDepth);
-
-$sessionStatusUrl = $pathPrefix . 'login/session_status.php';
-$loginUrl = $pathPrefix . 'login/login.php';
-$sessionHandlerScript = $pathPrefix . 'assets/js/session_handler.js';
-
-// Define menu items
 $menuItems = [
     [
         'id' => 'database',
@@ -108,54 +89,60 @@ if (!empty($selectedTable) && !empty($currentDatabase)) {
 ?>
 
 <script>
-window.APP_SESSION_CONFIG = Object.assign({}, window.APP_SESSION_CONFIG || {}, {
-    statusUrl: '<?php echo htmlspecialchars($sessionStatusUrl, ENT_QUOTES); ?>',
-    loginUrl: '<?php echo htmlspecialchars($loginUrl, ENT_QUOTES); ?>'
-});
+    window.APP_SESSION_CONFIG = Object.assign({}, window.APP_SESSION_CONFIG || {}, {
+        statusUrl: '<?php echo htmlspecialchars($sessionStatusUrl, ENT_QUOTES); ?>',
+        loginUrl: '<?php echo htmlspecialchars($loginUrl, ENT_QUOTES); ?>'
+    });
 </script>
 <script defer src="<?php echo htmlspecialchars($sessionHandlerScript, ENT_QUOTES); ?>"></script>
 
 <div class="container">
     <div class="header">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h1 style="margin: 0;"><?php echo $pageConfig['icon']; ?> <?php echo htmlspecialchars($pageConfig['title']); ?></h1>
-            
+            <h1 style="margin: 0;"><?php echo $pageConfig['icon']; ?>
+                <?php echo htmlspecialchars($pageConfig['title']); ?>
+            </h1>
+
             <?php if (isset($_SESSION['username'])): ?>
-            <div class="control-group">
-                <span style="font-size: 12px; color: var(--color-text-tertiary);">
-                    👤 <?php echo htmlspecialchars($_SESSION['username']); ?>
-                </span>
-                <a href="../login/logout.php" style="padding: 8px 12px; font-size: 12px; text-decoration: none; background: linear-gradient(135deg, var(--color-danger-lighter) 0%, var(--color-danger-lightest) 100%); color: var(--color-danger); border: 1px solid var(--color-danger-light); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
-                    🚪 Logout
-                </a>
-            </div>
+                <div class="control-group">
+                    <span style="font-size: 12px; color: var(--color-text-tertiary);">
+                        👤 <?php echo htmlspecialchars($_SESSION['username']); ?>
+                    </span>
+                    <a href="../login/logout.php"
+                        style="padding: 8px 12px; font-size: 12px; text-decoration: none; background: linear-gradient(135deg, var(--color-danger-lighter) 0%, var(--color-danger-lightest) 100%); color: var(--color-danger); border: 1px solid var(--color-danger-light); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                        🚪 Logout
+                    </a>
+                </div>
             <?php else: ?>
-            <div class="control-group">
-                <a href="../login/login.php" style="padding: 8px 12px; font-size: 12px; text-decoration: none; background: linear-gradient(135deg, var(--color-primary-lighter) 0%, var(--color-primary-lightest) 100%); color: var(--color-primary); border: 1px solid var(--color-primary-light); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
-                    🔐 Login
-                </a>
-            </div>
+                <div class="control-group">
+                    <a href="../login/login.php"
+                        style="padding: 8px 12px; font-size: 12px; text-decoration: none; background: linear-gradient(135deg, var(--color-primary-lighter) 0%, var(--color-primary-lightest) 100%); color: var(--color-primary); border: 1px solid var(--color-primary-light); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.3s ease;">
+                        🔐 Login
+                    </a>
+                </div>
             <?php endif; ?>
         </div>
-        
+
         <div class="controls">
             <?php echo $pageConfig['controls_html']; ?>
-            
+
             <?php if (!empty($currentDatabase)): ?>
-            <div class="control-group" style="margin-left: auto;">
-                <span style="font-size: 18px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 6px;">
-                    <span style="color: var(--color-success); padding: 6px 10px; border-radius: 6px; font-weight: 600; margin-right: 0px;">
-                        🗄️ <?php echo htmlspecialchars($databaseDisplay); ?>
+                <div class="control-group" style="margin-left: auto;">
+                    <span
+                        style="font-size: 18px; color: var(--color-text-tertiary); display: flex; align-items: center; gap: 6px;">
+                        <span
+                            style="color: var(--color-success); padding: 6px 10px; border-radius: 6px; font-weight: 600; margin-right: 0px;">
+                            🗄️ <?php echo htmlspecialchars($databaseDisplay); ?>
+                        </span>
                     </span>
-                </span>
-            </div>
+                </div>
             <?php endif; ?>
         </div>
-        
+
         <!-- Navigation Menu -->
         <nav class="nav-menu">
             <?php foreach ($menuItems as $item): ?>
-                <?php 
+                <?php
                 $activeClass = ($pageConfig['id'] === $item['id']) ? 'active' : '';
                 $url = $item['url'];
                 // No need to add table parameters - using session-based storage
@@ -169,4 +156,3 @@ window.APP_SESSION_CONFIG = Object.assign({}, window.APP_SESSION_CONFIG || {}, {
     </div>
 
     <div class="content">
-

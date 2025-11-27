@@ -7,6 +7,7 @@ require_once '../login/auth_check.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +15,7 @@ require_once '../login/auth_check.php';
     <link rel="stylesheet" href="../styles/common.css">
     <link rel="stylesheet" href="table_structure.css">
 </head>
+
 <body>
     <?php
     $pageConfig = [
@@ -31,7 +33,7 @@ require_once '../login/auth_check.php';
     ];
     include '../templates/header.php';
     ?>
-    
+
     <div class="loading active" id="loading">
         <div class="spinner"></div>
         <p>Loading...</p>
@@ -54,7 +56,8 @@ require_once '../login/auth_check.php';
                         <th>Extra</th>
                         <th>Attributes</th>
                         <th style="text-align: right; width: 150px;">
-                            <button id="addColumnBtn" class="btn-add-column" style="display: none;">➕ Add Column</button>
+                            <button id="addColumnBtn" class="btn-add-column" style="display: none;">➕ Add
+                                Column</button>
                         </th>
                     </tr>
                 </thead>
@@ -62,6 +65,33 @@ require_once '../login/auth_check.php';
                     <!-- Structure data will be populated here -->
                 </tbody>
             </table>
+        </div>
+
+        <!-- Foreign Keys Section -->
+        <div class="foreign-keys-section" id="foreignKeysSection" style="margin-top: 30px;">
+            <div class="section-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3>🔗 Foreign Keys</h3>
+                <button id="addForeignKeyBtn" class="btn-primary">➕ Add Foreign Key</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="structure-table" id="foreignKeysTable">
+                    <thead>
+                        <tr>
+                            <th>Constraint Name</th>
+                            <th>Column</th>
+                            <th>Referenced Table</th>
+                            <th>Referenced Column</th>
+                            <th>On Update</th>
+                            <th>On Delete</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="foreignKeysBody">
+                        <!-- Foreign keys will be populated here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -95,4 +125,5 @@ require_once '../login/auth_check.php';
 
     <?php include '../templates/footer.php'; ?>
 </body>
+
 </html>

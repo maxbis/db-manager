@@ -11,6 +11,7 @@ sync_audit.log
 login/ipAllowed.txt
 login/remember_token.php
 login/credentials.txt
+settings/*.json
 
 # Database Sync - sensitive configuration
 sync_db/config.php

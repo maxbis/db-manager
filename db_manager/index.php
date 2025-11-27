@@ -19,6 +19,16 @@ require_once '../login/auth_check.php';
 
 <body>
     <?php
+    $settingsFile = __DIR__ . '/../settings/settings.json';
+    $settings = [];
+    if (file_exists($settingsFile)) {
+        $settings = json_decode(file_get_contents($settingsFile), true);
+    }
+    ?>
+    <script>
+        window.DB_MANAGER_SETTINGS = <?php echo json_encode($settings); ?>;
+    </script>
+    <?php
     $pageConfig = [
         'id' => 'database_manager',
         'title' => 'Database Manager',
@@ -59,12 +69,18 @@ require_once '../login/auth_check.php';
                             <div class="dropdown-menu" role="menu" aria-label="Database actions">
                                 <ul>
                                     <li><button id="createDatabaseBtn" class="menu-item">➕ Create DB</button></li>
-                                    <li><button id="createTableMenuItem" class="menu-item" disabled>➕ Create Table</button></li>
-                                    <li><button id="exportDatabaseBtn" class="menu-item" disabled>📤 Export DB</button></li>
+                                    <li><button id="createTableMenuItem" class="menu-item" disabled>➕ Create
+                                            Table</button></li>
+                                    <li><button id="exportDatabaseBtn" class="menu-item" disabled>📤 Export DB</button>
+                                    </li>
                                     <li><button id="importDatabaseBtn" class="menu-item">📥 Import DB</button></li>
                                     <li><button id="exportAllDatabasesBtn" class="menu-item">📦 Export All</button></li>
-                                    <li><a href="../sync_db/" class="menu-item" style="display: block; text-decoration: none; color: inherit;">🔄 Sync Database</a></li>
-                                    <li><a href="../view_fixer" class="menu-item" style="display: block; text-decoration: none; color: inherit;">🔧 Fix View Definers</a></li>
+                                    <li><a href="../sync_db/" class="menu-item"
+                                            style="display: block; text-decoration: none; color: inherit;">🔄 Sync
+                                            Database</a></li>
+                                    <li><a href="../view_fixer" class="menu-item"
+                                            style="display: block; text-decoration: none; color: inherit;">🔧 Fix View
+                                            Definers</a></li>
                                 </ul>
                             </div>
                         </div>
@@ -83,7 +99,8 @@ require_once '../login/auth_check.php';
             <div class="database-list-header">
                 <h3>🗄️ Available Databases</h3>
                 <div class="searchbar">
-                    <input type="search" id="dbSearchInput" placeholder="Search databases…" aria-label="Search databases">
+                    <input type="search" id="dbSearchInput" placeholder="Search databases…"
+                        aria-label="Search databases">
                     <select id="dbSortSelect" aria-label="Sort databases">
                         <option value="name_asc">Name (A–Z)</option>
                         <option value="name_desc">Name (Z–A)</option>
@@ -94,13 +111,13 @@ require_once '../login/auth_check.php';
                     </select>
                 </div>
             </div>
-            </div>
-            <div id="databaseList">
-                <!-- Database list will be populated here -->
-            </div>
         </div>
+        <div id="databaseList">
+            <!-- Database list will be populated here -->
+        </div>
+    </div>
 
-        
+
     </div>
 
     <div class="empty-state" id="emptyState">
@@ -116,7 +133,7 @@ require_once '../login/auth_check.php';
 
     <!-- Include Standard Dialog Component -->
     <?php include '../dialog/dialog.php'; ?>
-    
+
     <!-- Include Form Modals (for complex forms) -->
     <?php include 'modals.php'; ?>
 

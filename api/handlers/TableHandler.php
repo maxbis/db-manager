@@ -5,17 +5,20 @@
  * Handles table-related operations
  */
 
-class TableHandler {
+class TableHandler
+{
     private $conn;
-    
-    public function __construct($conn) {
+
+    public function __construct($conn)
+    {
         $this->conn = $conn;
     }
-    
+
     /**
      * Get all tables from database (including views)
      */
-    public function getTables() {
+    public function getTables()
+    {
         $result = $this->conn->query("SHOW FULL TABLES");
         $tables = [];
 
@@ -35,8 +38,8 @@ class TableHandler {
         $statusResult = $this->conn->query("SHOW TABLE STATUS");
         if ($statusResult) {
             while ($t = $statusResult->fetch_assoc()) {
-                $dataLength = isset($t['Data_length']) ? (int)$t['Data_length'] : 0;
-                $indexLength = isset($t['Index_length']) ? (int)$t['Index_length'] : 0;
+                $dataLength = isset($t['Data_length']) ? (int) $t['Data_length'] : 0;
+                $indexLength = isset($t['Index_length']) ? (int) $t['Index_length'] : 0;
                 $sizes[$t['Name']] = $dataLength + $indexLength;
             }
         }
@@ -53,20 +56,21 @@ class TableHandler {
             'tables' => $tables
         ]);
     }
-    
+
     /**
      * Get table structure information (columns, types, primary key)
      */
-    public function getTableInfo($tableName) {
+    public function getTableInfo($tableName)
+    {
         // Sanitize table name
         $tableName = $this->conn->real_escape_string($tableName);
-        
+
         // Get current database name
         $dbResult = $this->conn->query("SELECT DATABASE()");
         $dbRow = $dbResult->fetch_array();
         $databaseName = $dbRow[0];
         $databaseNameEscaped = $this->conn->real_escape_string($databaseName);
-        
+
         // Check if it's a view or table
         $typeResult = $this->conn->query("SHOW FULL TABLES LIKE '$tableName'");
         if (!$typeResult) {
@@ -74,13 +78,13 @@ class TableHandler {
         }
         $typeRow = $typeResult->fetch_array();
         $isView = ($typeRow && $typeRow[1] === 'VIEW');
-        
+
         // Get column information
         $result = $this->conn->query("SHOW COLUMNS FROM `$tableName`");
         if (!$result) {
             throw new Exception("Failed to get columns from '$tableName': " . $this->conn->error);
         }
-        
+
         // Get foreign key information from information_schema
         $fkQuery = "
             SELECT 
@@ -115,10 +119,10 @@ class TableHandler {
                 ];
             }
         }
-        
+
         $columns = [];
         $primaryKey = null;
-        
+
         while ($row = $result->fetch_assoc()) {
             $columnInfo = [
                 'name' => $row['Field'],
@@ -128,18 +132,18 @@ class TableHandler {
                 'default' => $row['Default'],
                 'extra' => $row['Extra']
             ];
-            
+
             // Parse type to get base type and length
             preg_match('/^(\w+)(\(([^)]+)\))?/', $row['Type'], $matches);
             $columnInfo['baseType'] = strtolower($matches[1]);
             $columnInfo['length'] = $matches[3] ?? null;
-            
+
             // Extract enum/set values
             if (in_array($columnInfo['baseType'], ['enum', 'set'])) {
                 preg_match_all("/'([^']+)'/", $row['Type'], $enumMatches);
                 $columnInfo['enumValues'] = $enumMatches[1];
             }
-            
+
             // Add foreign key information if exists
             if (isset($foreignKeys[$row['Field']])) {
                 // Use the first foreign key if multiple exist
@@ -152,14 +156,14 @@ class TableHandler {
                     'constraint_name' => $fk['constraint_name']
                 ];
             }
-            
+
             $columns[] = $columnInfo;
-            
+
             if ($row['Key'] === 'PRI') {
                 $primaryKey = $row['Field'];
             }
         }
-        
+
         echo json_encode([
             'success' => true,
             'columns' => $columns,
@@ -172,7 +176,8 @@ class TableHandler {
     /**
      * Get maximum used length for a VARCHAR column
      */
-    public function getColumnMaxLength($tableName, $columnName) {
+    public function getColumnMaxLength($tableName, $columnName)
+    {
         if (empty($tableName) || empty($columnName)) {
             throw new Exception("Table name and column name are required");
         }
@@ -197,7 +202,7 @@ class TableHandler {
             throw new Exception("Failed to compute max length: " . $this->conn->error);
         }
         $row = $result->fetch_assoc();
-        $maxLength = isset($row['maxLength']) ? (int)$row['maxLength'] : 0;
+        $maxLength = isset($row['maxLength']) ? (int) $row['maxLength'] : 0;
 
         echo json_encode([
             'success' => true,
@@ -206,47 +211,48 @@ class TableHandler {
             'maxLength' => $maxLength
         ]);
     }
-    
+
     /**
      * Create a new table
      */
-    public function createTable($database, $name, $columns, $engine) {
+    public function createTable($database, $name, $columns, $engine)
+    {
         if (empty($database) || empty($name) || empty($columns)) {
             throw new Exception("Database name, table name, and columns are required");
         }
-        
+
         // Validate table name
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $name)) {
             throw new Exception("Table name can only contain letters, numbers, and underscores");
         }
-        
+
         // Switch to the specified database
         $this->conn->query("USE `$database`");
-        
+
         // Check if table already exists
         $checkResult = $this->conn->query("SHOW TABLES LIKE '$name'");
         if ($checkResult && $checkResult->num_rows > 0) {
             throw new Exception("Table '$name' already exists in database '$database'");
         }
-        
+
         // Parse columns (separated by comma or newline)
         // Support both comma-separated (new format) and newline-separated (legacy)
         $separator = strpos($columns, ',') !== false ? ',' : "\n";
         $columnLines = array_filter(array_map('trim', explode($separator, $columns)));
         $columnDefinitions = [];
-        
+
         foreach ($columnLines as $line) {
             if (!empty($line)) {
                 $columnDefinitions[] = $line;
             }
         }
-        
+
         if (empty($columnDefinitions)) {
             throw new Exception("At least one column definition is required");
         }
-        
+
         $sql = "CREATE TABLE `$name` (" . implode(', ', $columnDefinitions) . ") ENGINE=$engine";
-        
+
         if ($this->conn->query($sql)) {
             echo json_encode([
                 'success' => true,
@@ -256,20 +262,21 @@ class TableHandler {
             throw new Exception("Failed to create table: " . $this->conn->error);
         }
     }
-    
+
     /**
      * Delete a table
      */
-    public function deleteTable($database, $name) {
+    public function deleteTable($database, $name)
+    {
         if (empty($database) || empty($name)) {
             throw new Exception("Database name and table name are required");
         }
-        
+
         // Switch to the specified database
         $this->conn->query("USE `$database`");
-        
+
         $sql = "DROP TABLE `$name`";
-        
+
         if ($this->conn->query($sql)) {
             echo json_encode([
                 'success' => true,
@@ -283,7 +290,8 @@ class TableHandler {
     /**
      * Rename a table within a database
      */
-    public function renameTable($database, $oldName, $newName) {
+    public function renameTable($database, $oldName, $newName)
+    {
         if (empty($database) || empty($oldName) || empty($newName)) {
             throw new Exception("Database name, current table name, and new table name are required");
         }
@@ -323,11 +331,12 @@ class TableHandler {
             throw new Exception("Failed to rename table: " . $this->conn->error);
         }
     }
-    
+
     /**
      * Get list of tables for foreign key reference selection
      */
-    public function getTablesForForeignKey() {
+    public function getTablesForForeignKey()
+    {
         $result = $this->conn->query("SHOW TABLES");
         $tables = [];
 
@@ -344,18 +353,19 @@ class TableHandler {
             'tables' => $tables
         ]);
     }
-    
+
     /**
      * Get columns from a table (for foreign key reference selection)
      */
-    public function getTableColumns($tableName) {
+    public function getTableColumns($tableName)
+    {
         $tableName = $this->conn->real_escape_string($tableName);
-        
+
         $result = $this->conn->query("SHOW COLUMNS FROM `$tableName`");
         if (!$result) {
             throw new Exception("Failed to get columns from '$tableName': " . $this->conn->error);
         }
-        
+
         $columns = [];
         while ($row = $result->fetch_assoc()) {
             $columns[] = [
@@ -364,12 +374,83 @@ class TableHandler {
                 'key' => $row['Key']
             ];
         }
-        
+
         echo json_encode([
             'success' => true,
             'columns' => $columns
         ]);
     }
+    /**
+     * Add a foreign key constraint
+     */
+    public function addForeignKey($database, $table, $constraintName, $column, $refTable, $refColumn, $onDelete, $onUpdate)
+    {
+        if (empty($database) || empty($table) || empty($column) || empty($refTable) || empty($refColumn)) {
+            throw new Exception("Missing required parameters for foreign key creation");
+        }
+
+        // Switch to database
+        $this->conn->query("USE `$database`");
+
+        // Validate names to prevent injection
+        $table = $this->conn->real_escape_string($table);
+        $column = $this->conn->real_escape_string($column);
+        $refTable = $this->conn->real_escape_string($refTable);
+        $refColumn = $this->conn->real_escape_string($refColumn);
+
+        // Generate constraint name if not provided
+        if (empty($constraintName)) {
+            $constraintName = "fk_{$table}_{$column}";
+        }
+        $constraintName = $this->conn->real_escape_string($constraintName);
+
+        // Validate rules
+        $validRules = ['RESTRICT', 'CASCADE', 'SET NULL', 'NO ACTION'];
+        $onDelete = in_array(strtoupper($onDelete), $validRules) ? strtoupper($onDelete) : 'RESTRICT';
+        $onUpdate = in_array(strtoupper($onUpdate), $validRules) ? strtoupper($onUpdate) : 'RESTRICT';
+
+        $sql = "ALTER TABLE `$table` 
+                ADD CONSTRAINT `$constraintName` 
+                FOREIGN KEY (`$column`) 
+                REFERENCES `$refTable` (`$refColumn`) 
+                ON DELETE $onDelete 
+                ON UPDATE $onUpdate";
+
+        if ($this->conn->query($sql)) {
+            echo json_encode([
+                'success' => true,
+                'message' => "Foreign key '$constraintName' added successfully"
+            ]);
+        } else {
+            throw new Exception("Failed to add foreign key: " . $this->conn->error);
+        }
+    }
+
+    /**
+     * Drop a foreign key constraint
+     */
+    public function dropForeignKey($database, $table, $constraintName)
+    {
+        if (empty($database) || empty($table) || empty($constraintName)) {
+            throw new Exception("Missing required parameters for foreign key deletion");
+        }
+
+        // Switch to database
+        $this->conn->query("USE `$database`");
+
+        $table = $this->conn->real_escape_string($table);
+        $constraintName = $this->conn->real_escape_string($constraintName);
+
+        $sql = "ALTER TABLE `$table` DROP FOREIGN KEY `$constraintName`";
+
+        if ($this->conn->query($sql)) {
+            echo json_encode([
+                'success' => true,
+                'message' => "Foreign key '$constraintName' dropped successfully"
+            ]);
+        } else {
+            throw new Exception("Failed to drop foreign key: " . $this->conn->error);
+        }
+    }
 }
 ?>
-
