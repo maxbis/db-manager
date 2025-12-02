@@ -885,7 +885,8 @@ function displaySavedQueries(queries) {
                     <span>${tableBadge} Used: ${useCount}x</span>
                 </div>
                 <div class="saved-query-actions">
-                    <button class="btn-load" onclick="loadQuery(${query.id}); event.stopPropagation();">📂 Load</button>
+                    <button class="btn-load" onclick="loadQuery(${query.id}); event.stopPropagation();">📂&nbsp;Load</button>
+                    <button class="btn-execute-saved" onclick="executeSavedQuery(${query.id}); event.stopPropagation();">▶&nbsp;Execute</button>
                     <button class="btn-delete-saved" onclick="deleteSavedQueryConfirm(${query.id}, '${escapeHtml(query.query_name)}'); event.stopPropagation();">🗑️</button>
                 </div>
             </li>
@@ -997,6 +998,43 @@ function loadQuery(queryId) {
         
     } catch (e) {
         console.error('Error loading query from localStorage:', e);
+        showToast('Error: ' + e.message, 'error');
+    }
+}
+
+// Execute a saved query directly (load into editor, then run)
+function executeSavedQuery(queryId) {
+    try {
+        const queriesJson = localStorage.getItem('savedQueries');
+        let queries = queriesJson ? JSON.parse(queriesJson) : [];
+
+        const queryIndex = queries.findIndex(q => q.id === queryId);
+        if (queryIndex === -1) {
+            showToast('Query not found', 'error');
+            return;
+        }
+
+        const query = queries[queryIndex];
+
+        // Update usage statistics (same as loadQuery)
+        queries[queryIndex].last_used_at = new Date().toISOString();
+        queries[queryIndex].use_count = (queries[queryIndex].use_count || 0) + 1;
+        localStorage.setItem('savedQueries', JSON.stringify(queries));
+
+        // If query has an associated table and it's different, select it first
+        if (query.table_name && query.table_name !== currentTable) {
+            selectTable(query.table_name, false);
+        }
+
+        // Put SQL into editor and execute
+        $('#queryInput').val(query.query_sql);
+        showToast('Executing saved query…', 'success');
+        executeQuery();
+
+        // Refresh list so use_count is updated
+        loadSavedQueries(currentTable);
+    } catch (e) {
+        console.error('Error executing saved query from localStorage:', e);
         showToast('Error: ' + e.message, 'error');
     }
 }
