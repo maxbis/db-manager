@@ -593,6 +593,12 @@ function executeQuery() {
                 }
                 displayResults(response);
                 showToast('Query executed successfully', 'success');
+
+                // Clear previous errors when a query executes successfully
+                if (Array.isArray(errorHistory) && errorHistory.length > 0) {
+                    errorHistory = [];
+                    updateErrorPanelDisplay();
+                }
             } else {
                 lastExecutedQuery = null;
                 lastResultWasSelect = false;
