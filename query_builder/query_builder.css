@@ -136,7 +136,8 @@
 }
 
 .table-fields.expanded {
-    max-height: 500px;
+    /* Use a very large max-height so all columns are visible, while still allowing the expand/collapse animation */
+    max-height: 5000px;
 }
 
 .field-list {
