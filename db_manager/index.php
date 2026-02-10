@@ -3,7 +3,7 @@
  * Database Manager - Database CRUD Manager
  * IP Authorization Check
  */
-require_once '../login/auth_check.php';
+require_once  __DIR__ .'../login/auth_check.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
