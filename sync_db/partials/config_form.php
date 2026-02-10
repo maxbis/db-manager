@@ -3,7 +3,7 @@
     <form id="syncForm">
         <!-- Remote Server Settings Group -->
         <div class="form-section">
-            <h3 class="form-section-title">📡 Remote Server Settings</h3>
+            <h3 class="form-section-title">📡 Source (Remote) – Will be read from</h3>
             <div class="form-grid">
                 <div class="form-group">
                     <label for="remoteUrl">Remote Server URL</label>
@@ -51,7 +51,7 @@
 
         <!-- Local Database Settings Group -->
         <div class="form-section">
-            <h3 class="form-section-title">💾 Local Database Settings</h3>
+            <h3 class="form-section-title">💾 Target (Local) – Will be overwritten</h3>
             <div class="form-grid">
                 <div class="form-group">
                     <label for="localDbName">
@@ -59,7 +59,14 @@
                         <span id="localDbLock" class="local-lock">🔒</span>
                     </label>
                     <input type="text" id="localDbName" name="localDbName" placeholder="Specify remote DB first" readonly class="local-readonly" required>
-                    <small id="localDbHelp">Auto-synced from remote database name (editable after setting remote)</small>
+                    <small id="localDbHelp">
+                        Auto-synced from remote database name (editable after setting remote).
+                        This is the <strong>local TARGET database</strong> that will be dropped and recreated during sync.
+                    </small>
+                    <small>
+                        Target server:
+                        <code><?php echo htmlspecialchars($targetServerLabel ?? 'this server', ENT_QUOTES); ?></code>
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -68,6 +75,10 @@
                     <small>Number of rows to transfer per request</small>
                 </div>
             </div>
+        </div>
+
+        <div class="sync-summary" id="syncSummary">
+            Source and target summary will appear here once you fill in the form.
         </div>
 
         <div class="button-group">

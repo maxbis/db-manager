@@ -9,6 +9,25 @@ require_once __DIR__ . '/../login/auth_check.php';
 require_once __DIR__ . '/../db_connection.php';
 require_once __DIR__ . '/config.php';
 
+// Derive a human-readable label for the local (target) server
+$targetServerHost = gethostname();
+if (!$targetServerHost) {
+    $targetServerHost = $_SERVER['SERVER_NAME'] ?? 'this server';
+}
+
+$targetDbHost = null;
+try {
+    $credentials = getDbCredentials();
+    $targetDbHost = $credentials['host'] ?? null;
+} catch (Exception $e) {
+    $targetDbHost = null;
+}
+
+$targetServerLabel = $targetServerHost;
+if ($targetDbHost) {
+    $targetServerLabel .= ' (DB host: ' . $targetDbHost . ')';
+}
+
 // Page configuration for header template
 $pageConfig = [
     'id' => 'sync_db',
@@ -29,6 +48,12 @@ $pageConfig = [
 </head>
 <body>
     <?php include __DIR__ . '/../templates/header.php'; ?>
+
+    <script>
+        window.SYNC_TARGET_SERVER_LABEL = <?php echo json_encode($targetServerLabel); ?>;
+        window.SYNC_TARGET_HOSTNAME = <?php echo json_encode($targetServerHost); ?>;
+        window.SYNC_TARGET_DBHOST = <?php echo json_encode($targetDbHost); ?>;
+    </script>
 
     <div class="sync-container">
         <?php include __DIR__ . '/partials/alerts.php'; ?>

@@ -509,6 +509,67 @@ async function testConnection() {
 }
 
 /**
+ * Simple HTML escape helper for safe innerHTML usage
+ */
+function escapeHtml(str) {
+    if (str === null || str === undefined) {
+        return '';
+    }
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+/**
+ * Build a human-readable summary of the current sync configuration
+ */
+function buildSyncSummary(config) {
+    const remoteDb = (config.remoteDbName || '').trim() || '<remote_database>';
+    const remoteHost = (config.remoteDbHost || '').trim() || '<remote_host>';
+    const localDb = (config.localDbName || '').trim() || '<local_database>';
+    const targetServerLabel = (window.SYNC_TARGET_SERVER_LABEL || 'this server');
+    const targetHostname = (window.SYNC_TARGET_HOSTNAME || targetServerLabel);
+    const targetDbHost = window.SYNC_TARGET_DBHOST || null;
+
+    const remoteDbSafe = escapeHtml(remoteDb);
+    const remoteHostSafe = escapeHtml(remoteHost);
+    const localDbSafe = escapeHtml(localDb);
+    const targetHostnameSafe = escapeHtml(targetHostname);
+    const targetDbHostSafe = targetDbHost ? escapeHtml(targetDbHost) : null;
+
+    const hostSuffix = targetDbHostSafe ? ` (DB host: ${targetDbHostSafe})` : '';
+
+    return `Source: ${remoteDbSafe}@${remoteHostSafe} → Target: ${localDbSafe} on <span class="sync-summary-target">${targetHostnameSafe}</span>${hostSuffix} (will be overwritten)`;
+}
+
+/**
+ * Update the on-page sync summary line
+ */
+function updateSyncSummary() {
+    const summaryEl = document.getElementById('syncSummary');
+    if (!summaryEl) {
+        return;
+    }
+
+    const form = document.getElementById('syncForm');
+    if (!form) {
+        return;
+    }
+
+    const formData = new FormData(form);
+    const config = {
+        remoteDbHost: formData.get('remoteDbHost'),
+        remoteDbName: formData.get('remoteDbName'),
+        localDbName: formData.get('localDbName')
+    };
+
+    summaryEl.innerHTML = buildSyncSummary(config);
+}
+
+/**
  * Main sync function
  */
 async function startSync() {
@@ -559,7 +620,9 @@ async function startSync() {
     
     let foreignKeysDisabled = false;
     try {
-        addLog('🚀 Starting database sync...', 'info');
+        const summaryLine = buildSyncSummary(config);
+        addLog(`🚀 Starting database sync`, 'info');
+        addLog(`   ${summaryLine}`, 'info');
         updateProgress(0, 'Initializing...');
         
         // Disable foreign key checks to allow dropping/creating tables in any order
@@ -892,12 +955,42 @@ document.addEventListener('DOMContentLoaded', function() {
     // Form submit
     document.getElementById('syncForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
+        const form = document.getElementById('syncForm');
+        const formData = new FormData(form);
+
+        const config = {
+            remoteUrl: formData.get('remoteUrl'),
+            apiKey: formData.get('apiKey'),
+            remoteDbHost: formData.get('remoteDbHost'),
+            remoteDbUser: formData.get('remoteDbUser'),
+            remoteDbPass: formData.get('remoteDbPass'),
+            remoteDbName: formData.get('remoteDbName'),
+            localDbName: formData.get('localDbName')
+        };
+
+        const summaryLine = buildSyncSummary(config);
+        const targetServerLabel = window.SYNC_TARGET_SERVER_LABEL || 'this server';
+
+        const messageLines = [
+            'You are about to COPY data from the remote database to this server.',
+            '',
+            `SOURCE (read-only):`,
+            `  - URL: ${config.remoteUrl || '<remote_url>'}`,
+            `  - Database: ${config.remoteDbName || '<remote_database>'} @ ${config.remoteDbHost || '<remote_host>'}`,
+            '',
+            `TARGET (will be overwritten):`,
+            `  - Database: ${config.localDbName || '<local_database>'} on ${targetServerLabel}`,
+            '',
+            'The TARGET database will be dropped and recreated as part of this sync.',
+            'This action cannot be undone.'
+        ];
+
         Dialog.confirm({
             title: 'Confirm Database Sync',
-            message: 'This will completely replace the local database. Are you sure you want to continue?',
+            message: messageLines.join('\n'),
             icon: '⚠️',
-            confirmText: 'Start Sync',
+            confirmText: 'Yes, overwrite target',
             cancelText: 'Cancel',
             confirmClass: 'btn-danger',
             onConfirm: function() {
@@ -938,6 +1031,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('syncForm');
     form.addEventListener('change', function() {
         saveFormToCookies();
+        updateSyncSummary();
     });
     
     // Auto-sync local database name from remote database name
@@ -953,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', function() {
         localDbNameInput.style.background = '';
         localDbNameInput.style.cursor = '';
         localDbLock.textContent = '🔓';
-        localDbHelp.textContent = 'Editable - customize if needed';
+        localDbHelp.textContent = 'Editable - customize the local TARGET database name if needed.';
     }
     
     // Function to lock local DB field
@@ -962,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', function() {
         localDbNameInput.style.background = '#F0F4F8';
         localDbNameInput.style.cursor = 'not-allowed';
         localDbLock.textContent = '🔒';
-        localDbHelp.textContent = 'Auto-synced from remote database name (editable after setting remote)';
+        localDbHelp.textContent = 'Auto-synced from remote database name (local TARGET database will be overwritten during sync).';
     }
     
     // When remote DB name changes
@@ -976,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Only auto-sync if user hasn't manually edited it
             if (!userEditedLocalDb) {
                 localDbNameInput.value = remoteDbValue;
-                localDbHelp.textContent = 'Auto-synced from remote (click to customize)';
+                localDbHelp.textContent = 'Auto-synced from remote (local TARGET will be overwritten; click to customize).';
             }
         } else {
             // Lock the field if remote DB is empty
@@ -991,7 +1085,7 @@ document.addEventListener('DOMContentLoaded', function() {
     localDbNameInput.addEventListener('input', function() {
         if (!this.hasAttribute('readonly')) {
             userEditedLocalDb = true;
-            localDbHelp.textContent = 'Custom name (will not auto-sync)';
+            localDbHelp.textContent = 'Custom TARGET name (will not auto-sync).';
         }
     });
     
@@ -1003,7 +1097,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // If they match, reset the flag (user accepted the auto-sync)
         if (remoteDbValue && remoteDbValue === localDbValue) {
             userEditedLocalDb = false;
-            localDbHelp.textContent = 'Auto-synced from remote (click to customize)';
+            localDbHelp.textContent = 'Auto-synced from remote (local TARGET will be overwritten; click to customize).';
         }
     });
     
@@ -1018,15 +1112,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // If local is different from remote, user has customized it
             if (localDbValue && localDbValue !== remoteDbValue) {
                 userEditedLocalDb = true;
-                localDbHelp.textContent = 'Custom name (will not auto-sync)';
+                localDbHelp.textContent = 'Custom TARGET name (will not auto-sync).';
             } else if (!localDbValue) {
                 // If local is empty but remote has value, auto-fill it
                 localDbNameInput.value = remoteDbValue;
-                localDbHelp.textContent = 'Auto-synced from remote (click to customize)';
+                localDbHelp.textContent = 'Auto-synced from remote (local TARGET will be overwritten; click to customize).';
             }
         } else if (!remoteDbValue && !localDbValue) {
             lockLocalDbField();
         }
     }, 100);
+
+    // Initialize summary once form has been populated
+    updateSyncSummary();
 });
 
