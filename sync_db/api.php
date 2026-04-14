@@ -32,16 +32,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-// Load configuration
-require_once __DIR__ . '/config.php';
-
-// Load shared IP functions
-require_once __DIR__ . '/../login/ip_functions.php';
-
-// Set execution limits for large databases
-set_time_limit(SYNC_MAX_EXECUTION_TIME);
-ini_set('memory_limit', SYNC_MEMORY_LIMIT);
-
 /**
  * Send JSON response
  */
@@ -73,14 +63,33 @@ function sendResponse($success, $data = null, $message = '', $httpCode = 200) {
  * Log sync operations
  */
 function logSync($message) {
-    if (!SYNC_ENABLE_LOGGING) {
+    if (!defined('SYNC_ENABLE_LOGGING') || !SYNC_ENABLE_LOGGING || !defined('SYNC_LOG_FILE')) {
         return;
     }
     $timestamp = date('Y-m-d H:i:s');
-    $ip = getClientIP();
+    $ip = function_exists('getClientIP') ? getClientIP() : ($_SERVER['REMOTE_ADDR'] ?? 'unknown');
     $logMessage = "[$timestamp] [IP: $ip] $message\n";
     file_put_contents(SYNC_LOG_FILE, $logMessage, FILE_APPEND);
 }
+
+// Load configuration
+$configPath = __DIR__ . '/config.php';
+if (!is_file($configPath)) {
+    sendResponse(
+        false,
+        ['missing_file' => 'sync_db/config.php'],
+        'Server setup incomplete: sync_db/config.php is missing. Copy sync_db/config.template.php to sync_db/config.php and configure the same SYNC_API_KEY on both servers.',
+        500
+    );
+}
+require_once $configPath;
+
+// Load shared IP functions
+require_once __DIR__ . '/../login/ip_functions.php';
+
+// Set execution limits for large databases
+set_time_limit(SYNC_MAX_EXECUTION_TIME);
+ini_set('memory_limit', SYNC_MEMORY_LIMIT);
 
 // Check IP whitelist
 $clientIP = getClientIP();
@@ -341,4 +350,3 @@ switch ($action) {
 }
 
 $conn->close();
-

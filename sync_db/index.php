@@ -7,7 +7,13 @@
  */
 require_once __DIR__ . '/../login/auth_check.php';
 require_once __DIR__ . '/../db_connection.php';
-require_once __DIR__ . '/config.php';
+
+$syncConfigPath = __DIR__ . '/config.php';
+$hasSyncConfig = is_file($syncConfigPath);
+
+if ($hasSyncConfig) {
+    require_once $syncConfigPath;
+}
 
 // Derive a human-readable label for the local (target) server
 $targetServerHost = gethostname();
@@ -58,6 +64,18 @@ $pageConfig = [
     <div class="sync-container">
         <?php include __DIR__ . '/partials/alerts.php'; ?>
 
+        <?php if (!$hasSyncConfig): ?>
+        <div class="alert alert-warning">
+            <span style="font-size: 20px;">⚠️</span>
+            <div>
+                <strong>Sync API not configured on this server</strong><br>
+                The file <code>sync_db/config.php</code> is missing. If this server should act as a sync source, copy
+                <code>sync_db/config.template.php</code> to <code>sync_db/config.php</code> and set the correct
+                <code>SYNC_API_KEY</code>. You can still use this page as a client to sync from another server.
+            </div>
+        </div>
+        <?php endif; ?>
+
         <?php include __DIR__ . '/partials/config_form.php'; ?>
 
         <?php include __DIR__ . '/partials/progress_card.php'; ?>
@@ -71,4 +89,3 @@ $pageConfig = [
     <script src="sync.js"></script>
 </body>
 </html>
-
