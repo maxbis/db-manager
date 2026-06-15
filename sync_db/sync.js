@@ -8,6 +8,7 @@
 const COOKIE_PREFIX = 'db_sync_';
 const COOKIE_EXPIRY_DAYS = 90;  // 3 months for regular fields
 const PASSWORD_EXPIRY_HOURS = 1;  // 1 hour for passwords
+const INTRO_ALERT_DISMISSED_KEY = 'db_sync_introDismissed';
 
 /**
  * Set a cookie
@@ -850,54 +851,132 @@ function getSyncFormConfig() {
 }
 
 /**
- * Build the destination section title from the current sync configuration.
+ * True when both remote and local database names are set.
  */
-function buildDestinationSectionTitle(config) {
+function isSyncPreviewReady(config) {
+    const remoteDb = (config.remoteDbName || '').trim();
+    const localDb = (config.localDbName || '').trim();
+    return !!(remoteDb && localDb);
+}
+
+/**
+ * Build sync summary parts for display and logging.
+ */
+function buildSyncSummaryParts(config) {
     const remoteDb = (config.remoteDbName || '').trim() || '<remote_database>';
     const remoteHost = (config.remoteDbHost || '').trim() || '<remote_host>';
     const localDb = (config.localDbName || '').trim() || '<local_database>';
     const targetHostname = (window.SYNC_TARGET_HOSTNAME || window.SYNC_TARGET_SERVER_LABEL || 'this server');
 
-    return `💾 Destination ${localDb}@${targetHostname} - replaced with ${remoteDb}@${remoteHost}`;
+    return {
+        remoteDb,
+        remoteHost,
+        localDb,
+        targetHostname,
+        ready: isSyncPreviewReady(config)
+    };
 }
 
 /**
- * Build a human-readable summary of the current sync configuration
+ * Plain-text sync summary for logs and dialogs.
  */
-function buildSyncSummary(config) {
-    const remoteDb = (config.remoteDbName || '').trim() || '<remote_database>';
-    const remoteHost = (config.remoteDbHost || '').trim() || '<remote_host>';
-    const localDb = (config.localDbName || '').trim() || '<local_database>';
-    const targetServerLabel = (window.SYNC_TARGET_SERVER_LABEL || 'this server');
-    const targetHostname = (window.SYNC_TARGET_HOSTNAME || targetServerLabel);
-    const targetDbHost = window.SYNC_TARGET_DBHOST || null;
+function buildSyncSummaryText(config) {
+    const parts = buildSyncSummaryParts(config);
+    if (!parts.ready) {
+        return 'Fill in source and destination above to preview the sync.';
+    }
 
-    const remoteDbSafe = escapeHtml(remoteDb);
-    const remoteHostSafe = escapeHtml(remoteHost);
-    const localDbSafe = escapeHtml(localDb);
-    const targetHostnameSafe = escapeHtml(targetHostname);
-    const targetDbHostSafe = targetDbHost ? escapeHtml(targetDbHost) : null;
-
-    const hostSuffix = targetDbHostSafe ? ` (DB host: ${targetDbHostSafe})` : '';
-
-    return `Source: ${remoteDbSafe}@${remoteHostSafe} → Destination: ${localDbSafe} on <span class="sync-summary-target">${targetHostnameSafe}</span>${hostSuffix} (existing data will be replaced)`;
+    return `Destination ${parts.localDb}@${parts.targetHostname} — replaced with ${parts.remoteDb}@${parts.remoteHost} (existing data will be replaced)`;
 }
 
 /**
- * Update the on-page sync summary and destination section title
+ * HTML sync summary for the on-page preview bar.
+ */
+function buildSyncSummaryHtml(config) {
+    const parts = buildSyncSummaryParts(config);
+    if (!parts.ready) {
+        return '<span class="sync-summary-placeholder">Fill in source and destination above to preview the sync.</span>';
+    }
+
+    const remoteDbSafe = escapeHtml(parts.remoteDb);
+    const remoteHostSafe = escapeHtml(parts.remoteHost);
+    const localDbSafe = escapeHtml(parts.localDb);
+    const targetHostnameSafe = escapeHtml(parts.targetHostname);
+
+    return `Destination <span class="sync-summary-dest">${localDbSafe}@${targetHostnameSafe}</span> — replaced with <span class="sync-summary-source">${remoteDbSafe}@${remoteHostSafe}</span> <span class="sync-summary-warning">(existing data will be replaced)</span>`;
+}
+
+/**
+ * Update destination field help text based on current form state.
+ */
+function updateDestinationHelp() {
+    const localDbNameInput = document.getElementById('localDbName');
+    const localDbHelp = document.getElementById('localDbHelp');
+    const serverHint = document.getElementById('destinationServerHint');
+    if (!localDbNameInput || !localDbHelp) {
+        return;
+    }
+
+    const config = getSyncFormConfig();
+    const configured = isSyncPreviewReady(config);
+    const isLocked = localDbNameInput.hasAttribute('readonly');
+    const userEdited = localDbNameInput.dataset.userEdited === 'true';
+
+    if (serverHint) {
+        serverHint.hidden = configured;
+    }
+
+    if (!configured && isLocked) {
+        localDbHelp.textContent = 'Specify a remote database name first. The destination on this server will be dropped and recreated during sync.';
+        return;
+    }
+
+    if (userEdited) {
+        localDbHelp.textContent = 'Custom name — will not auto-sync with remote.';
+        return;
+    }
+
+    if (configured) {
+        localDbHelp.textContent = 'Matches remote name. Click to customize.';
+        return;
+    }
+
+    localDbHelp.textContent = 'Customize the destination database name on this server if needed.';
+}
+
+/**
+ * Update the on-page sync summary and contextual help.
  */
 function updateSyncSummary() {
     const summaryEl = document.getElementById('syncSummary');
-    const destinationTitleEl = document.getElementById('destinationSectionTitle');
     const config = getSyncFormConfig();
 
     if (summaryEl) {
-        summaryEl.innerHTML = buildSyncSummary(config);
+        summaryEl.innerHTML = buildSyncSummaryHtml(config);
     }
 
-    if (destinationTitleEl) {
-        destinationTitleEl.textContent = buildDestinationSectionTitle(config);
+    updateDestinationHelp();
+}
+
+/**
+ * Hide the intro alert for returning users.
+ */
+function initIntroAlertDismiss() {
+    const alertEl = document.getElementById('syncIntroAlert');
+    const dismissBtn = document.getElementById('dismissIntroAlertBtn');
+    if (!alertEl || !dismissBtn) {
+        return;
     }
+
+    if (localStorage.getItem(INTRO_ALERT_DISMISSED_KEY) === '1') {
+        alertEl.style.display = 'none';
+        return;
+    }
+
+    dismissBtn.addEventListener('click', function() {
+        localStorage.setItem(INTRO_ALERT_DISMISSED_KEY, '1');
+        alertEl.style.display = 'none';
+    });
 }
 
 /**
@@ -962,7 +1041,7 @@ async function startSync() {
     
     let foreignKeysDisabled = false;
     try {
-        const summaryLine = buildSyncSummary(config);
+        const summaryLine = buildSyncSummaryText(config);
         addLog(`🚀 Starting database sync`, 'info');
         addLog(`   ${summaryLine}`, 'info');
         updateProgress(0, 'Initializing...');
@@ -1323,10 +1402,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const summaryLine = buildSyncSummary(config);
+        const summaryLine = buildSyncSummaryText(config);
         const targetServerLabel = window.SYNC_TARGET_SERVER_LABEL || 'this server';
 
         const messageLines = [
+            summaryLine,
+            '',
             'You are about to COPY data from the remote database to this server.',
             '',
             `SOURCE (read-only):`,
@@ -1381,6 +1462,9 @@ document.addEventListener('DOMContentLoaded', function() {
             onConfirm: function() {
                 document.getElementById('syncForm').reset();
                 clearFormCookies();
+                userEditedLocalDb = false;
+                lockLocalDbField();
+                updateSyncSummary();
                 Dialog.alert({
                     title: 'Success',
                     message: 'Form cleared and cookies deleted',
@@ -1409,7 +1493,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const remoteDbNameInput = document.getElementById('remoteDbName');
     const localDbNameInput = document.getElementById('localDbName');
     const localDbLock = document.getElementById('localDbLock');
-    const localDbHelp = document.getElementById('localDbHelp');
     let userEditedLocalDb = false; // Track if user manually edited the local DB name
     
     // Function to unlock local DB field
@@ -1418,7 +1501,6 @@ document.addEventListener('DOMContentLoaded', function() {
         localDbNameInput.style.background = '';
         localDbNameInput.style.cursor = '';
         localDbLock.textContent = '🔓';
-        localDbHelp.textContent = 'Editable — customize the destination database name on this server if needed.';
     }
     
     // Function to lock local DB field
@@ -1427,7 +1509,7 @@ document.addEventListener('DOMContentLoaded', function() {
         localDbNameInput.style.background = '#F0F4F8';
         localDbNameInput.style.cursor = 'not-allowed';
         localDbLock.textContent = '🔒';
-        localDbHelp.textContent = 'Auto-synced from remote database name (destination on this server will be dropped and recreated during sync).';
+        delete localDbNameInput.dataset.userEdited;
     }
     
     // When remote DB name changes
@@ -1441,7 +1523,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Only auto-sync if user hasn't manually edited it
             if (!userEditedLocalDb) {
                 localDbNameInput.value = remoteDbValue;
-                localDbHelp.textContent = 'Auto-synced from remote (destination will be replaced; click to customize).';
+                delete localDbNameInput.dataset.userEdited;
             }
         } else {
             // Lock the field if remote DB is empty
@@ -1457,7 +1539,7 @@ document.addEventListener('DOMContentLoaded', function() {
     localDbNameInput.addEventListener('input', function() {
         if (!this.hasAttribute('readonly')) {
             userEditedLocalDb = true;
-            localDbHelp.textContent = 'Custom destination name (will not auto-sync).';
+            this.dataset.userEdited = 'true';
         }
         updateSyncSummary();
     });
@@ -1470,7 +1552,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // If they match, reset the flag (user accepted the auto-sync)
         if (remoteDbValue && remoteDbValue === localDbValue) {
             userEditedLocalDb = false;
-            localDbHelp.textContent = 'Auto-synced from remote (destination will be replaced; click to customize).';
+            delete localDbNameInput.dataset.userEdited;
+            updateSyncSummary();
         }
     });
     
@@ -1485,16 +1568,20 @@ document.addEventListener('DOMContentLoaded', function() {
             // If local is different from remote, user has customized it
             if (localDbValue && localDbValue !== remoteDbValue) {
                 userEditedLocalDb = true;
-                localDbHelp.textContent = 'Custom destination name (will not auto-sync).';
+                localDbNameInput.dataset.userEdited = 'true';
             } else if (!localDbValue) {
                 // If local is empty but remote has value, auto-fill it
                 localDbNameInput.value = remoteDbValue;
-                localDbHelp.textContent = 'Auto-synced from remote (destination will be replaced; click to customize).';
+                delete localDbNameInput.dataset.userEdited;
             }
         } else if (!remoteDbValue && !localDbValue) {
             lockLocalDbField();
         }
+
+        updateSyncSummary();
     }, 100);
+
+    initIntroAlertDismiss();
 
     // Initialize summary once form has been populated
     updateSyncSummary();

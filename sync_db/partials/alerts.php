@@ -1,11 +1,12 @@
 <!-- Information Alert -->
-<div class="alert alert-info">
+<div class="alert alert-info" id="syncIntroAlert">
     <span style="font-size: 20px;">ℹ️</span>
-    <div>
+    <div style="flex: 1;">
         <strong>Database Sync Tool</strong><br>
         This tool allows you to sync a complete database from a remote server to your local server.
         All tables, data, views, stored procedures, functions, and triggers will be copied.
     </div>
+    <button type="button" id="dismissIntroAlertBtn" class="alert-dismiss-btn" title="Dismiss">✖</button>
 </div>
 
 <!-- Error Alert (Hidden by default) -->

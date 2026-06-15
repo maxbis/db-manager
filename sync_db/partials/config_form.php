@@ -3,7 +3,7 @@
     <form id="syncForm">
         <!-- Remote Server Settings Group -->
         <div class="form-section">
-            <h3 class="form-section-title">📡 Source (Remote) – Will be read from</h3>
+            <h3 class="form-section-title">📡 Source (remote)</h3>
             <div class="form-grid">
                 <div class="form-group">
                     <label for="remoteUrl">Remote Server URL</label>
@@ -57,7 +57,7 @@
 
         <!-- Local Database Settings Group -->
         <div class="form-section">
-            <h3 class="form-section-title" id="destinationSectionTitle">💾 Destination (this server) – Replaced with remote copy</h3>
+            <h3 class="form-section-title">💾 Destination (this server)</h3>
             <div class="form-grid">
                 <div class="form-group">
                     <label for="localDbName">
@@ -66,25 +66,29 @@
                     </label>
                     <input type="text" id="localDbName" name="localDbName" placeholder="Specify remote DB first" readonly class="local-readonly" required>
                     <small id="localDbHelp">
-                        Auto-synced from remote database name (editable after setting remote).
-                        This database on <strong>this server</strong> will be <strong>dropped and recreated</strong> using data from the remote source.
+                        Specify a remote database name first. The destination on this server will be dropped and recreated during sync.
                     </small>
-                    <small>
+                    <small id="destinationServerHint">
                         Destination server:
                         <code><?php echo htmlspecialchars($targetServerLabel ?? 'this server', ENT_QUOTES); ?></code>
                     </small>
                 </div>
-
-                <div class="form-group">
-                    <label for="chunkSize">Chunk Size (rows per batch)</label>
-                    <input type="number" id="chunkSize" name="chunkSize" value="1000" min="100" max="10000" required>
-                    <small>Number of rows to transfer per request</small>
-                </div>
             </div>
+
+            <details class="sync-advanced" id="syncAdvanced">
+                <summary>Advanced options</summary>
+                <div class="form-grid sync-advanced-grid">
+                    <div class="form-group">
+                        <label for="chunkSize">Chunk Size (rows per batch)</label>
+                        <input type="number" id="chunkSize" name="chunkSize" value="1000" min="100" max="10000" required>
+                        <small>Number of rows to transfer per request (default: 1000)</small>
+                    </div>
+                </div>
+            </details>
         </div>
 
         <div class="sync-summary" id="syncSummary">
-            Source and destination summary will appear here once you fill in the form.
+            Fill in source and destination above to preview the sync.
         </div>
 
         <div class="button-group">
