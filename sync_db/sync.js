@@ -851,7 +851,7 @@ function buildSyncSummary(config) {
 
     const hostSuffix = targetDbHostSafe ? ` (DB host: ${targetDbHostSafe})` : '';
 
-    return `Source: ${remoteDbSafe}@${remoteHostSafe} → Target: ${localDbSafe} on <span class="sync-summary-target">${targetHostnameSafe}</span>${hostSuffix} (will be overwritten)`;
+    return `Source: ${remoteDbSafe}@${remoteHostSafe} → Destination: ${localDbSafe} on <span class="sync-summary-target">${targetHostnameSafe}</span>${hostSuffix} (existing data will be replaced)`;
 }
 
 /**
@@ -1311,10 +1311,10 @@ document.addEventListener('DOMContentLoaded', function() {
             `  - URL: ${config.remoteUrl || '<remote_url>'}`,
             `  - Database: ${config.remoteDbName || '<remote_database>'} @ ${config.remoteDbHost || '<remote_host>'}`,
             '',
-            `TARGET (will be overwritten):`,
+            `DESTINATION (replaced with remote copy):`,
             `  - Database: ${config.localDbName || '<local_database>'} on ${targetServerLabel}`,
             '',
-            'The TARGET database will be dropped and recreated as part of this sync.',
+            'The destination database will be dropped and recreated as part of this sync.',
             'This action cannot be undone.'
         ];
 
@@ -1322,7 +1322,7 @@ document.addEventListener('DOMContentLoaded', function() {
             title: 'Confirm Database Sync',
             message: messageLines.join('\n'),
             icon: '⚠️',
-            confirmText: 'Yes, overwrite target',
+            confirmText: 'Yes, replace destination',
             cancelText: 'Cancel',
             confirmClass: 'btn-danger',
             onConfirm: function() {
@@ -1389,7 +1389,7 @@ document.addEventListener('DOMContentLoaded', function() {
         localDbNameInput.style.background = '';
         localDbNameInput.style.cursor = '';
         localDbLock.textContent = '🔓';
-        localDbHelp.textContent = 'Editable - customize the local TARGET database name if needed.';
+        localDbHelp.textContent = 'Editable — customize the destination database name on this server if needed.';
     }
     
     // Function to lock local DB field
@@ -1398,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', function() {
         localDbNameInput.style.background = '#F0F4F8';
         localDbNameInput.style.cursor = 'not-allowed';
         localDbLock.textContent = '🔒';
-        localDbHelp.textContent = 'Auto-synced from remote database name (local TARGET database will be overwritten during sync).';
+        localDbHelp.textContent = 'Auto-synced from remote database name (destination on this server will be dropped and recreated during sync).';
     }
     
     // When remote DB name changes
@@ -1412,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Only auto-sync if user hasn't manually edited it
             if (!userEditedLocalDb) {
                 localDbNameInput.value = remoteDbValue;
-                localDbHelp.textContent = 'Auto-synced from remote (local TARGET will be overwritten; click to customize).';
+                localDbHelp.textContent = 'Auto-synced from remote (destination will be replaced; click to customize).';
             }
         } else {
             // Lock the field if remote DB is empty
@@ -1427,7 +1427,7 @@ document.addEventListener('DOMContentLoaded', function() {
     localDbNameInput.addEventListener('input', function() {
         if (!this.hasAttribute('readonly')) {
             userEditedLocalDb = true;
-            localDbHelp.textContent = 'Custom TARGET name (will not auto-sync).';
+            localDbHelp.textContent = 'Custom destination name (will not auto-sync).';
         }
     });
     
@@ -1439,7 +1439,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // If they match, reset the flag (user accepted the auto-sync)
         if (remoteDbValue && remoteDbValue === localDbValue) {
             userEditedLocalDb = false;
-            localDbHelp.textContent = 'Auto-synced from remote (local TARGET will be overwritten; click to customize).';
+            localDbHelp.textContent = 'Auto-synced from remote (destination will be replaced; click to customize).';
         }
     });
     
@@ -1454,11 +1454,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // If local is different from remote, user has customized it
             if (localDbValue && localDbValue !== remoteDbValue) {
                 userEditedLocalDb = true;
-                localDbHelp.textContent = 'Custom TARGET name (will not auto-sync).';
+                localDbHelp.textContent = 'Custom destination name (will not auto-sync).';
             } else if (!localDbValue) {
                 // If local is empty but remote has value, auto-fill it
                 localDbNameInput.value = remoteDbValue;
-                localDbHelp.textContent = 'Auto-synced from remote (local TARGET will be overwritten; click to customize).';
+                localDbHelp.textContent = 'Auto-synced from remote (destination will be replaced; click to customize).';
             }
         } else if (!remoteDbValue && !localDbValue) {
             lockLocalDbField();

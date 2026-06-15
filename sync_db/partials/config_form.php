@@ -57,20 +57,20 @@
 
         <!-- Local Database Settings Group -->
         <div class="form-section">
-            <h3 class="form-section-title">💾 Target (Local) – Will be overwritten</h3>
+            <h3 class="form-section-title">💾 Destination (this server) – Replaced with remote copy</h3>
             <div class="form-grid">
                 <div class="form-group">
                     <label for="localDbName">
-                        Local Database Name
+                        Destination Database Name
                         <span id="localDbLock" class="local-lock">🔒</span>
                     </label>
                     <input type="text" id="localDbName" name="localDbName" placeholder="Specify remote DB first" readonly class="local-readonly" required>
                     <small id="localDbHelp">
                         Auto-synced from remote database name (editable after setting remote).
-                        This is the <strong>local TARGET database</strong> that will be dropped and recreated during sync.
+                        This database on <strong>this server</strong> will be <strong>dropped and recreated</strong> using data from the remote source.
                     </small>
                     <small>
-                        Target server:
+                        Destination server:
                         <code><?php echo htmlspecialchars($targetServerLabel ?? 'this server', ENT_QUOTES); ?></code>
                     </small>
                 </div>
@@ -84,7 +84,7 @@
         </div>
 
         <div class="sync-summary" id="syncSummary">
-            Source and target summary will appear here once you fill in the form.
+            Source and destination summary will appear here once you fill in the form.
         </div>
 
         <div class="button-group">
