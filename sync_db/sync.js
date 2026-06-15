@@ -121,6 +121,147 @@ function clearFormCookies() {
     });
 }
 
+const RECENT_REMOTE_URLS_KEY = 'db_sync_recentRemoteUrls';
+const RECENT_REMOTE_URLS_MAX = 10;
+
+/**
+ * Read recent remote URLs from localStorage.
+ */
+function getRecentRemoteUrls() {
+    try {
+        const raw = localStorage.getItem(RECENT_REMOTE_URLS_KEY);
+        if (!raw) {
+            return [];
+        }
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter(url => typeof url === 'string' && url.trim() !== '') : [];
+    } catch (error) {
+        return [];
+    }
+}
+
+/**
+ * Track a remote URL in localStorage (deduped, most recent first).
+ */
+function addRecentRemoteUrl(url) {
+    const trimmed = (url || '').trim();
+    if (!trimmed) {
+        return;
+    }
+
+    const recent = getRecentRemoteUrls().filter(item => item !== trimmed);
+    recent.unshift(trimmed);
+    localStorage.setItem(
+        RECENT_REMOTE_URLS_KEY,
+        JSON.stringify(recent.slice(0, RECENT_REMOTE_URLS_MAX))
+    );
+}
+
+/**
+ * Track the current remote URL field value.
+ */
+function trackRemoteUrlUsage(url) {
+    addRecentRemoteUrl(url);
+}
+
+/**
+ * Apply a selected remote URL to the input and persist it.
+ */
+function selectRemoteUrl(url, input) {
+    input.value = url;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    saveFormToCookies();
+    trackRemoteUrlUsage(url);
+}
+
+/**
+ * Show shared presets and recent URLs in a dropdown.
+ */
+function showRemoteUrlPresets() {
+    const input = document.getElementById('remoteUrl');
+    const container = document.querySelector('.remote-url-container');
+    if (!input || !container) {
+        return;
+    }
+
+    const existingList = container.querySelector('.database-list');
+    if (existingList) {
+        existingList.remove();
+        return;
+    }
+
+    const sharedPresets = Array.isArray(window.SYNC_REMOTE_URL_PRESETS)
+        ? window.SYNC_REMOTE_URL_PRESETS
+        : [];
+    const sharedUrls = new Set(sharedPresets.map(preset => preset.url));
+    const recentUrls = getRecentRemoteUrls().filter(url => !sharedUrls.has(url));
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'database-list';
+    dropdown.style.display = 'block';
+
+    if (sharedPresets.length === 0 && recentUrls.length === 0) {
+        dropdown.innerHTML = '<div class="database-loading">No presets or recent URLs yet</div>';
+    } else {
+        if (sharedPresets.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'preset-section-header';
+            header.textContent = 'Shared presets';
+            dropdown.appendChild(header);
+
+            sharedPresets.forEach(preset => {
+                const item = document.createElement('div');
+                item.className = 'database-item';
+                item.innerHTML =
+                    `<span class="preset-item-label">${escapeHtml(preset.label)}</span>` +
+                    `<span class="preset-item-url">${escapeHtml(preset.url)}</span>`;
+                item.onclick = function() {
+                    selectRemoteUrl(preset.url, input);
+                    dropdown.remove();
+                };
+                dropdown.appendChild(item);
+            });
+        }
+
+        if (sharedPresets.length > 0 && recentUrls.length > 0) {
+            const divider = document.createElement('div');
+            divider.className = 'preset-list-divider';
+            dropdown.appendChild(divider);
+        }
+
+        if (recentUrls.length > 0) {
+            const header = document.createElement('div');
+            header.className = 'preset-section-header';
+            header.textContent = 'Recent URLs';
+            dropdown.appendChild(header);
+
+            recentUrls.forEach(url => {
+                const item = document.createElement('div');
+                item.className = 'database-item';
+                item.textContent = url;
+                item.onclick = function() {
+                    selectRemoteUrl(url, input);
+                    dropdown.remove();
+                };
+                dropdown.appendChild(item);
+            });
+        }
+    }
+
+    container.appendChild(dropdown);
+
+    const closeDropdown = (e) => {
+        if (!container.contains(e.target)) {
+            dropdown.remove();
+            document.removeEventListener('click', closeDropdown);
+        }
+    };
+
+    setTimeout(() => {
+        document.addEventListener('click', closeDropdown);
+    }, 100);
+}
+
 /**
  * Add log entry to the log container
  */
@@ -171,6 +312,173 @@ function updateStats(stats) {
     
     const statsGrid = document.getElementById('statsGrid');
     statsGrid.style.display = 'grid';
+}
+
+const LOCALHOST_HOST_ALIASES = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+/**
+ * Normalize hostname for comparison (localhost variants → localhost).
+ */
+function normalizeSyncHost(host) {
+    const normalized = String(host || '').toLowerCase();
+    if (LOCALHOST_HOST_ALIASES.has(normalized)) {
+        return 'localhost';
+    }
+    return normalized;
+}
+
+/**
+ * Parse and normalize a sync API URL for comparison.
+ */
+function parseSyncApiUrl(url) {
+    if (!url || typeof url !== 'string') {
+        return null;
+    }
+
+    try {
+        const parsed = new URL(url.trim());
+        const host = normalizeSyncHost(parsed.hostname);
+        const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
+        const path = parsed.pathname.replace(/\/+/g, '/').replace(/\/$/, '').toLowerCase();
+
+        return {
+            host,
+            port,
+            path,
+            key: `${parsed.protocol}//${host}:${port}${path}`
+        };
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Build normalized keys for this server's sync API endpoint.
+ */
+function getLocalSyncApiUrlKeys() {
+    const keys = new Set();
+    const paths = new Set();
+
+    function addCandidate(url) {
+        const parsed = parseSyncApiUrl(url);
+        if (!parsed) {
+            return;
+        }
+        keys.add(parsed.key);
+        paths.add(parsed.path);
+    }
+
+    if (window.SYNC_LOCAL_API_URL) {
+        addCandidate(window.SYNC_LOCAL_API_URL);
+    }
+
+    addCandidate(new URL('api.php', window.location.href).href);
+
+    const reference = parseSyncApiUrl(
+        window.SYNC_LOCAL_API_URL || new URL('api.php', window.location.href).href
+    );
+    if (reference) {
+        (window.SYNC_LOCAL_HOSTS || []).forEach(hostName => {
+            addCandidate(`${window.location.protocol}//${hostName}:${reference.port}${reference.path}`);
+        });
+    }
+
+    const aliasKeys = [];
+    keys.forEach(key => {
+        if (key.includes('//localhost:')) {
+            aliasKeys.push(key.replace('//localhost:', '//127.0.0.1:'));
+        } else if (key.includes('//127.0.0.1:')) {
+            aliasKeys.push(key.replace('//127.0.0.1:', '//localhost:'));
+        }
+    });
+    aliasKeys.forEach(key => keys.add(key));
+
+    return { keys, paths };
+}
+
+/**
+ * Known hostnames for this server (including localhost aliases when applicable).
+ */
+function getLocalHostSet() {
+    const hosts = new Set((window.SYNC_LOCAL_HOSTS || []).map(normalizeSyncHost));
+    const pageHost = normalizeSyncHost(window.location.hostname);
+    if (pageHost) {
+        hosts.add(pageHost);
+    }
+
+    const hasLocalAlias = [...hosts].some(host => LOCALHOST_HOST_ALIASES.has(host) || host === 'localhost');
+    if (hasLocalAlias) {
+        LOCALHOST_HOST_ALIASES.forEach(host => hosts.add(normalizeSyncHost(host)));
+        hosts.add('localhost');
+    }
+
+    return hosts;
+}
+
+/**
+ * True when the remote URL points at this server's sync API (self-sync).
+ */
+function isRemoteSameAsLocalServer(remoteUrl) {
+    const remote = parseSyncApiUrl(remoteUrl);
+    if (!remote) {
+        return false;
+    }
+
+    const { keys, paths } = getLocalSyncApiUrlKeys();
+    if (keys.has(remote.key)) {
+        return true;
+    }
+
+    const localHosts = getLocalHostSet();
+    if (localHosts.has(remote.host) && paths.has(remote.path)) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Block sync when source and target are the same server (and optionally the same database).
+ */
+function getSelfSyncBlockMessage(config) {
+    const remoteUrl = (config.remoteUrl || '').trim();
+    if (!remoteUrl) {
+        return null;
+    }
+
+    if (isRemoteSameAsLocalServer(remoteUrl)) {
+        const localApiUrl = window.SYNC_LOCAL_API_URL || new URL('api.php', window.location.href).href;
+        return [
+            'The remote server URL points to this server — syncing from yourself is not allowed.',
+            '',
+            `Remote URL: ${remoteUrl}`,
+            `This server: ${localApiUrl}`,
+            '',
+            'The sync process drops and recreates the target database. If source and target are the same server, the database can end up empty.',
+            'Use a URL for a different server as the sync source.'
+        ].join('\n');
+    }
+
+    const remoteDbName = (config.remoteDbName || '').trim();
+    const localDbName = (config.localDbName || '').trim();
+    if (remoteDbName && localDbName && remoteDbName === localDbName) {
+        const remoteDbHost = normalizeSyncHost(config.remoteDbHost || 'localhost');
+        const localDbHost = normalizeSyncHost(window.SYNC_TARGET_DBHOST || 'localhost');
+        const localHosts = getLocalHostSet();
+
+        if (remoteDbHost === localDbHost || localHosts.has(remoteDbHost)) {
+            return [
+                'Remote and local database names are identical on what appears to be the same database host.',
+                '',
+                `Database: ${remoteDbName}`,
+                '',
+                'Syncing would drop tables in the target while reading from the same database, which can leave it empty.',
+                'Use a different local target database name, or sync from a different server.'
+            ].join('\n');
+        }
+    }
+
+    return null;
 }
 
 /**
@@ -492,6 +800,7 @@ async function testConnection() {
         
         addLog(`✅ Connection successful!`, 'success');
         addLog(`   Found ${data.tables.length} tables in database "${formData.get('remoteDbName')}"`, 'success');
+        trackRemoteUrlUsage(formData.get('remoteUrl'));
         
         Dialog.alert({
             title: 'Connection Successful',
@@ -590,6 +899,17 @@ async function startSync() {
         localDbName: formData.get('localDbName'),
         chunkSize: parseInt(formData.get('chunkSize'))
     };
+
+    const selfSyncMessage = getSelfSyncBlockMessage(config);
+    if (selfSyncMessage) {
+        Dialog.alert({
+            title: 'Sync Blocked',
+            message: selfSyncMessage,
+            icon: '🛑',
+            confirmClass: 'btn-danger'
+        });
+        return;
+    }
     
     // Hide any previous error
     hideError();
@@ -885,6 +1205,7 @@ async function startSync() {
         
         addLog('🎉 Database sync completed successfully!', 'success');
         addLog(`📊 Summary: ${stats.tables} tables, ${stats.rows.toLocaleString()} rows, ${stats.views} views, ${stats.procedures} procedures, ${stats.functions} functions, ${stats.triggers} triggers`, 'success');
+        trackRemoteUrlUsage(config.remoteUrl);
         
         // Show success alert
         setTimeout(() => {
@@ -969,6 +1290,17 @@ document.addEventListener('DOMContentLoaded', function() {
             localDbName: formData.get('localDbName')
         };
 
+        const selfSyncMessage = getSelfSyncBlockMessage(config);
+        if (selfSyncMessage) {
+            Dialog.alert({
+                title: 'Sync Blocked',
+                message: selfSyncMessage,
+                icon: '🛑',
+                confirmClass: 'btn-danger'
+            });
+            return;
+        }
+
         const summaryLine = buildSyncSummary(config);
         const targetServerLabel = window.SYNC_TARGET_SERVER_LABEL || 'this server';
 
@@ -1004,6 +1336,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load databases button
     document.getElementById('loadDatabasesBtn').addEventListener('click', loadDatabases);
+
+    // Remote URL presets button
+    document.getElementById('remoteUrlPresetsBtn').addEventListener('click', showRemoteUrlPresets);
+
+    // Track custom remote URLs on blur
+    document.getElementById('remoteUrl').addEventListener('blur', function() {
+        if (this.value.trim()) {
+            trackRemoteUrlUsage(this.value);
+        }
+    });
     
     // Clear form button
     document.getElementById('clearFormBtn').addEventListener('click', function() {

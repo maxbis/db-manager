@@ -16,10 +16,37 @@ $settingsFile = __DIR__ . '/settings.json';
 $message = '';
 $messageType = '';
 
+/**
+ * Seed remote server presets from legacy single-URL setting when needed.
+ */
+function migrateRemoteServerPresets(array $settings): array
+{
+    $presets = $settings['database_sync']['remote server presets'] ?? [];
+    if (!empty($presets)) {
+        return $settings;
+    }
+
+    $legacyUrl = trim($settings['database_sync']['remote server URL'] ?? '');
+    if ($legacyUrl === '') {
+        $settings['database_sync']['remote server presets'] = [];
+        return $settings;
+    }
+
+    $host = parse_url($legacyUrl, PHP_URL_HOST);
+    $settings['database_sync']['remote server presets'] = [
+        [
+            'label' => $host ?: $legacyUrl,
+            'url' => $legacyUrl,
+        ],
+    ];
+
+    return $settings;
+}
+
 // Default settings structure
 $defaultSettings = [
     'database_sync' => [
-        'remote server URL' => '',
+        'remote server presets' => [],
         'API Key' => '',
         'remote DB host' => 'localhost'
     ],
@@ -42,6 +69,9 @@ if (file_exists($settingsFile)) {
     }
 }
 
+$currentSettings = migrateRemoteServerPresets($currentSettings);
+$remoteServerPresets = $currentSettings['database_sync']['remote server presets'] ?? [];
+
 // Handle Form Submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Validate CSRF token if you have one, skipping for now as per context
@@ -50,9 +80,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newSettings = $currentSettings;
     
     // Database Sync Settings
-    if (isset($_POST['remote_server_url'])) {
-        $newSettings['database_sync']['remote server URL'] = trim($_POST['remote_server_url']);
+    $presetLabels = $_POST['preset_label'] ?? [];
+    $presetUrls = $_POST['preset_url'] ?? [];
+    $presets = [];
+
+    if (is_array($presetLabels) && is_array($presetUrls)) {
+        $rowCount = max(count($presetLabels), count($presetUrls));
+        for ($i = 0; $i < $rowCount; $i++) {
+            $label = trim($presetLabels[$i] ?? '');
+            $url = trim($presetUrls[$i] ?? '');
+            if ($label === '' && $url === '') {
+                continue;
+            }
+            if ($url !== '' && !filter_var($url, FILTER_VALIDATE_URL)) {
+                continue;
+            }
+            if ($url === '') {
+                continue;
+            }
+            if ($label === '') {
+                $label = parse_url($url, PHP_URL_HOST) ?: $url;
+            }
+            $presets[] = [
+                'label' => $label,
+                'url' => $url,
+            ];
+        }
     }
+
+    $newSettings['database_sync']['remote server presets'] = $presets;
+    unset($newSettings['database_sync']['remote server URL']);
+
     if (isset($_POST['api_key'])) {
         $newSettings['database_sync']['API Key'] = trim($_POST['api_key']);
     }
@@ -76,7 +134,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (file_put_contents($settingsFile, json_encode($newSettings, JSON_PRETTY_PRINT))) {
         $message = 'Settings saved successfully.';
         $messageType = 'success';
-        $currentSettings = $newSettings;
+        $currentSettings = migrateRemoteServerPresets($newSettings);
+        $remoteServerPresets = $currentSettings['database_sync']['remote server presets'] ?? [];
     } else {
         $message = 'Error saving settings. Please check file permissions.';
         $messageType = 'error';
@@ -124,10 +183,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div class="settings-section-body">
                         <div class="form-group">
-                            <label for="remote_server_url">Remote Server URL</label>
-                            <input type="url" id="remote_server_url" name="remote_server_url" 
-                                   value="<?php echo htmlspecialchars($currentSettings['database_sync']['remote server URL'] ?? ''); ?>"
-                                   placeholder="https://example.com/api">
+                            <label>Remote Server URL Presets</label>
+                            <div class="field-info" style="margin-bottom: 12px;">
+                                Shared presets appear in the sync page dropdown. Each preset needs a label and full API URL.
+                            </div>
+                            <div id="presetRows">
+                                <?php if (empty($remoteServerPresets)): ?>
+                                <div class="preset-row">
+                                    <input type="text" name="preset_label[]" placeholder="Label (e.g. Production)" class="preset-label-input">
+                                    <input type="url" name="preset_url[]" placeholder="https://example.com/sync_db/api.php" class="preset-url-input">
+                                    <button type="button" class="btn-secondary btn-small preset-remove-btn" title="Remove preset">Remove</button>
+                                </div>
+                                <?php else: ?>
+                                <?php foreach ($remoteServerPresets as $preset): ?>
+                                <div class="preset-row">
+                                    <input type="text" name="preset_label[]" value="<?php echo htmlspecialchars($preset['label'] ?? ''); ?>" placeholder="Label (e.g. Production)" class="preset-label-input">
+                                    <input type="url" name="preset_url[]" value="<?php echo htmlspecialchars($preset['url'] ?? ''); ?>" placeholder="https://example.com/sync_db/api.php" class="preset-url-input">
+                                    <button type="button" class="btn-secondary btn-small preset-remove-btn" title="Remove preset">Remove</button>
+                                </div>
+                                <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
+                            <button type="button" id="addPresetBtn" class="btn-secondary btn-small" style="margin-top: 10px;">Add preset</button>
                         </div>
                         
                         <div class="form-group">
@@ -188,5 +265,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <?php include '../templates/footer.php'; ?>
+
+    <script>
+        (function() {
+            const presetRows = document.getElementById('presetRows');
+            const addPresetBtn = document.getElementById('addPresetBtn');
+
+            function bindRemoveButtons() {
+                presetRows.querySelectorAll('.preset-remove-btn').forEach(function(btn) {
+                    btn.onclick = function() {
+                        const rows = presetRows.querySelectorAll('.preset-row');
+                        if (rows.length <= 1) {
+                            rows[0].querySelector('.preset-label-input').value = '';
+                            rows[0].querySelector('.preset-url-input').value = '';
+                            return;
+                        }
+                        btn.closest('.preset-row').remove();
+                    };
+                });
+            }
+
+            function createPresetRow() {
+                const row = document.createElement('div');
+                row.className = 'preset-row';
+                row.innerHTML =
+                    '<input type="text" name="preset_label[]" placeholder="Label (e.g. Production)" class="preset-label-input">' +
+                    '<input type="url" name="preset_url[]" placeholder="https://example.com/sync_db/api.php" class="preset-url-input">' +
+                    '<button type="button" class="btn-secondary btn-small preset-remove-btn" title="Remove preset">Remove</button>';
+                return row;
+            }
+
+            addPresetBtn.addEventListener('click', function() {
+                const row = createPresetRow();
+                presetRows.appendChild(row);
+                bindRemoveButtons();
+                row.querySelector('.preset-label-input').focus();
+            });
+
+            bindRemoveButtons();
+        })();
+    </script>
 </body>
 </html>

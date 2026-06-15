@@ -34,6 +34,74 @@ if ($targetDbHost) {
     $targetServerLabel .= ' (DB host: ' . $targetDbHost . ')';
 }
 
+// Canonical local sync API URL and hostnames (for self-sync protection in the client)
+$localApiScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$localHttpHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$syncBasePath = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/sync_db'), '/\\');
+$localApiUrl = $localApiScheme . '://' . $localHttpHost . $syncBasePath . '/api.php';
+
+$localHosts = [];
+$hostFromHeader = strtolower(parse_url($localApiScheme . '://' . $localHttpHost, PHP_URL_HOST)
+    ?: preg_replace('/:\d+$/', '', $localHttpHost));
+if ($hostFromHeader !== '') {
+    $localHosts[] = $hostFromHeader;
+}
+if (!empty($_SERVER['SERVER_NAME'])) {
+    $localHosts[] = strtolower($_SERVER['SERVER_NAME']);
+}
+if ($targetServerHost) {
+    $localHosts[] = strtolower($targetServerHost);
+}
+$localHosts = array_values(array_unique(array_filter($localHosts)));
+
+$remoteUrlPresets = [];
+$settingsFile = __DIR__ . '/../settings/settings.json';
+$defaultSyncSettings = [
+    'database_sync' => [
+        'remote server presets' => [],
+    ],
+];
+$syncSettings = $defaultSyncSettings;
+if (is_file($settingsFile)) {
+    $jsonContent = file_get_contents($settingsFile);
+    $decoded = json_decode($jsonContent, true);
+    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+        $syncSettings = array_replace_recursive($defaultSyncSettings, $decoded);
+    }
+}
+
+$presets = $syncSettings['database_sync']['remote server presets'] ?? [];
+if (empty($presets)) {
+    $legacyUrl = trim($syncSettings['database_sync']['remote server URL'] ?? '');
+    if ($legacyUrl !== '') {
+        $host = parse_url($legacyUrl, PHP_URL_HOST);
+        $presets = [
+            [
+                'label' => $host ?: $legacyUrl,
+                'url' => $legacyUrl,
+            ],
+        ];
+    }
+}
+
+foreach ($presets as $preset) {
+    if (!is_array($preset)) {
+        continue;
+    }
+    $url = trim($preset['url'] ?? '');
+    if ($url === '') {
+        continue;
+    }
+    $label = trim($preset['label'] ?? '');
+    if ($label === '') {
+        $label = parse_url($url, PHP_URL_HOST) ?: $url;
+    }
+    $remoteUrlPresets[] = [
+        'label' => $label,
+        'url' => $url,
+    ];
+}
+
 // Page configuration for header template
 $pageConfig = [
     'id' => 'sync_db',
@@ -59,6 +127,9 @@ $pageConfig = [
         window.SYNC_TARGET_SERVER_LABEL = <?php echo json_encode($targetServerLabel); ?>;
         window.SYNC_TARGET_HOSTNAME = <?php echo json_encode($targetServerHost); ?>;
         window.SYNC_TARGET_DBHOST = <?php echo json_encode($targetDbHost); ?>;
+        window.SYNC_LOCAL_API_URL = <?php echo json_encode($localApiUrl, JSON_UNESCAPED_SLASHES); ?>;
+        window.SYNC_LOCAL_HOSTS = <?php echo json_encode($localHosts, JSON_UNESCAPED_SLASHES); ?>;
+        window.SYNC_REMOTE_URL_PRESETS = <?php echo json_encode($remoteUrlPresets, JSON_UNESCAPED_SLASHES); ?>;
     </script>
 
     <div class="sync-container">

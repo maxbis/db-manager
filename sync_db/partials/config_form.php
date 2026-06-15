@@ -7,8 +7,14 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label for="remoteUrl">Remote Server URL</label>
-                    <input type="text" id="remoteUrl" name="remoteUrl" placeholder="https://example.com/sync_db/api.php" required>
-                    <small>Full URL to the remote sync API endpoint</small>
+                    <div class="remote-url-container">
+                        <input type="url" id="remoteUrl" name="remoteUrl" placeholder="https://example.com/sync_db/api.php" required>
+                        <button type="button" id="remoteUrlPresetsBtn" class="btn btn-secondary btn-small" title="Choose a saved remote server URL">
+                            <span>📋</span>
+                            <span>Presets</span>
+                        </button>
+                    </div>
+                    <small>Full URL to the remote sync API endpoint (pick a preset or type your own)</small>
                 </div>
 
                 <div class="form-group">

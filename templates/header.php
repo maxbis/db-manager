@@ -53,6 +53,12 @@ $menuItems = [
         'url' => '../table_structure',
         'icon' => '🔍',
         'name' => 'Table Structure'
+    ],
+    [
+        'id' => 'settings',
+        'url' => '../settings',
+        'icon' => '⚙️',
+        'name' => 'Settings'
     ]
 ];
 
