@@ -57,7 +57,7 @@
 
         <!-- Local Database Settings Group -->
         <div class="form-section">
-            <h3 class="form-section-title">💾 Destination (this server) – Replaced with remote copy</h3>
+            <h3 class="form-section-title" id="destinationSectionTitle">💾 Destination (this server) – Replaced with remote copy</h3>
             <div class="form-grid">
                 <div class="form-group">
                     <label for="localDbName">

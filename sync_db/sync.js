@@ -833,6 +833,35 @@ function escapeHtml(str) {
 }
 
 /**
+ * Read sync-related values from the configuration form.
+ */
+function getSyncFormConfig() {
+    const form = document.getElementById('syncForm');
+    if (!form) {
+        return {};
+    }
+
+    const formData = new FormData(form);
+    return {
+        remoteDbHost: formData.get('remoteDbHost'),
+        remoteDbName: formData.get('remoteDbName'),
+        localDbName: formData.get('localDbName')
+    };
+}
+
+/**
+ * Build the destination section title from the current sync configuration.
+ */
+function buildDestinationSectionTitle(config) {
+    const remoteDb = (config.remoteDbName || '').trim() || '<remote_database>';
+    const remoteHost = (config.remoteDbHost || '').trim() || '<remote_host>';
+    const localDb = (config.localDbName || '').trim() || '<local_database>';
+    const targetHostname = (window.SYNC_TARGET_HOSTNAME || window.SYNC_TARGET_SERVER_LABEL || 'this server');
+
+    return `💾 Destination ${localDb}@${targetHostname} - replaced with ${remoteDb}@${remoteHost}`;
+}
+
+/**
  * Build a human-readable summary of the current sync configuration
  */
 function buildSyncSummary(config) {
@@ -855,27 +884,20 @@ function buildSyncSummary(config) {
 }
 
 /**
- * Update the on-page sync summary line
+ * Update the on-page sync summary and destination section title
  */
 function updateSyncSummary() {
     const summaryEl = document.getElementById('syncSummary');
-    if (!summaryEl) {
-        return;
+    const destinationTitleEl = document.getElementById('destinationSectionTitle');
+    const config = getSyncFormConfig();
+
+    if (summaryEl) {
+        summaryEl.innerHTML = buildSyncSummary(config);
     }
 
-    const form = document.getElementById('syncForm');
-    if (!form) {
-        return;
+    if (destinationTitleEl) {
+        destinationTitleEl.textContent = buildDestinationSectionTitle(config);
     }
-
-    const formData = new FormData(form);
-    const config = {
-        remoteDbHost: formData.get('remoteDbHost'),
-        remoteDbName: formData.get('remoteDbName'),
-        localDbName: formData.get('localDbName')
-    };
-
-    summaryEl.innerHTML = buildSyncSummary(config);
 }
 
 /**
@@ -1375,6 +1397,13 @@ document.addEventListener('DOMContentLoaded', function() {
         saveFormToCookies();
         updateSyncSummary();
     });
+
+    ['remoteDbName', 'remoteDbHost', 'localDbName'].forEach(function(fieldId) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', updateSyncSummary);
+        }
+    });
     
     // Auto-sync local database name from remote database name
     const remoteDbNameInput = document.getElementById('remoteDbName');
@@ -1421,6 +1450,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 localDbNameInput.value = '';
             }
         }
+        updateSyncSummary();
     });
     
     // Track when user manually edits local DB name
@@ -1429,6 +1459,7 @@ document.addEventListener('DOMContentLoaded', function() {
             userEditedLocalDb = true;
             localDbHelp.textContent = 'Custom destination name (will not auto-sync).';
         }
+        updateSyncSummary();
     });
     
     // Reset user-edited flag when remote DB changes significantly
