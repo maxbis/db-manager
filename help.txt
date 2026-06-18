@@ -1,0 +1,2 @@
+https://dbmanager.qool.ovh/db-manager/sync_db/api.php
+https://www.wijs.ovh/db-manager/sync_db/api.php

@@ -447,7 +447,8 @@ function getSelfSyncBlockMessage(config) {
         return null;
     }
 
-    if (isRemoteSameAsLocalServer(remoteUrl)) {
+    const remoteMatchesCurrentServer = isRemoteSameAsLocalServer(remoteUrl);
+    if (remoteMatchesCurrentServer) {
         const localApiUrl = window.SYNC_LOCAL_API_URL || new URL('api.php', window.location.href).href;
         return [
             'The remote server URL points to this server — syncing from yourself is not allowed.',
@@ -465,9 +466,9 @@ function getSelfSyncBlockMessage(config) {
     if (remoteDbName && localDbName && remoteDbName === localDbName) {
         const remoteDbHost = normalizeSyncHost(config.remoteDbHost || 'localhost');
         const localDbHost = normalizeSyncHost(window.SYNC_TARGET_DBHOST || 'localhost');
-        const localHosts = getLocalHostSet();
+        const sameConcreteDbHost = remoteDbHost === localDbHost && !LOCALHOST_HOST_ALIASES.has(remoteDbHost);
 
-        if (remoteDbHost === localDbHost || localHosts.has(remoteDbHost)) {
+        if (sameConcreteDbHost) {
             return [
                 'Remote and local database names are identical on what appears to be the same database host.',
                 '',
@@ -904,6 +905,62 @@ function buildSyncSummaryHtml(config) {
     const targetHostnameSafe = escapeHtml(parts.targetHostname);
 
     return `Destination <span class="sync-summary-dest">${localDbSafe}@${targetHostnameSafe}</span> — replaced with <span class="sync-summary-source">${remoteDbSafe}@${remoteHostSafe}</span> <span class="sync-summary-warning">(existing data will be replaced)</span>`;
+}
+
+/**
+ * Get the display host for the remote source from the remote sync URL.
+ */
+function getRemoteSourceDisplayHost(remoteUrl) {
+    const trimmedUrl = (remoteUrl || '').trim();
+    if (!trimmedUrl) {
+        return '<remote_server>';
+    }
+
+    try {
+        return new URL(trimmedUrl).host || trimmedUrl;
+    } catch (error) {
+        return trimmedUrl;
+    }
+}
+
+/**
+ * Build the visual confirmation body for the destructive sync prompt.
+ */
+function buildSyncConfirmHtml(config) {
+    const targetServerLabel = window.SYNC_TARGET_SERVER_LABEL || 'this server';
+    const sourceUrl = (config.remoteUrl || '').trim() || '<remote_url>';
+    const sourceDb = (config.remoteDbName || '').trim() || '<remote_database>';
+    const sourceHost = getRemoteSourceDisplayHost(config.remoteUrl);
+    const targetDb = (config.localDbName || '').trim() || '<local_database>';
+
+    return `
+        <div class="sync-confirm-flow">
+            <div class="sync-confirm-node sync-confirm-source">
+                <div class="sync-confirm-node-label">Original database</div>
+                <div class="sync-confirm-db">${escapeHtml(sourceDb)}</div>
+                <div class="sync-confirm-host">${escapeHtml(sourceHost)}</div>
+                <div class="sync-confirm-badge">Read-only source</div>
+            </div>
+
+            <div class="sync-confirm-arrow" aria-hidden="true">
+                <span class="sync-confirm-arrow-line"></span>
+                <span class="sync-confirm-arrow-head">&rarr;</span>
+            </div>
+
+            <div class="sync-confirm-node sync-confirm-target">
+                <div class="sync-confirm-node-label">Target database</div>
+                <div class="sync-confirm-db">${escapeHtml(targetDb)}</div>
+                <div class="sync-confirm-host">${escapeHtml(targetServerLabel)}</div>
+                <div class="sync-confirm-badge sync-confirm-badge-danger">Will be replaced</div>
+            </div>
+        </div>
+
+        <div class="sync-confirm-details">
+            <p>Data will be copied from <strong>${escapeHtml(sourceDb)}</strong> to <strong>${escapeHtml(targetDb)}</strong>.</p>
+            <p>The target database will be dropped and recreated during this sync. Existing target data will be replaced and this action cannot be undone.</p>
+            <p class="sync-confirm-url">Source URL: ${escapeHtml(sourceUrl)}</p>
+        </div>
+    `;
 }
 
 /**
@@ -1402,35 +1459,24 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const summaryLine = buildSyncSummaryText(config);
-        const targetServerLabel = window.SYNC_TARGET_SERVER_LABEL || 'this server';
-
-        const messageLines = [
-            summaryLine,
-            '',
-            'You are about to COPY data from the remote database to this server.',
-            '',
-            `SOURCE (read-only):`,
-            `  - URL: ${config.remoteUrl || '<remote_url>'}`,
-            `  - Database: ${config.remoteDbName || '<remote_database>'} @ ${config.remoteDbHost || '<remote_host>'}`,
-            '',
-            `DESTINATION (replaced with remote copy):`,
-            `  - Database: ${config.localDbName || '<local_database>'} on ${targetServerLabel}`,
-            '',
-            'The destination database will be dropped and recreated as part of this sync.',
-            'This action cannot be undone.'
-        ];
-
-        Dialog.confirm({
+        Dialog.custom({
             title: 'Confirm Database Sync',
-            message: messageLines.join('\n'),
-            icon: '⚠️',
-            confirmText: 'Yes, replace destination',
-            cancelText: 'Cancel',
-            confirmClass: 'btn-danger',
-            onConfirm: function() {
-                startSync();
-            }
+            body: buildSyncConfirmHtml(config),
+            width: '760px',
+            buttons: [
+                {
+                    text: 'Cancel',
+                    class: 'btn-secondary',
+                    action: function() {}
+                },
+                {
+                    text: 'Yes, replace target',
+                    class: 'btn-danger',
+                    action: function() {
+                        startSync();
+                    }
+                }
+            ]
         });
     });
     
@@ -1586,4 +1632,3 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize summary once form has been populated
     updateSyncSummary();
 });
-
